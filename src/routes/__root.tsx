@@ -88,10 +88,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Aarambh AI — Begin Learning, Anytime" },
       {
         property: "og:description",
-        content: "Learning that understands where you are, adapts to how you learn, and grows with you.",
+        content: "Aarambh AI is an AI-powered adaptive multilingual learning platform that meets every learner where they are.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Aarambh AI — Begin Learning, Anytime" },
+      { name: "twitter:description", content: "Aarambh AI is an AI-powered adaptive multilingual learning platform that meets every learner where they are." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/cde39cfe-9e5e-4d47-a93e-3b8684c0272f/id-preview-e15320c2--89a87cc1-3974-4895-916e-e0e277db088f.lovable.app-1784118875464.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/cde39cfe-9e5e-4d47-a93e-3b8684c0272f/id-preview-e15320c2--89a87cc1-3974-4895-916e-e0e277db088f.lovable.app-1784118875464.png" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
