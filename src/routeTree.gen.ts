@@ -9,61 +9,734 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as RoleSelectionRouteImport } from './routes/role-selection'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as LanguageSelectionRouteImport } from './routes/language-selection'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as AssessmentIntroRouteImport } from './routes/assessment-intro'
+import { Route as PublicRouteImport } from './routes/_public'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as PublicIndexRouteImport } from './routes/_public.index'
+import { Route as PublicTermsRouteImport } from './routes/_public.terms'
+import { Route as PublicPrivacyRouteImport } from './routes/_public.privacy'
+import { Route as PublicHowItWorksRouteImport } from './routes/_public.how-it-works'
+import { Route as PublicFeaturesRouteImport } from './routes/_public.features'
+import { Route as PublicFaqRouteImport } from './routes/_public.faq'
+import { Route as PublicContactRouteImport } from './routes/_public.contact'
+import { Route as PublicAboutRouteImport } from './routes/_public.about'
+import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppResourcesRouteImport } from './routes/_app.resources'
+import { Route as AppReportsRouteImport } from './routes/_app.reports'
+import { Route as AppProgressRouteImport } from './routes/_app.progress'
+import { Route as AppProfileRouteImport } from './routes/_app.profile'
+import { Route as AppPracticeRouteImport } from './routes/_app.practice'
+import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
+import { Route as AppLearningPathRouteImport } from './routes/_app.learning-path'
+import { Route as AppLearnRouteImport } from './routes/_app.learn'
+import { Route as AppHelpRouteImport } from './routes/_app.help'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppCommunityRouteImport } from './routes/_app.community'
+import { Route as AppAssessmentsRouteImport } from './routes/_app.assessments'
+import { Route as AppAchievementsRouteImport } from './routes/_app.achievements'
 
-const IndexRoute = IndexRouteImport.update({
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoleSelectionRoute = RoleSelectionRouteImport.update({
+  id: '/role-selection',
+  path: '/role-selection',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LanguageSelectionRoute = LanguageSelectionRouteImport.update({
+  id: '/language-selection',
+  path: '/language-selection',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssessmentIntroRoute = AssessmentIntroRouteImport.update({
+  id: '/assessment-intro',
+  path: '/assessment-intro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublicRoute = PublicRouteImport.update({
+  id: '/_public',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublicIndexRoute = PublicIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicTermsRoute = PublicTermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicPrivacyRoute = PublicPrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicHowItWorksRoute = PublicHowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicFeaturesRoute = PublicFeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicFaqRoute = PublicFaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicContactRoute = PublicContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicAboutRoute = PublicAboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => PublicRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppResourcesRoute = AppResourcesRouteImport.update({
+  id: '/resources',
+  path: '/resources',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProgressRoute = AppProgressRouteImport.update({
+  id: '/progress',
+  path: '/progress',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPracticeRoute = AppPracticeRouteImport.update({
+  id: '/practice',
+  path: '/practice',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLearningPathRoute = AppLearningPathRouteImport.update({
+  id: '/learning-path',
+  path: '/learning-path',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLearnRoute = AppLearnRouteImport.update({
+  id: '/learn',
+  path: '/learn',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHelpRoute = AppHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCommunityRoute = AppCommunityRouteImport.update({
+  id: '/community',
+  path: '/community',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAssessmentsRoute = AppAssessmentsRouteImport.update({
+  id: '/assessments',
+  path: '/assessments',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAchievementsRoute = AppAchievementsRouteImport.update({
+  id: '/achievements',
+  path: '/achievements',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof PublicIndexRoute
+  '/assessment-intro': typeof AssessmentIntroRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/language-selection': typeof LanguageSelectionRoute
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/role-selection': typeof RoleSelectionRoute
+  '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/achievements': typeof AppAchievementsRoute
+  '/assessments': typeof AppAssessmentsRoute
+  '/community': typeof AppCommunityRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/help': typeof AppHelpRoute
+  '/learn': typeof AppLearnRoute
+  '/learning-path': typeof AppLearningPathRoute
+  '/notifications': typeof AppNotificationsRoute
+  '/practice': typeof AppPracticeRoute
+  '/profile': typeof AppProfileRoute
+  '/progress': typeof AppProgressRoute
+  '/reports': typeof AppReportsRoute
+  '/resources': typeof AppResourcesRoute
+  '/settings': typeof AppSettingsRoute
+  '/about': typeof PublicAboutRoute
+  '/contact': typeof PublicContactRoute
+  '/faq': typeof PublicFaqRoute
+  '/features': typeof PublicFeaturesRoute
+  '/how-it-works': typeof PublicHowItWorksRoute
+  '/privacy': typeof PublicPrivacyRoute
+  '/terms': typeof PublicTermsRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/': typeof PublicIndexRoute
+  '/assessment-intro': typeof AssessmentIntroRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/language-selection': typeof LanguageSelectionRoute
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/role-selection': typeof RoleSelectionRoute
+  '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/achievements': typeof AppAchievementsRoute
+  '/assessments': typeof AppAssessmentsRoute
+  '/community': typeof AppCommunityRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/help': typeof AppHelpRoute
+  '/learn': typeof AppLearnRoute
+  '/learning-path': typeof AppLearningPathRoute
+  '/notifications': typeof AppNotificationsRoute
+  '/practice': typeof AppPracticeRoute
+  '/profile': typeof AppProfileRoute
+  '/progress': typeof AppProgressRoute
+  '/reports': typeof AppReportsRoute
+  '/resources': typeof AppResourcesRoute
+  '/settings': typeof AppSettingsRoute
+  '/about': typeof PublicAboutRoute
+  '/contact': typeof PublicContactRoute
+  '/faq': typeof PublicFaqRoute
+  '/features': typeof PublicFeaturesRoute
+  '/how-it-works': typeof PublicHowItWorksRoute
+  '/privacy': typeof PublicPrivacyRoute
+  '/terms': typeof PublicTermsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/_public': typeof PublicRouteWithChildren
+  '/assessment-intro': typeof AssessmentIntroRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/language-selection': typeof LanguageSelectionRoute
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/role-selection': typeof RoleSelectionRoute
+  '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/_app/achievements': typeof AppAchievementsRoute
+  '/_app/assessments': typeof AppAssessmentsRoute
+  '/_app/community': typeof AppCommunityRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/help': typeof AppHelpRoute
+  '/_app/learn': typeof AppLearnRoute
+  '/_app/learning-path': typeof AppLearningPathRoute
+  '/_app/notifications': typeof AppNotificationsRoute
+  '/_app/practice': typeof AppPracticeRoute
+  '/_app/profile': typeof AppProfileRoute
+  '/_app/progress': typeof AppProgressRoute
+  '/_app/reports': typeof AppReportsRoute
+  '/_app/resources': typeof AppResourcesRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_public/about': typeof PublicAboutRoute
+  '/_public/contact': typeof PublicContactRoute
+  '/_public/faq': typeof PublicFaqRoute
+  '/_public/features': typeof PublicFeaturesRoute
+  '/_public/how-it-works': typeof PublicHowItWorksRoute
+  '/_public/privacy': typeof PublicPrivacyRoute
+  '/_public/terms': typeof PublicTermsRoute
+  '/_public/': typeof PublicIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/assessment-intro'
+    | '/forgot-password'
+    | '/language-selection'
+    | '/login'
+    | '/onboarding'
+    | '/reset-password'
+    | '/role-selection'
+    | '/signup'
+    | '/sitemap.xml'
+    | '/achievements'
+    | '/assessments'
+    | '/community'
+    | '/dashboard'
+    | '/help'
+    | '/learn'
+    | '/learning-path'
+    | '/notifications'
+    | '/practice'
+    | '/profile'
+    | '/progress'
+    | '/reports'
+    | '/resources'
+    | '/settings'
+    | '/about'
+    | '/contact'
+    | '/faq'
+    | '/features'
+    | '/how-it-works'
+    | '/privacy'
+    | '/terms'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/assessment-intro'
+    | '/forgot-password'
+    | '/language-selection'
+    | '/login'
+    | '/onboarding'
+    | '/reset-password'
+    | '/role-selection'
+    | '/signup'
+    | '/sitemap.xml'
+    | '/achievements'
+    | '/assessments'
+    | '/community'
+    | '/dashboard'
+    | '/help'
+    | '/learn'
+    | '/learning-path'
+    | '/notifications'
+    | '/practice'
+    | '/profile'
+    | '/progress'
+    | '/reports'
+    | '/resources'
+    | '/settings'
+    | '/about'
+    | '/contact'
+    | '/faq'
+    | '/features'
+    | '/how-it-works'
+    | '/privacy'
+    | '/terms'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/_public'
+    | '/assessment-intro'
+    | '/forgot-password'
+    | '/language-selection'
+    | '/login'
+    | '/onboarding'
+    | '/reset-password'
+    | '/role-selection'
+    | '/signup'
+    | '/sitemap.xml'
+    | '/_app/achievements'
+    | '/_app/assessments'
+    | '/_app/community'
+    | '/_app/dashboard'
+    | '/_app/help'
+    | '/_app/learn'
+    | '/_app/learning-path'
+    | '/_app/notifications'
+    | '/_app/practice'
+    | '/_app/profile'
+    | '/_app/progress'
+    | '/_app/reports'
+    | '/_app/resources'
+    | '/_app/settings'
+    | '/_public/about'
+    | '/_public/contact'
+    | '/_public/faq'
+    | '/_public/features'
+    | '/_public/how-it-works'
+    | '/_public/privacy'
+    | '/_public/terms'
+    | '/_public/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  PublicRoute: typeof PublicRouteWithChildren
+  AssessmentIntroRoute: typeof AssessmentIntroRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LanguageSelectionRoute: typeof LanguageSelectionRoute
+  LoginRoute: typeof LoginRoute
+  OnboardingRoute: typeof OnboardingRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  RoleSelectionRoute: typeof RoleSelectionRoute
+  SignupRoute: typeof SignupRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/role-selection': {
+      id: '/role-selection'
+      path: '/role-selection'
+      fullPath: '/role-selection'
+      preLoaderRoute: typeof RoleSelectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/language-selection': {
+      id: '/language-selection'
+      path: '/language-selection'
+      fullPath: '/language-selection'
+      preLoaderRoute: typeof LanguageSelectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assessment-intro': {
+      id: '/assessment-intro'
+      path: '/assessment-intro'
+      fullPath: '/assessment-intro'
+      preLoaderRoute: typeof AssessmentIntroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_public': {
+      id: '/_public'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof PublicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_public/': {
+      id: '/_public/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof PublicIndexRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/terms': {
+      id: '/_public/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof PublicTermsRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/privacy': {
+      id: '/_public/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PublicPrivacyRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/how-it-works': {
+      id: '/_public/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof PublicHowItWorksRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/features': {
+      id: '/_public/features'
+      path: '/features'
+      fullPath: '/features'
+      preLoaderRoute: typeof PublicFeaturesRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/faq': {
+      id: '/_public/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof PublicFaqRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/contact': {
+      id: '/_public/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof PublicContactRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/about': {
+      id: '/_public/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof PublicAboutRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/resources': {
+      id: '/_app/resources'
+      path: '/resources'
+      fullPath: '/resources'
+      preLoaderRoute: typeof AppResourcesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/reports': {
+      id: '/_app/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/progress': {
+      id: '/_app/progress'
+      path: '/progress'
+      fullPath: '/progress'
+      preLoaderRoute: typeof AppProgressRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profile': {
+      id: '/_app/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/practice': {
+      id: '/_app/practice'
+      path: '/practice'
+      fullPath: '/practice'
+      preLoaderRoute: typeof AppPracticeRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/notifications': {
+      id: '/_app/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/learning-path': {
+      id: '/_app/learning-path'
+      path: '/learning-path'
+      fullPath: '/learning-path'
+      preLoaderRoute: typeof AppLearningPathRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/learn': {
+      id: '/_app/learn'
+      path: '/learn'
+      fullPath: '/learn'
+      preLoaderRoute: typeof AppLearnRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/help': {
+      id: '/_app/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof AppHelpRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/community': {
+      id: '/_app/community'
+      path: '/community'
+      fullPath: '/community'
+      preLoaderRoute: typeof AppCommunityRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/assessments': {
+      id: '/_app/assessments'
+      path: '/assessments'
+      fullPath: '/assessments'
+      preLoaderRoute: typeof AppAssessmentsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/achievements': {
+      id: '/_app/achievements'
+      path: '/achievements'
+      fullPath: '/achievements'
+      preLoaderRoute: typeof AppAchievementsRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }
 
+interface AppRouteChildren {
+  AppAchievementsRoute: typeof AppAchievementsRoute
+  AppAssessmentsRoute: typeof AppAssessmentsRoute
+  AppCommunityRoute: typeof AppCommunityRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppHelpRoute: typeof AppHelpRoute
+  AppLearnRoute: typeof AppLearnRoute
+  AppLearningPathRoute: typeof AppLearningPathRoute
+  AppNotificationsRoute: typeof AppNotificationsRoute
+  AppPracticeRoute: typeof AppPracticeRoute
+  AppProfileRoute: typeof AppProfileRoute
+  AppProgressRoute: typeof AppProgressRoute
+  AppReportsRoute: typeof AppReportsRoute
+  AppResourcesRoute: typeof AppResourcesRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAchievementsRoute: AppAchievementsRoute,
+  AppAssessmentsRoute: AppAssessmentsRoute,
+  AppCommunityRoute: AppCommunityRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppHelpRoute: AppHelpRoute,
+  AppLearnRoute: AppLearnRoute,
+  AppLearningPathRoute: AppLearningPathRoute,
+  AppNotificationsRoute: AppNotificationsRoute,
+  AppPracticeRoute: AppPracticeRoute,
+  AppProfileRoute: AppProfileRoute,
+  AppProgressRoute: AppProgressRoute,
+  AppReportsRoute: AppReportsRoute,
+  AppResourcesRoute: AppResourcesRoute,
+  AppSettingsRoute: AppSettingsRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
+interface PublicRouteChildren {
+  PublicAboutRoute: typeof PublicAboutRoute
+  PublicContactRoute: typeof PublicContactRoute
+  PublicFaqRoute: typeof PublicFaqRoute
+  PublicFeaturesRoute: typeof PublicFeaturesRoute
+  PublicHowItWorksRoute: typeof PublicHowItWorksRoute
+  PublicPrivacyRoute: typeof PublicPrivacyRoute
+  PublicTermsRoute: typeof PublicTermsRoute
+  PublicIndexRoute: typeof PublicIndexRoute
+}
+
+const PublicRouteChildren: PublicRouteChildren = {
+  PublicAboutRoute: PublicAboutRoute,
+  PublicContactRoute: PublicContactRoute,
+  PublicFaqRoute: PublicFaqRoute,
+  PublicFeaturesRoute: PublicFeaturesRoute,
+  PublicHowItWorksRoute: PublicHowItWorksRoute,
+  PublicPrivacyRoute: PublicPrivacyRoute,
+  PublicTermsRoute: PublicTermsRoute,
+  PublicIndexRoute: PublicIndexRoute,
+}
+
+const PublicRouteWithChildren =
+  PublicRoute._addFileChildren(PublicRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  PublicRoute: PublicRouteWithChildren,
+  AssessmentIntroRoute: AssessmentIntroRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  LanguageSelectionRoute: LanguageSelectionRoute,
+  LoginRoute: LoginRoute,
+  OnboardingRoute: OnboardingRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  RoleSelectionRoute: RoleSelectionRoute,
+  SignupRoute: SignupRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
