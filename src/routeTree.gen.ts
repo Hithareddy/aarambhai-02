@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as RoleSelectionRouteImport } from './routes/role-selection'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -42,6 +43,11 @@ import { Route as AppCommunityRouteImport } from './routes/_app.community'
 import { Route as AppAssessmentsRouteImport } from './routes/_app.assessments'
 import { Route as AppAchievementsRouteImport } from './routes/_app.achievements'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -211,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/role-selection': typeof RoleSelectionRoute
   '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/achievements': typeof AppAchievementsRoute
   '/assessments': typeof AppAssessmentsRoute
   '/community': typeof AppCommunityRoute
@@ -243,6 +250,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/role-selection': typeof RoleSelectionRoute
   '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/achievements': typeof AppAchievementsRoute
   '/assessments': typeof AppAssessmentsRoute
   '/community': typeof AppCommunityRoute
@@ -277,6 +285,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/role-selection': typeof RoleSelectionRoute
   '/signup': typeof SignupRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_app/achievements': typeof AppAchievementsRoute
   '/_app/assessments': typeof AppAssessmentsRoute
   '/_app/community': typeof AppCommunityRoute
@@ -312,6 +321,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/role-selection'
     | '/signup'
+    | '/sitemap.xml'
     | '/achievements'
     | '/assessments'
     | '/community'
@@ -344,6 +354,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/role-selection'
     | '/signup'
+    | '/sitemap.xml'
     | '/achievements'
     | '/assessments'
     | '/community'
@@ -377,6 +388,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/role-selection'
     | '/signup'
+    | '/sitemap.xml'
     | '/_app/achievements'
     | '/_app/assessments'
     | '/_app/community'
@@ -412,10 +424,18 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   RoleSelectionRoute: typeof RoleSelectionRoute
   SignupRoute: typeof SignupRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -715,7 +735,18 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   RoleSelectionRoute: RoleSelectionRoute,
   SignupRoute: SignupRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
