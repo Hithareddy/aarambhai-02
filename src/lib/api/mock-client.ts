@@ -4,14 +4,12 @@
 
 import type {
   ActivityDay,
-  ApiClient,
   DashboardSnapshot,
   NotificationItem,
 } from "./types";
-import type { ApiClient as _ApiClient } from "./client";
+import type { ApiClient } from "./client";
 
-// Re-declare to avoid a circular import at type-eval time.
-type Api = _ApiClient;
+type Api = ApiClient;
 
 const NETWORK_DELAY_MS = 220;
 
