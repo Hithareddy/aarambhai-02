@@ -32,7 +32,9 @@ function LanguageSelectionPage() {
         </Button>
       </header>
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 py-10">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Step 1 of 2</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+          Step 1 of 2
+        </p>
         <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
           Choose your language
         </h1>
@@ -63,7 +65,14 @@ function LanguageSelectionPage() {
           })}
         </div>
 
-        <Button size="lg" className="mt-10" onClick={() => navigate({ to: "/role-selection" })}>
+        <Button
+          size="lg"
+          className="mt-10"
+          onClick={() => {
+            localStorage.setItem("learning_language", picked);
+            navigate({ to: "/role-selection" });
+          }}
+        >
           Continue
         </Button>
       </main>

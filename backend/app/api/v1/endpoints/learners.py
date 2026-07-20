@@ -2,7 +2,6 @@
 Learner profile endpoints.
 
 Handles learner profile operations including onboarding data.
-Note: Business logic not implemented yet - structure only.
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -12,6 +11,7 @@ from app.schemas.learner import (
     LearnerProfileResponse,
     LearnerProfileUpdate,
 )
+from app.services.learner_service import LearnerService
 
 router = APIRouter()
 
@@ -19,29 +19,17 @@ router = APIRouter()
 @router.post("/", response_model=LearnerProfileResponse, status_code=status.HTTP_201_CREATED)
 async def create_learner_profile(
     profile: LearnerProfileCreate,
+    current_user=Depends(get_current_active_user),
     db=Depends(get_db),
 ):
     """
-    Create learner profile.
-
-    Creates a new learner profile with onboarding data.
-    This is typically called after user registration.
-
-    TODO: Implement learner profile creation
-    - Validate user exists
-    - Create learner profile record
-    - Return created profile
+    Create (or upsert) the current user's learner profile from onboarding data.
 
     Returns:
         LearnerProfileResponse: Created learner profile
-
-    Raises:
-        HTTPException: If user not found or profile already exists
     """
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Learner profile creation not yet implemented",
-    )
+    service = LearnerService(db)
+    return await service.create_learner_profile(profile, current_user.id)
 
 
 @router.get("/me", response_model=LearnerProfileResponse)
@@ -50,19 +38,19 @@ async def get_my_learner_profile(
     db=Depends(get_db),
 ):
     """
-    Get current user's learner profile.
-
-    Returns the learner profile of the currently authenticated user.
-
-    TODO: Implement learner profile retrieval
+    Get the current user's learner profile.
 
     Returns:
         LearnerProfileResponse: Learner profile data
     """
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Learner profile retrieval not yet implemented",
-    )
+    service = LearnerService(db)
+    profile = await service.get_learner_profile_by_user_id(current_user.id)
+    if profile is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Learner profile not found",
+        )
+    return profile
 
 
 @router.put("/me", response_model=LearnerProfileResponse)
@@ -72,16 +60,16 @@ async def update_my_learner_profile(
     db=Depends(get_db),
 ):
     """
-    Update current user's learner profile.
-
-    Allows users to update their learner profile information.
-
-    TODO: Implement learner profile update
+    Update the current user's learner profile.
 
     Returns:
         LearnerProfileResponse: Updated learner profile
     """
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Learner profile update not yet implemented",
-    )
+    service = LearnerService(db)
+    try:
+        return await service.update_learner_profile(current_user.id, profile_update)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc

@@ -1,9 +1,9 @@
-// Single entry point for API access. UI code imports `getApiClient()` and
-// calls typed methods; swapping the mock for a real FastAPI HTTP client is a
-// one-line change here — no component code changes.
+// Single entry point for dashboard/notification API access. UI code imports
+// `getApiClient()` and calls typed methods. This is backed by the real FastAPI
+// client — there is no mock implementation.
 
 import type { DashboardSnapshot, NotificationItem } from "./types";
-import { mockApiClient } from "./mock-client";
+import { getDashboardSnapshot, markAllNotificationsRead, markNotificationRead } from "./dashboard";
 
 export interface ApiClient {
   getDashboardSnapshot(): Promise<DashboardSnapshot>;
@@ -11,13 +11,19 @@ export interface ApiClient {
   markAllNotificationsRead(): Promise<void>;
 }
 
-let client: ApiClient = mockApiClient;
+const httpApiClient: ApiClient = {
+  getDashboardSnapshot,
+  markNotificationRead,
+  markAllNotificationsRead,
+};
+
+let client: ApiClient = httpApiClient;
 
 export function getApiClient(): ApiClient {
   return client;
 }
 
-// Escape hatch for tests / future swap to HttpApiClient.
+// Escape hatch for tests.
 export function __setApiClient(next: ApiClient) {
   client = next;
 }

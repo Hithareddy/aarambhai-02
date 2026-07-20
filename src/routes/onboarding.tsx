@@ -8,20 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import { saveLearnerProfile } from "@/lib/api/learner";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: "Getting to know you — Aarambh AI" }] }),
   component: OnboardingPage,
 });
 
-type StepKey =
-  | "name"
-  | "age"
-  | "background"
-  | "context"
-  | "goal"
-  | "familiarity"
-  | "digital";
+type StepKey = "name" | "age" | "background" | "context" | "goal" | "familiarity" | "digital";
 
 interface Step {
   key: StepKey;
@@ -52,7 +46,13 @@ const steps: Step[] = [
     title: "What is your educational background?",
     subtitle: "Anything you share is welcome — no wrong answers.",
     field: "options",
-    options: ["Never went to school", "Primary school", "Secondary school", "College", "Beyond college"],
+    options: [
+      "Never went to school",
+      "Primary school",
+      "Secondary school",
+      "College",
+      "Beyond college",
+    ],
   },
   {
     key: "context",
@@ -66,7 +66,13 @@ const steps: Step[] = [
     title: "What would you like to learn?",
     subtitle: "You can always change or add more goals later.",
     field: "options",
-    options: ["Basic reading & writing", "Everyday English", "Digital skills", "General knowledge", "Career skills"],
+    options: [
+      "Basic reading & writing",
+      "Everyday English",
+      "Digital skills",
+      "General knowledge",
+      "Career skills",
+    ],
   },
   {
     key: "familiarity",
@@ -80,7 +86,12 @@ const steps: Step[] = [
     title: "How comfortable are you using apps?",
     subtitle: "We'll adjust the interface to feel just right.",
     field: "options",
-    options: ["This is my first time", "I've used a few apps", "I use apps every day", "Very comfortable"],
+    options: [
+      "This is my first time",
+      "I've used a few apps",
+      "I use apps every day",
+      "Very comfortable",
+    ],
   },
 ];
 
@@ -88,6 +99,8 @@ function OnboardingPage() {
   const [i, setI] = useState(0);
   const [answers, setAnswers] = useState<Partial<Record<StepKey, string>>>({});
   const [done, setDone] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const step = steps[i];
@@ -95,9 +108,30 @@ function OnboardingPage() {
   const canContinue = value.trim().length > 0;
   const pct = Math.round(((i + 1) / steps.length) * 100);
 
-  function next() {
-    if (i < steps.length - 1) setI(i + 1);
-    else setDone(true);
+  async function next() {
+    if (i < steps.length - 1) {
+      setI(i + 1);
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await saveLearnerProfile({
+        name: answers.name ?? "",
+        age_group: answers.age ?? "",
+        educational_background: answers.background ?? "",
+        current_role: answers.context ?? "",
+        learning_goal: answers.goal ?? "",
+        learning_language: localStorage.getItem("learning_language") || "en",
+        current_familiarity: answers.familiarity ?? "",
+        digital_comfort: answers.digital ?? "",
+      });
+      setDone(true);
+    } catch (err) {
+      setError((err as Error).message || "Could not save your profile. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (done) {
@@ -120,7 +154,14 @@ function OnboardingPage() {
             <Button size="lg" onClick={() => navigate({ to: "/assessment-intro" })}>
               Continue
             </Button>
-            <Button size="lg" variant="outline" onClick={() => { setDone(false); setI(0); }}>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => {
+                setDone(false);
+                setI(0);
+              }}
+            >
               Review my answers
             </Button>
           </div>
@@ -141,7 +182,9 @@ function OnboardingPage() {
         <Progress value={pct} className="h-1.5" />
       </div>
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-4 py-10">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Getting to know you</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+          Getting to know you
+        </p>
         <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-balance">
           {step.title}
         </h1>
@@ -169,7 +212,9 @@ function OnboardingPage() {
                 <label
                   key={opt}
                   className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${
-                    value === opt ? "border-primary bg-primary-soft" : "border-border hover:border-primary/40"
+                    value === opt
+                      ? "border-primary bg-primary-soft"
+                      : "border-border hover:border-primary/40"
                   }`}
                 >
                   <RadioGroupItem value={opt} />
@@ -188,10 +233,16 @@ function OnboardingPage() {
           >
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
-          <Button onClick={next} disabled={!canContinue} className="gap-1">
-            {i === steps.length - 1 ? "Finish" : "Continue"} <ArrowRight className="h-4 w-4" />
+          <Button onClick={next} disabled={!canContinue || saving} className="gap-1">
+            {i === steps.length - 1 ? (saving ? "Saving…" : "Finish") : "Continue"}{" "}
+            <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
+        {error && (
+          <p className="mt-4 text-center text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        )}
       </main>
       <footer className="p-6 text-center">
         <Link to="/dashboard" className="text-xs text-muted-foreground hover:text-foreground">

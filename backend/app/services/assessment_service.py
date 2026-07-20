@@ -23,6 +23,7 @@ from app.schemas.assessment import (
     AssessmentSessionCreate,
     QuestionResponseCreate,
 )
+from app.services.learner_service import LearnerService
 
 DEFAULT_BLUEPRINT_ID = "initial-adaptive"
 DEFAULT_QUESTION_COUNT = 8
@@ -185,18 +186,46 @@ class AssessmentService:
         else:
             blueprint = await self._get_or_create_default_blueprint()
 
+        starting_difficulty = await self._starting_difficulty(user_id, blueprint)
+
         session = AssessmentSession(
             learner_id=user_id,
             blueprint_id=blueprint.id,
             status="in_progress",
             current_question_index=0,
-            current_difficulty=blueprint.min_difficulty,
+            current_difficulty=starting_difficulty,
             start_time=datetime.utcnow(),
         )
         self.db.add(session)
         await self.db.commit()
         await self.db.refresh(session)
         return session
+
+    async def _starting_difficulty(
+        self, user_id: str, blueprint: AssessmentBlueprint
+    ) -> int:
+        """
+        Profile-aware initial difficulty.
+
+        Per the assessment specification, starting difficulty is derived from the
+        learner's stated familiarity so beginners start easy and advanced learners
+        start higher. Falls back to the blueprint minimum when no profile exists.
+        """
+        profile = await LearnerService(self.db).get_learner_profile_by_user_id(user_id)
+        if profile is None:
+            return blueprint.min_difficulty
+
+        familiarity = (profile.current_familiarity or "").strip().lower()
+        if "advanced" in familiarity:
+            level = 4
+        elif "comfortable" in familiarity:
+            level = 3
+        elif "little" in familiarity:
+            level = 2
+        else:  # complete beginner / unknown
+            level = 1
+
+        return max(blueprint.min_difficulty, min(blueprint.max_difficulty, level))
 
     async def get_next_question(self, session_id: str, user_id: str | None = None) -> dict:
         """
@@ -414,6 +443,9 @@ class AssessmentService:
         self.db.add(result)
         await self.db.commit()
         await self.db.refresh(result)
+
+        # Reflect completion on the learner's profile (if one exists).
+        await LearnerService(self.db).mark_assessment_completed(session.learner_id)
 
         return self._serialize_result(result)
 
