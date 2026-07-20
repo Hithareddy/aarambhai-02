@@ -60,8 +60,11 @@ function AssessmentResultsPage() {
 
   const outcomes = result.skillOutcomes ?? [];
   const strengths = result.strengths ?? [];
-  const improvements = result.improvements ?? result.weaknesses ?? [];
-  const path = result.recommendedLearningPath ?? [result.recommendedFocus ?? result.recommendedStart];
+  const improvements = result.improvements ?? [];
+  const path =
+    result.recommendedLearningPath.length > 0
+      ? result.recommendedLearningPath
+      : [result.recommendedFocus];
 
   return (
     <div className="min-h-screen bg-background">
@@ -80,16 +83,14 @@ function AssessmentResultsPage() {
               <Card className="p-6 bg-primary/10 border-primary/20">
                 <p className="text-sm font-bold text-primary mb-2">Overall Level</p>
                 <div className="text-3xl font-bold text-primary-foreground">
-                  {result.overallLevel ?? result.level}
+                  {result.overallLevel}
                 </div>
                 <p className="text-sm text-primary mt-2">Across all language skills</p>
               </Card>
 
               <Card className="p-6">
                 <p className="text-sm font-bold text-muted-foreground mb-2">Recommended Focus</p>
-                <div className="text-2xl font-semibold">
-                  {result.recommendedFocus ?? result.recommendedStart}
-                </div>
+                <div className="text-2xl font-semibold">{result.recommendedFocus}</div>
                 <p className="text-sm text-muted-foreground mt-2">Target for immediate training</p>
               </Card>
 

@@ -6,18 +6,18 @@ different skills, domains, and difficulty levels.
 """
 import asyncio
 import json
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-from app.models.question import Question
-from app.db.base import Base
-from app.core.config import settings
 
-# Database URL
-DATABASE_URL = settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from app.core.config import settings
+from app.models.question import Question
+
+# Use the same async driver the application is configured with (psycopg v3).
+DATABASE_URL = settings.DATABASE_URL
 
 # Create async engine
-engine = create_async_engine(DATABASE_URL, echo=True)
-AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+engine = create_async_engine(DATABASE_URL, echo=False)
+AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
 # Sample questions data

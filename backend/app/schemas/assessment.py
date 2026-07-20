@@ -43,7 +43,10 @@ class AssessmentBlueprintResponse(AssessmentBlueprintBase):
 class AssessmentSessionBase(BaseModel):
     """Base assessment session schema."""
 
-    blueprint_id: str
+    # Optional: when omitted, the backend provisions a default adaptive
+    # blueprint so a learner can start the initial placement without first
+    # generating a blueprint explicitly.
+    blueprint_id: str | None = None
 
 
 class AssessmentSessionCreate(AssessmentSessionBase):

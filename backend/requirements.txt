@@ -12,6 +12,9 @@ psycopg[binary]==3.2.3
 # Authentication
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+# passlib 1.7.4 is incompatible with bcrypt >= 4.1 (breaks password hashing);
+# pin to the last 4.0.x release that passlib supports.
+bcrypt==4.0.1
 python-multipart==0.0.12
 
 # Utilities

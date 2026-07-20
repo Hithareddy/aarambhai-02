@@ -1,11 +1,26 @@
 /**
- * Assessment API service for aarambhai-02-main
- * Integrates with the FastAPI backend Assessment Engine
+ * Assessment API service.
+ *
+ * Talks directly to the FastAPI backend Assessment Engine. All questions are
+ * multiple-choice: each question exposes a list of options ({ id, text }) and
+ * the learner submits the id of the chosen option.
  */
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
 
-export type Skill = "listening" | "speaking" | "reading" | "writing";
+/** Number of questions in the default placement blueprint (backend default). */
+export const TOTAL_QUESTIONS = 8;
+
+export type Skill =
+  | "listening"
+  | "speaking"
+  | "reading"
+  | "writing"
+  | "vocabulary"
+  | "grammar"
+  | "pronunciation"
+  | "conversations";
+
 export type SkillLevel = "Beginner" | "Elementary" | "Intermediate" | "Advanced";
 
 export interface LearnerProfile {
@@ -29,6 +44,10 @@ export const SKILL_LABEL: Record<Skill, string> = {
   speaking: "Speaking",
   reading: "Reading",
   writing: "Writing",
+  vocabulary: "Vocabulary",
+  grammar: "Grammar",
+  pronunciation: "Pronunciation",
+  conversations: "Conversations",
 };
 
 export const SKILL_ICON: Record<Skill, string> = {
@@ -36,93 +55,40 @@ export const SKILL_ICON: Record<Skill, string> = {
   speaking: "🎤",
   reading: "📖",
   writing: "✍️",
+  vocabulary: "📚",
+  grammar: "🔤",
+  pronunciation: "🗣️",
+  conversations: "💬",
 };
 
-export const SKILLS: Skill[] = ["listening", "speaking", "reading", "writing"];
+export const SKILLS: Skill[] = [
+  "listening",
+  "speaking",
+  "reading",
+  "writing",
+  "vocabulary",
+  "grammar",
+  "pronunciation",
+  "conversations",
+];
 
-export interface BaseQuestion {
+export interface QuestionOption {
+  id: string;
+  text: string;
+}
+
+export interface Question {
   id: string;
   skill: Skill;
-  difficulty: SkillLevel;
-  index: number;
-  total: number;
+  difficulty: number;
+  prompt: string;
+  options: QuestionOption[];
 }
-
-export interface ListeningQuestion extends BaseQuestion {
-  skill: "listening";
-  type: "listening_mcq";
-  instruction: string;
-  audioText: string;
-  language: string;
-  options: string[];
-  correctIndex: number;
-}
-
-export interface SpeakingQuestion extends BaseQuestion {
-  skill: "speaking";
-  type: "speaking_prompt";
-  instruction: string;
-  targetPhrase: string;
-  language: string;
-}
-
-export interface ReadingQuestion extends BaseQuestion {
-  skill: "reading";
-  type: "reading_mcq";
-  passage: string;
-  question: string;
-  options: string[];
-  correctIndex: number;
-}
-
-export interface WritingQuestion extends BaseQuestion {
-  skill: "writing";
-  type: "writing_prompt";
-  instruction: string;
-  minWords: number;
-}
-
-export type Question = ListeningQuestion | SpeakingQuestion | ReadingQuestion | WritingQuestion;
-
-export type AnswerResponse =
-  | {
-      kind: "mcq";
-      selectedIndex: number;
-      audioPlayed?: boolean;
-      playCount?: number;
-      playCompleted?: boolean;
-    }
-  | {
-      kind: "speech";
-      transcript: string;
-      durationMs: number;
-      retries?: number;
-      confidence?: number;
-    }
-  | { kind: "writing"; text: string; wordCount: number };
-
-export interface RecordedAnswer {
-  questionId: string;
-  skill: Skill;
-  response: AnswerResponse;
-  correct?: boolean;
-  score: number;
-  difficultyDecision: SkillLevel;
-  submittedAt: string;
-}
-
-export type SessionStatus = "active" | "completed" | "abandoned" | "in_progress";
 
 export interface AssessmentSession {
   id: string;
-  profile: LearnerProfile;
-  createdAt: string;
-  status: SessionStatus;
-  plan: Question[];
+  status: string;
   currentIndex: number;
-  answers: RecordedAnswer[];
-  skillCounts: Record<Skill, { asked: number; total: number }>;
-  warnings?: string[];
 }
 
 export interface SkillOutcome {
@@ -135,38 +101,61 @@ export interface SkillOutcome {
 export interface AssessmentResult {
   sessionId: string;
   completedAt: string;
-  language: string;
   overallLevel: SkillLevel;
+  confidenceScore: number;
+  readinessLevel: string;
   skillOutcomes: SkillOutcome[];
   strengths: string[];
   improvements: string[];
   recommendedFocus: string;
   recommendedLearningPath: string[];
   totalQuestions: number;
-  correctCount: number;
-  accuracy: number;
-  level: SkillLevel;
-  weaknesses: string[];
-  topicBreakdown: {
-    topic: string;
-    correct: number;
-    total: number;
-    accuracy: number;
-  }[];
-  recommendedStart: string;
 }
 
-// API helper function
+// --- Backend response shapes -------------------------------------------------
+
+interface BackendSession {
+  id: string;
+  status: string;
+  current_question_index: number;
+}
+
+interface BackendQuestion {
+  id: string;
+  skill: string;
+  difficulty: number;
+  language: string;
+  question_content: { text?: string } | string;
+  options: Array<{ id: string; text: string }> | string;
+}
+
+interface BackendSkillProficiency {
+  skill: string;
+  proficiency: number;
+  questions_asked: number;
+}
+
+interface BackendResult {
+  session_id: string;
+  overall_proficiency: string;
+  confidence_score: number;
+  readiness_level: string;
+  skill_proficiencies: BackendSkillProficiency[];
+  strengths: string[];
+  weaknesses: string[];
+  learning_path: { recommended_start?: string; path?: string[] };
+  created_at: string;
+}
+
+// --- HTTP helper -------------------------------------------------------------
+
 async function apiRequest<T>(
   endpoint: string,
   method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
-  body?: any
+  body?: unknown,
 ): Promise<T> {
   const token = localStorage.getItem("access_token");
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-  };
-
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
@@ -174,217 +163,126 @@ async function apiRequest<T>(
   const response = await fetch(`${API_BASE}${endpoint}`, {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: "Unknown error" }));
+    const error = await response.json().catch(() => ({ detail: `API error: ${response.status}` }));
     throw new Error(error.detail || `API error: ${response.status}`);
   }
 
-  return response.json();
+  return response.json() as Promise<T>;
 }
 
-// Assessment API functions
-export async function startAssessmentSession(
-  profile: LearnerProfile
-): Promise<AssessmentSession> {
-  const response = await apiRequest<{ id: string; status: string; start_time: string; current_index: number; profile_snapshot: any }>("/assessments/sessions", "POST", {
-    profile_snapshot: profile,
-    question_plan: [], // Empty plan for now
-  });
+// --- Mappers -----------------------------------------------------------------
 
-  // Transform backend response to frontend format
+function parseJson<T>(value: T | string): T {
+  return typeof value === "string" ? (JSON.parse(value) as T) : value;
+}
+
+function levelFromScore(score: number): SkillLevel {
+  if (score >= 0.8) return "Advanced";
+  if (score >= 0.6) return "Intermediate";
+  if (score >= 0.3) return "Elementary";
+  return "Beginner";
+}
+
+function mapQuestion(data: BackendQuestion): Question {
+  const content = parseJson(data.question_content);
+  const options = parseJson(data.options);
   return {
-    id: response.id,
-    profile: response.profile_snapshot || DEFAULT_PROFILE,
-    createdAt: response.start_time,
-    status: (response.status || "in_progress") as SessionStatus,
-    plan: [],
-    currentIndex: response.current_index || 0,
-    answers: [],
-    skillCounts: {
-      listening: { asked: 0, total: 2 },
-      speaking: { asked: 0, total: 2 },
-      reading: { asked: 0, total: 2 },
-      writing: { asked: 0, total: 2 },
-    },
-    warnings: [],
-  };
-}
-
-export async function getNextQuestion(sessionId: string): Promise<Question> {
-  const data = await apiRequest<any>(`/assessments/sessions/${sessionId}/next-question`, "GET");
-  
-  // Transform backend question to frontend format
-  const questionContent = typeof data.question_content === 'string' 
-    ? JSON.parse(data.question_content) 
-    : data.question_content;
-  
-  const options = typeof data.options === 'string' 
-    ? JSON.parse(data.options) 
-    : data.options;
-
-  const baseQuestion: BaseQuestion = {
     id: data.id,
     skill: data.skill as Skill,
-    difficulty: data.difficulty as SkillLevel,
-    index: data.current_index + 1,
-    total: 8, // Default total
+    difficulty: data.difficulty,
+    prompt: content.text ?? "",
+    options: options.map((o) => ({ id: o.id, text: o.text })),
   };
+}
 
-  switch (data.skill) {
-    case "listening":
-      return {
-        ...baseQuestion,
-        skill: "listening",
-        type: "listening_mcq",
-        instruction: questionContent.text || "Listen carefully",
-        audioText: questionContent.text || "",
-        language: data.language || "en-US",
-        options: options.map((o: any) => o.text || o),
-        correctIndex: 0, // Backend doesn't expose this
-      } as ListeningQuestion;
-    
-    case "speaking":
-      return {
-        ...baseQuestion,
-        skill: "speaking",
-        type: "speaking_prompt",
-        instruction: questionContent.text || "Speak clearly",
-        targetPhrase: questionContent.text || "",
-        language: data.language || "en-US",
-      } as SpeakingQuestion;
-    
-    case "reading":
-      return {
-        ...baseQuestion,
-        skill: "reading",
-        type: "reading_mcq",
-        passage: questionContent.text || "",
-        question: questionContent.text || "",
-        options: options.map((o: any) => o.text || o),
-        correctIndex: 0,
-      } as ReadingQuestion;
-    
-    case "writing":
-      return {
-        ...baseQuestion,
-        skill: "writing",
-        type: "writing_prompt",
-        instruction: questionContent.text || "Write your answer",
-        minWords: 10,
-      } as WritingQuestion;
-    
-    default:
-      throw new Error(`Unknown skill type: ${data.skill}`);
+function mapResult(data: BackendResult): AssessmentResult {
+  const proficiencies = data.skill_proficiencies ?? [];
+  return {
+    sessionId: data.session_id,
+    completedAt: data.created_at,
+    overallLevel: (data.overall_proficiency as SkillLevel) ?? "Beginner",
+    confidenceScore: data.confidence_score,
+    readinessLevel: data.readiness_level,
+    skillOutcomes: proficiencies.map((p) => ({
+      skill: p.skill as Skill,
+      level: levelFromScore(p.proficiency),
+      score: p.proficiency,
+      asked: p.questions_asked,
+    })),
+    strengths: data.strengths ?? [],
+    improvements: data.weaknesses ?? [],
+    recommendedFocus: data.learning_path?.recommended_start ?? proficiencies[0]?.skill ?? "general",
+    recommendedLearningPath: data.learning_path?.path ?? proficiencies.map((p) => p.skill),
+    totalQuestions: proficiencies.reduce((sum, p) => sum + p.questions_asked, 0),
+  };
+}
+
+// --- API functions -----------------------------------------------------------
+
+export async function startAssessmentSession(): Promise<AssessmentSession> {
+  const data = await apiRequest<BackendSession>("/assessments/sessions", "POST", {});
+  return {
+    id: data.id,
+    status: data.status,
+    currentIndex: data.current_question_index ?? 0,
+  };
+}
+
+/**
+ * Fetch the next question for a session. Returns null when the assessment has
+ * no more questions (the learner should be routed to completion). Any other
+ * failure is re-thrown.
+ */
+export async function getNextQuestion(sessionId: string): Promise<Question | null> {
+  try {
+    const data = await apiRequest<BackendQuestion>(
+      `/assessments/sessions/${sessionId}/next-question`,
+    );
+    return mapQuestion(data);
+  } catch (err) {
+    const message = (err as Error).message?.toLowerCase() ?? "";
+    if (message.includes("no more questions") || message.includes("no questions")) {
+      return null;
+    }
+    throw err;
   }
 }
 
 export async function submitAnswer(
   sessionId: string,
   questionId: string,
-  response: AnswerResponse
-): Promise<{ done: boolean; nextQuestion?: Question }> {
+  optionId: string,
+  responseTimeSeconds: number,
+): Promise<void> {
   await apiRequest(`/assessments/sessions/${sessionId}/responses`, "POST", {
-    session_id: sessionId,
     question_id: questionId,
-    skill: response.kind === "mcq" ? "reading" : response.kind === "speech" ? "speaking" : "writing",
-    correct: response.kind === "mcq" ? true : undefined,
-    score: response.kind === "mcq" ? 1.0 : undefined,
-    response_data: { response },
+    selected_answer: optionId,
+    response_time_seconds: responseTimeSeconds,
   });
-
-  // Try to get next question - if it fails, assessment is complete
-  try {
-    const nextQ = await getNextQuestion(sessionId);
-    return { done: false, nextQuestion: nextQ };
-  } catch {
-    // No more questions - assessment complete
-    return { done: true };
-  }
 }
 
 export async function completeAssessment(sessionId: string): Promise<AssessmentResult> {
-  const data = await apiRequest<any>(`/assessments/sessions/${sessionId}/complete`, "POST", {
-    level: "Intermediate",
-    recommended_start: "reading",
-    scores: {
-      listening: 0.8,
-      speaking: 0.7,
-      reading: 0.9,
-      writing: 0.6,
-    },
-  });
-
-  // Transform backend result to frontend format
-  return {
-    sessionId: data.session_id || sessionId,
-    completedAt: data.completed_at || new Date().toISOString(),
-    language: "English",
-    overallLevel: (data.level || "Intermediate") as SkillLevel,
-    skillOutcomes: data.skill_proficiencies || [],
-    strengths: data.strengths || [],
-    improvements: data.weaknesses || [],
-    recommendedFocus: data.recommended_start || "reading",
-    recommendedLearningPath: data.learning_path || ["reading", "listening", "speaking", "writing"],
-    totalQuestions: 8,
-    correctCount: 6,
-    accuracy: 0.75,
-    level: (data.level || "Intermediate") as SkillLevel,
-    weaknesses: data.weaknesses || [],
-    topicBreakdown: [],
-    recommendedStart: data.recommended_start || "reading",
-  };
+  const data = await apiRequest<BackendResult>(
+    `/assessments/sessions/${sessionId}/complete`,
+    "POST",
+  );
+  return mapResult(data);
 }
 
 export async function getAssessmentResult(sessionId: string): Promise<AssessmentResult> {
-  const data = await apiRequest<any>(`/assessments/sessions/${sessionId}/result`, "GET");
-  
-  return {
-    sessionId: data.session_id || sessionId,
-    completedAt: data.completed_at || new Date().toISOString(),
-    language: "English",
-    overallLevel: (data.level || "Intermediate") as SkillLevel,
-    skillOutcomes: data.skill_proficiencies || [],
-    strengths: data.strengths || [],
-    improvements: data.weaknesses || [],
-    recommendedFocus: data.recommended_start || "reading",
-    recommendedLearningPath: data.learning_path || ["reading", "listening", "speaking", "writing"],
-    totalQuestions: 8,
-    correctCount: 6,
-    accuracy: 0.75,
-    level: (data.level || "Intermediate") as SkillLevel,
-    weaknesses: data.weaknesses || [],
-    topicBreakdown: [],
-    recommendedStart: data.recommended_start || "reading",
-  };
+  const data = await apiRequest<BackendResult>(`/assessments/sessions/${sessionId}/result`);
+  return mapResult(data);
 }
 
 export async function getAssessmentHistory(): Promise<AssessmentResult[]> {
-  const data = await apiRequest<any[]>("/assessments/history", "GET");
-  
-  return data.map((item) => ({
-    sessionId: item.session_id,
-    completedAt: item.completed_at || new Date().toISOString(),
-    language: "English",
-    overallLevel: (item.level || "Intermediate") as SkillLevel,
-    skillOutcomes: item.skill_proficiencies || [],
-    strengths: item.strengths || [],
-    improvements: item.weaknesses || [],
-    recommendedFocus: item.recommended_start || "reading",
-    recommendedLearningPath: item.learning_path || ["reading", "listening", "speaking", "writing"],
-    totalQuestions: 8,
-    correctCount: 6,
-    accuracy: 0.75,
-    level: (item.level || "Intermediate") as SkillLevel,
-    weaknesses: item.weaknesses || [],
-    topicBreakdown: [],
-    recommendedStart: item.recommended_start || "reading",
-  }));
+  const data = await apiRequest<BackendResult[]>("/assessments/history");
+  return data.map(mapResult);
 }
 
-export async function abandonSession(sessionId: string): Promise<void> {
-  // Backend doesn't have abandon endpoint, just clear local state
+export function abandonSession(): void {
   localStorage.removeItem("assessment_session_id");
 }

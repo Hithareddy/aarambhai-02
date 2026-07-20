@@ -117,7 +117,7 @@ function OnboardingPage() {
             We'll take everything you shared and shape a learning path that fits you.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Button size="lg" onClick={() => navigate({ to: "/assessment-quiz" })}>
+            <Button size="lg" onClick={() => navigate({ to: "/assessment-intro" })}>
               Continue
             </Button>
             <Button size="lg" variant="outline" onClick={() => { setDone(false); setI(0); }}>

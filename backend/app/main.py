@@ -29,9 +29,10 @@ async def lifespan(app: FastAPI):
     print(f"Environment: {settings.APP_ENV}")
     print(f"Debug mode: {settings.APP_DEBUG}")
 
-    # TODO: Initialize database connection pool
-    # TODO: Initialize Redis connection
-    # TODO: Initialize other services
+    # Create database tables if they do not exist yet (idempotent).
+    from app.db.session import init_db
+
+    await init_db()
 
     yield
 
@@ -63,6 +64,7 @@ def create_application() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
+        allow_origin_regex=settings.CORS_ORIGIN_REGEX,
         allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
         allow_methods=settings.CORS_ALLOW_METHODS,
         allow_headers=settings.CORS_ALLOW_HEADERS,

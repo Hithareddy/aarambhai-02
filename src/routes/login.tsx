@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
+import { login } from "@/lib/api/auth";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign in — Aarambh AI" }] }),
@@ -15,7 +17,25 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const [show, setShow] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await login(email, password);
+      navigate({ to: "/dashboard" });
+    } catch (err) {
+      setError((err as Error).message || "Failed to sign in");
+      setSubmitting(false);
+    }
+  };
+
   return (
     <AuthShell
       title="Welcome back"
@@ -29,16 +49,23 @@ function LoginPage() {
         </>
       }
     >
-      <form
-        className="grid gap-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          navigate({ to: "/dashboard" });
-        }}
-      >
+      <form className="grid gap-4" onSubmit={handleSubmit}>
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
         <div className="grid gap-2">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" required placeholder="you@example.com" />
+          <Input
+            id="email"
+            type="email"
+            required
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </div>
         <div className="grid gap-2">
           <div className="flex items-center justify-between">
@@ -53,6 +80,8 @@ function LoginPage() {
               type={show ? "text" : "password"}
               required
               placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
             <button
               type="button"
@@ -67,8 +96,8 @@ function LoginPage() {
         <label className="flex items-center gap-2 text-sm text-muted-foreground">
           <Checkbox id="remember" /> Remember me
         </label>
-        <Button type="submit" size="lg">
-          Sign in
+        <Button type="submit" size="lg" disabled={submitting}>
+          {submitting ? "Signing in..." : "Sign in"}
         </Button>
       </form>
       <div className="my-5 flex items-center gap-3">

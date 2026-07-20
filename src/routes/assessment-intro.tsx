@@ -3,6 +3,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { HeartHandshake, Sparkles, Timer } from "lucide-react";
+import { abandonSession } from "@/lib/api/assessment";
 
 export const Route = createFileRoute("/assessment-intro")({
   head: () => ({ meta: [{ title: "Your first check-in — Aarambh AI" }] }),
@@ -53,7 +54,13 @@ function AssessmentIntroPage() {
         </div>
 
         <div className="mt-10 flex flex-wrap justify-center gap-3">
-          <Button size="lg" onClick={() => navigate({ to: "/assessment-quiz" })}>
+          <Button
+            size="lg"
+            onClick={() => {
+              abandonSession();
+              navigate({ to: "/assessment-quiz" });
+            }}
+          >
             Start assessment
           </Button>
           <Button size="lg" variant="outline" onClick={() => navigate({ to: "/onboarding" })}>
