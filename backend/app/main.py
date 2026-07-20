@@ -11,7 +11,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
 from app.core.config import settings
-from app.middleware.cors import get_cors_middleware
 from app.middleware.logging import LoggingMiddleware
 from app.utils.logger import setup_logging
 
@@ -60,7 +59,14 @@ def create_application() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Add CORS middleware
+    # Add custom logging middleware first so that CORS (added last) wraps it as
+    # the OUTERMOST middleware. Starlette runs the most-recently-added middleware
+    # first, so CORS must be added last to guarantee it handles the preflight
+    # OPTIONS request (and stamps CORS headers on every response, including auth
+    # errors) before any custom middleware can intercept it.
+    app.add_middleware(LoggingMiddleware)
+
+    # Add CORS middleware (outermost).
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
@@ -69,9 +75,6 @@ def create_application() -> FastAPI:
         allow_methods=settings.CORS_ALLOW_METHODS,
         allow_headers=settings.CORS_ALLOW_HEADERS,
     )
-
-    # Add custom logging middleware
-    app.add_middleware(LoggingMiddleware)
 
     # Include API routers
     app.include_router(api_router, prefix="/api/v1")
