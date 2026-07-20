@@ -53,7 +53,7 @@ function AssessmentIntroPage() {
         </div>
 
         <div className="mt-10 flex flex-wrap justify-center gap-3">
-          <Button size="lg" onClick={() => navigate({ to: "/assessments" })}>
+          <Button size="lg" onClick={() => navigate({ to: "/assessment-quiz" })}>
             Start assessment
           </Button>
           <Button size="lg" variant="outline" onClick={() => navigate({ to: "/onboarding" })}>

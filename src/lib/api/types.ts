@@ -107,6 +107,48 @@ export interface ActivityEvent {
   message: string;
 }
 
+export interface AssessmentOption {
+  id: string;
+  label: string;
+}
+
+export interface AssessmentQuestion {
+  id: string;
+  prompt: string;
+  skill: string;
+  options: AssessmentOption[];
+  correctOptionId: string;
+}
+
+export interface Assessment {
+  id: string;
+  title: string;
+  description: string;
+  questions: AssessmentQuestion[];
+}
+
+export interface AssessmentAnswer {
+  questionId: string;
+  optionId: string;
+}
+
+export interface AssessmentSkillScore {
+  skill: string;
+  correct: number;
+  total: number;
+  percent: number;
+}
+
+export interface AssessmentResult {
+  assessmentId: string;
+  totalQuestions: number;
+  correctCount: number;
+  scorePercent: number;
+  skillBreakdown: AssessmentSkillScore[];
+  recommendation: string;
+  completedAt: ISODateString;
+}
+
 export interface DashboardSnapshot {
   profile: LearnerProfile;
   goal: DailyGoal;

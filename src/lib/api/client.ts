@@ -2,13 +2,21 @@
 // calls typed methods; swapping the mock for a real FastAPI HTTP client is a
 // one-line change here — no component code changes.
 
-import type { DashboardSnapshot, NotificationItem } from "./types";
+import type {
+  Assessment,
+  AssessmentAnswer,
+  AssessmentResult,
+  DashboardSnapshot,
+  NotificationItem,
+} from "./types";
 import { mockApiClient } from "./mock-client";
 
 export interface ApiClient {
   getDashboardSnapshot(): Promise<DashboardSnapshot>;
   markNotificationRead(id: string): Promise<NotificationItem>;
   markAllNotificationsRead(): Promise<void>;
+  getAssessment(id: string): Promise<Assessment>;
+  submitAssessment(id: string, answers: AssessmentAnswer[]): Promise<AssessmentResult>;
 }
 
 let client: ApiClient = mockApiClient;
