@@ -4,6 +4,10 @@
 
 import type {
   ActivityDay,
+  Assessment,
+  AssessmentAnswer,
+  AssessmentResult,
+  AssessmentSkillScore,
   DashboardSnapshot,
   NotificationItem,
 } from "./types";
@@ -236,7 +240,138 @@ const dashboard: DashboardSnapshot = {
   courseCompletionPercent: 28,
 };
 
+const initialAssessment: Assessment = {
+  id: "initial-adaptive",
+  title: "Initial adaptive check-in",
+  description: "A few friendly questions to help us find where to begin.",
+  questions: [
+    {
+      id: "q_1",
+      skill: "Reading",
+      prompt: "Which word means the opposite of “begin”?",
+      options: [
+        { id: "q1_a", label: "Start" },
+        { id: "q1_b", label: "End" },
+        { id: "q1_c", label: "Open" },
+        { id: "q1_d", label: "Continue" },
+      ],
+      correctOptionId: "q1_b",
+    },
+    {
+      id: "q_2",
+      skill: "Grammar",
+      prompt: "Choose the correct sentence.",
+      options: [
+        { id: "q2_a", label: "She go to school every day." },
+        { id: "q2_b", label: "She goes to school every day." },
+        { id: "q2_c", label: "She going to school every day." },
+        { id: "q2_d", label: "She gone to school every day." },
+      ],
+      correctOptionId: "q2_b",
+    },
+    {
+      id: "q_3",
+      skill: "Vocabulary",
+      prompt: "A person who teaches students is called a…",
+      options: [
+        { id: "q3_a", label: "Doctor" },
+        { id: "q3_b", label: "Teacher" },
+        { id: "q3_c", label: "Driver" },
+        { id: "q3_d", label: "Farmer" },
+      ],
+      correctOptionId: "q3_b",
+    },
+    {
+      id: "q_4",
+      skill: "Grammar",
+      prompt: "Fill in the blank: “There ___ three books on the table.”",
+      options: [
+        { id: "q4_a", label: "is" },
+        { id: "q4_b", label: "am" },
+        { id: "q4_c", label: "are" },
+        { id: "q4_d", label: "be" },
+      ],
+      correctOptionId: "q4_c",
+    },
+    {
+      id: "q_5",
+      skill: "Reading",
+      prompt: "Read: “Ravi woke up early and watered the plants.” What did Ravi do first?",
+      options: [
+        { id: "q5_a", label: "Watered the plants" },
+        { id: "q5_b", label: "Woke up early" },
+        { id: "q5_c", label: "Went to school" },
+        { id: "q5_d", label: "Cooked breakfast" },
+      ],
+      correctOptionId: "q5_b",
+    },
+  ],
+};
+
+function buildRecommendation(scorePercent: number): string {
+  if (scorePercent >= 80) {
+    return "Wonderful start! We'll begin with intermediate lessons to keep you challenged.";
+  }
+  if (scorePercent >= 50) {
+    return "Nice work — we'll set up a balanced path that builds on what you already know.";
+  }
+  return "Great first step. We'll start with the gentle basics and grow from there.";
+}
+
 export const mockApiClient: Api = {
+  async getAssessment(id) {
+    if (id !== initialAssessment.id) {
+      throw new Error(`Assessment ${id} not found`);
+    }
+    // Clone so components can't mutate the source data.
+    return delay({
+      ...initialAssessment,
+      questions: initialAssessment.questions.map((q) => ({
+        ...q,
+        options: q.options.map((o) => ({ ...o })),
+      })),
+    });
+  },
+
+  async submitAssessment(id: string, answers: AssessmentAnswer[]): Promise<AssessmentResult> {
+    if (id !== initialAssessment.id) {
+      throw new Error(`Assessment ${id} not found`);
+    }
+    const answerByQuestion = new Map(answers.map((a) => [a.questionId, a.optionId]));
+    const bySkill = new Map<string, { correct: number; total: number }>();
+    let correctCount = 0;
+
+    for (const question of initialAssessment.questions) {
+      const isCorrect = answerByQuestion.get(question.id) === question.correctOptionId;
+      if (isCorrect) correctCount += 1;
+      const bucket = bySkill.get(question.skill) ?? { correct: 0, total: 0 };
+      bucket.total += 1;
+      if (isCorrect) bucket.correct += 1;
+      bySkill.set(question.skill, bucket);
+    }
+
+    const totalQuestions = initialAssessment.questions.length;
+    const scorePercent = Math.round((correctCount / totalQuestions) * 100);
+    const skillBreakdown: AssessmentSkillScore[] = [...bySkill.entries()].map(
+      ([skill, { correct, total }]) => ({
+        skill,
+        correct,
+        total,
+        percent: Math.round((correct / total) * 100),
+      }),
+    );
+
+    return delay({
+      assessmentId: id,
+      totalQuestions,
+      correctCount,
+      scorePercent,
+      skillBreakdown,
+      recommendation: buildRecommendation(scorePercent),
+      completedAt: new Date().toISOString(),
+    });
+  },
+
   async getDashboardSnapshot() {
     // Return a fresh reference so React Query treats mutations correctly.
     return delay({ ...dashboard, notifications: [...notifications] });

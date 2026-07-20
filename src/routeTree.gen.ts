@@ -17,6 +17,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LanguageSelectionRouteImport } from './routes/language-selection'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as AssessmentQuizRouteImport } from './routes/assessment-quiz'
 import { Route as AssessmentIntroRouteImport } from './routes/assessment-intro'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AppRouteImport } from './routes/_app'
@@ -81,6 +82,11 @@ const LanguageSelectionRoute = LanguageSelectionRouteImport.update({
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssessmentQuizRoute = AssessmentQuizRouteImport.update({
+  id: '/assessment-quiz',
+  path: '/assessment-quiz',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AssessmentIntroRoute = AssessmentIntroRouteImport.update({
@@ -210,6 +216,7 @@ const AppAchievementsRoute = AppAchievementsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
   '/assessment-intro': typeof AssessmentIntroRoute
+  '/assessment-quiz': typeof AssessmentQuizRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/language-selection': typeof LanguageSelectionRoute
   '/login': typeof LoginRoute
@@ -243,6 +250,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
   '/assessment-intro': typeof AssessmentIntroRoute
+  '/assessment-quiz': typeof AssessmentQuizRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/language-selection': typeof LanguageSelectionRoute
   '/login': typeof LoginRoute
@@ -278,6 +286,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
   '/assessment-intro': typeof AssessmentIntroRoute
+  '/assessment-quiz': typeof AssessmentQuizRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/language-selection': typeof LanguageSelectionRoute
   '/login': typeof LoginRoute
@@ -314,6 +323,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/assessment-intro'
+    | '/assessment-quiz'
     | '/forgot-password'
     | '/language-selection'
     | '/login'
@@ -347,6 +357,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/assessment-intro'
+    | '/assessment-quiz'
     | '/forgot-password'
     | '/language-selection'
     | '/login'
@@ -381,6 +392,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_public'
     | '/assessment-intro'
+    | '/assessment-quiz'
     | '/forgot-password'
     | '/language-selection'
     | '/login'
@@ -417,6 +429,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   PublicRoute: typeof PublicRouteWithChildren
   AssessmentIntroRoute: typeof AssessmentIntroRoute
+  AssessmentQuizRoute: typeof AssessmentQuizRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LanguageSelectionRoute: typeof LanguageSelectionRoute
   LoginRoute: typeof LoginRoute
@@ -483,6 +496,13 @@ declare module '@tanstack/react-router' {
       path: '/forgot-password'
       fullPath: '/forgot-password'
       preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assessment-quiz': {
+      id: '/assessment-quiz'
+      path: '/assessment-quiz'
+      fullPath: '/assessment-quiz'
+      preLoaderRoute: typeof AssessmentQuizRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/assessment-intro': {
@@ -728,6 +748,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   PublicRoute: PublicRouteWithChildren,
   AssessmentIntroRoute: AssessmentIntroRoute,
+  AssessmentQuizRoute: AssessmentQuizRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LanguageSelectionRoute: LanguageSelectionRoute,
   LoginRoute: LoginRoute,
