@@ -64,6 +64,7 @@ class AssessmentSessionResponse(BaseModel):
     status: str
     current_question_index: int
     current_difficulty: int
+    total_questions: int = 15  # server-authoritative question count for this session
     start_time: datetime
     end_time: datetime | None
     created_at: datetime
@@ -112,7 +113,9 @@ class AssessmentResultResponse(AssessmentResultBase):
     skill_proficiencies: list[dict[str, Any]]
     strengths: list[str]
     weaknesses: list[str]
-    learning_path: dict[str, Any]
+    learning_summary: str | None = None
+    learning_path: list[dict[str, Any]]
+    assessment_version: str
     created_at: datetime
 
     class Config:

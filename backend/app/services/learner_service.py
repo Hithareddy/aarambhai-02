@@ -204,35 +204,35 @@ class LearnerService:
             priority_skills = ["reading", "writing", "vocabulary"]
             min_diff, max_diff = 1, 3
             est_duration = 15
-            q_count = 8
+            q_count = 15
         elif "english" in goal:
             goal_factor = 0.8
             priority_domains = ["Reading", "Grammar", "Listening", "Speaking", "Vocabulary"]
             priority_skills = ["reading", "grammar", "listening", "speaking", "vocabulary"]
             min_diff, max_diff = 1, 5
             est_duration = 20
-            q_count = 10
+            q_count = 15
         elif "digital" in goal:
             goal_factor = 0.6
             priority_domains = ["Digital Literacy"]
             priority_skills = ["smartphone_basics", "internet_navigation", "mobile_applications"]
             min_diff, max_diff = 1, 4
             est_duration = 20
-            q_count = 8
+            q_count = 15
         elif "knowledge" in goal:
             goal_factor = 0.6
             priority_domains = ["General Knowledge"]
             priority_skills = ["geography", "history", "polity", "current_affairs"]
             min_diff, max_diff = 1, 4
             est_duration = 15
-            q_count = 8
+            q_count = 15
         else:  # career skills
             goal_factor = 1.0
             priority_domains = ["Professional Skills"]
             priority_skills = ["resume_writing", "job_search", "interview_skills", "workplace_communication"]
             min_diff, max_diff = 2, 5
             est_duration = 25
-            q_count = 10
+            q_count = 15
 
         complexity_score = (
             (age_factor * 10) +

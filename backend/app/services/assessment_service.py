@@ -26,7 +26,16 @@ from app.schemas.assessment import (
 from app.services.learner_service import LearnerService
 
 DEFAULT_BLUEPRINT_ID = "initial-adaptive"
-DEFAULT_QUESTION_COUNT = 8
+
+# Configurable question counts per assessment type.
+# Future assessment types (e.g. "practice", "unit-test") can define their own lengths.
+QUESTION_COUNTS: dict[str, int] = {
+    "initial-adaptive": 15,  # Primary placement assessment
+}
+DEFAULT_QUESTION_COUNT = QUESTION_COUNTS.get("initial-adaptive", 15)
+
+# LSRW skills targeted for balanced coverage
+LSRW_SKILLS = ["listening", "speaking", "reading", "writing"]
 
 
 class AssessmentService:
@@ -96,7 +105,62 @@ class AssessmentService:
             "question_content": self._from_json(question.question_content),
             "options": self._from_json(question.options),
             "is_fallback": is_fallback,
+            "audio_url": question.audio_url,
+            "image_url": question.image_url,
         }
+
+    async def _get_translated_question(
+        self, question: Question, target_code: str
+    ) -> tuple[dict, bool]:
+        """
+        Retrieves translation for a logical Question row, falling back to default English version.
+        Returns: (serialized_question_dict, is_fallback)
+        """
+        target_code = target_code.strip().lower()
+        
+        # Serialize the default English version of the Question
+        serialized = self.serialize_question_for_assessment(question, is_fallback=False)
+        
+        if target_code == "en":
+            return serialized, False
+            
+        # Search translation table
+        from app.models.translation import ContentTranslation
+        result = await self.db.execute(
+            select(ContentTranslation).where(
+                ContentTranslation.entity_type == "question",
+                ContentTranslation.entity_id == str(question.id),
+                ContentTranslation.language_code == target_code
+            )
+        )
+        translation = result.scalar_one_or_none()
+        
+        if translation:
+            fields = self._from_json(translation.translated_fields)
+            if "question_text" in fields:
+                serialized["question_content"] = {"text": fields["question_text"]}
+            elif "question_content" in fields:
+                q_content = fields["question_content"]
+                if isinstance(q_content, str):
+                    serialized["question_content"] = {"text": q_content}
+                else:
+                    serialized["question_content"] = q_content
+                    
+            if "option_a" in fields:
+                serialized["options"] = [
+                    {"id": "A", "text": fields["option_a"]},
+                    {"id": "B", "text": fields["option_b"]},
+                    {"id": "C", "text": fields["option_c"]},
+                    {"id": "D", "text": fields["option_d"]}
+                ]
+            elif "options" in fields:
+                serialized["options"] = fields["options"]
+                
+            serialized["language"] = target_code
+            return serialized, False
+        else:
+            serialized["is_fallback"] = True
+            return serialized, True
 
     async def _get_active_session(
         self, session_id: str, user_id: str | None = None
@@ -268,6 +332,23 @@ class AssessmentService:
         """
         session = await self._get_active_session(session_id, user_id)
 
+        # Get all sessions for this learner to support global question avoidance
+        learner_sessions_result = await self.db.execute(
+            select(AssessmentSession.id).where(AssessmentSession.learner_id == session.learner_id)
+        )
+        learner_session_ids = list(learner_sessions_result.scalars().all())
+
+        # Collect global previously answered question IDs
+        global_exclude_ids = []
+        if learner_session_ids:
+            global_exclude_result = await self.db.execute(
+                select(QuestionResponse.question_id).where(
+                    QuestionResponse.session_id.in_(learner_session_ids)
+                )
+            )
+            global_exclude_ids = list(global_exclude_result.scalars().all())
+
+        # Current session's answered questions (strict exclusion)
         previous_response_result = await self.db.execute(
             select(QuestionResponse.question_id).where(QuestionResponse.session_id == session_id)
         )
@@ -284,31 +365,29 @@ class AssessmentService:
         profile = await LearnerService(self.db).get_learner_profile_by_user_id(session.learner_id)
         target_language = (profile.learning_language or "en").strip().lower() if profile else "en"
 
-        # Check if questions exist for this target language
-        lang_count_result = await self.db.execute(
-            select(Question.id).where(
-                Question.is_active.is_(True),
-                Question.language == target_language
-            ).limit(1)
-        )
-        has_target_lang_content = lang_count_result.scalar() is not None
+        # --- Skill-balance: prefer least-represented LSRW skill ---
+        preferred_skills: list[str] | None = None
+        if previous_question_ids:
+            answered_skills_result = await self.db.execute(
+                select(Question.skill).where(Question.id.in_(previous_question_ids))
+            )
+            answered_skill_list = list(answered_skills_result.scalars().all())
+            skill_counts = {s: 0 for s in LSRW_SKILLS}
+            for sk in answered_skill_list:
+                if sk in skill_counts:
+                    skill_counts[sk] += 1
+            min_count = min(skill_counts.values())
+            preferred_skills = [s for s in LSRW_SKILLS if skill_counts[s] == min_count]
 
-        # Fallback to English if target language does not have questions seeded
-        is_fallback = False
-        query_language = target_language
-        if target_language != "en" and not has_target_lang_content:
-            query_language = "en"
-            is_fallback = True
-
-        # Target domains/skills and language specified by blueprint and profile fallback
+        # Target domains/skills and language specified by blueprint (logical questions are in English)
         base_query = select(Question).where(
             Question.is_active.is_(True),
-            Question.language == query_language
+            Question.language == "en"
         )
         if blueprint:
             blueprint_domains = self._from_json(blueprint.domains) if blueprint.domains else []
             blueprint_skills = self._from_json(blueprint.skills) if blueprint.skills else []
-            
+
             from sqlalchemy import or_
             conditions = []
             if blueprint_domains:
@@ -319,47 +398,55 @@ class AssessmentService:
                 conditions.append(Question.skill.in_(blueprint_skills))
                 conditions.append(Question.skill.in_([s.lower() for s in blueprint_skills]))
                 conditions.append(Question.skill.in_([s.capitalize() for s in blueprint_skills]))
-            
+
             if conditions:
                 base_query = base_query.where(or_(*conditions))
 
-        # Try to get question at current difficulty, ordered randomly
-        query = base_query.where(Question.difficulty == session.current_difficulty)
-        if previous_question_ids:
-            query = query.where(Question.id.notin_(previous_question_ids))
+        # Skill-balanced base query: restrict to preferred (least-answered) skills
+        # Falls back to the full base_query if no balanced question found.
+        if preferred_skills:
+            balanced_query = base_query.where(Question.skill.in_(preferred_skills))
+        else:
+            balanced_query = base_query
 
-        query = query.order_by(func.random()).limit(1)
-        result = await self.db.execute(query)
-        question = result.scalar_one_or_none()
+        # Helper search logic for adaptive question selection
+        async def find_question(exclude_list: list[str], query_base=base_query) -> Question | None:
+            # 1. Try balanced (preferred skill) query at current difficulty
+            if preferred_skills and query_base is base_query:
+                q = await _try_difficulty_range(balanced_query, exclude_list)
+                if q:
+                    return q
+            # 2. Fall back to full base query
+            return await _try_difficulty_range(query_base, exclude_list)
 
-        # If no question at current difficulty, try higher difficulties
-        if not question:
-            for diff in range(session.current_difficulty + 1, 6):
-                query = base_query.where(Question.difficulty == diff)
-                if previous_question_ids:
-                    query = query.where(Question.id.notin_(previous_question_ids))
+        async def _try_difficulty_range(qbase, exclude_list: list[str]) -> Question | None:
+            # Try current difficulty first, then expand up then down
+            for diff in [session.current_difficulty] + \
+                         list(range(session.current_difficulty + 1, 6)) + \
+                         list(range(session.current_difficulty - 1, 0, -1)):
+                query = qbase.where(Question.difficulty == diff)
+                if exclude_list:
+                    query = query.where(Question.id.notin_(exclude_list))
                 query = query.order_by(func.random()).limit(1)
-                result = await self.db.execute(query)
-                question = result.scalar_one_or_none()
-                if question:
-                    break
+                res = await self.db.execute(query)
+                q = res.scalar_one_or_none()
+                if q:
+                    return q
+            return None
 
-        # If still no question, try lower difficulties
+        # 1. Try global avoidance first
+        question = await find_question(global_exclude_ids)
+
+        # 2. Fall back to current session avoidance if alternatives are exhausted
         if not question:
-            for diff in range(session.current_difficulty - 1, 0, -1):
-                query = base_query.where(Question.difficulty == diff)
-                if previous_question_ids:
-                    query = query.where(Question.id.notin_(previous_question_ids))
-                query = query.order_by(func.random()).limit(1)
-                result = await self.db.execute(query)
-                question = result.scalar_one_or_none()
-                if question:
-                    break
+            question = await find_question(previous_question_ids)
 
         if question is None:
             raise ValueError("No more questions available")
 
-        return self.serialize_question_for_assessment(question, is_fallback=is_fallback)
+        # Resolve translation or fallback
+        translated_dict, _ = await self._get_translated_question(question, target_language)
+        return translated_dict
 
     async def submit_response(
         self, session_id: str, response_data: QuestionResponseCreate, user_id: str | None = None
@@ -380,7 +467,27 @@ class AssessmentService:
         session = await self._get_active_session(session_id, user_id)
         question = await self._get_active_question(response_data.question_id)
 
-        correct_answer = self._from_json(question.correct_answer)
+        # Determine target language from learner profile to support translated correct answer overrides
+        profile = await LearnerService(self.db).get_learner_profile_by_user_id(session.learner_id)
+        target_language = (profile.learning_language or "en").strip().lower() if profile else "en"
+        
+        correct_answer_str = question.correct_answer
+        if target_language != "en":
+            from app.models.translation import ContentTranslation
+            trans_result = await self.db.execute(
+                select(ContentTranslation.translated_fields).where(
+                    ContentTranslation.entity_type == "question",
+                    ContentTranslation.entity_id == str(question.id),
+                    ContentTranslation.language_code == target_language
+                )
+            )
+            trans_fields = trans_result.scalar_one_or_none()
+            if trans_fields:
+                fields = self._from_json(trans_fields)
+                if "correct_answer" in fields:
+                    correct_answer_str = self._to_json(fields["correct_answer"])
+
+        correct_answer = self._from_json(correct_answer_str)
         selected_answer = response_data.selected_answer
         is_correct = selected_answer == correct_answer
 
@@ -474,14 +581,56 @@ class AssessmentService:
             overall_proficiency = "Beginner"
 
         # Determine strengths and weaknesses
-        strengths = [s["skill"] for s in skill_proficiencies if float(s["proficiency"]) >= 0.7]
-        weaknesses = [s["skill"] for s in skill_proficiencies if float(s["proficiency"]) < 0.5]
+        strengths = [str(s["skill"]) for s in skill_proficiencies if float(s["proficiency"]) >= 0.7]
+        weaknesses = [str(s["skill"]) for s in skill_proficiencies if float(s["proficiency"]) < 0.5]
 
-        # Generate simple learning path (placeholder)
-        learning_path = {
-            "recommended_start": weaknesses[0] if weaknesses else skill_proficiencies[0]["skill"] if skill_proficiencies else "general",
-            "path": [s["skill"] for s in skill_proficiencies]
+        # Generate programmatic Learning Summary
+        if strengths and weaknesses:
+            learning_summary = f"You are comfortable with {', '.join(strengths)}. Focus on {', '.join(weaknesses)}. Your personalized lessons will begin with these skills."
+        elif strengths:
+            learning_summary = f"Great job! You are comfortable with {', '.join(strengths)}. Let's continue building on this foundation."
+        elif weaknesses:
+            learning_summary = f"Welcome! We'll start by focusing on {', '.join(weaknesses)}. Your personalized lessons are tailored to help you improve here."
+        else:
+             learning_summary = "Welcome to Aarambh! We have designed a balanced set of modules to get you started."
+
+        # Map weaknesses to specific lesson modules and prioritize them
+        data_driven_path = []
+        priority_counter = 1
+        
+        # Helper mapping for basic skills
+        module_mapping = {
+            "Vocabulary": {"module_id": "voc_basics", "title": "Vocabulary Basics"},
+            "Grammar": {"module_id": "grammar_foundations", "title": "Grammar Foundations"},
+            "Reading": {"module_id": "reading_comprehension", "title": "Reading Practice"},
+            "Listening": {"module_id": "listening_practice", "title": "Listening Practice"},
+            "Speaking": {"module_id": "speaking_exercises", "title": "Pronunciation Exercises"},
+            "Writing": {"module_id": "sentence_building", "title": "Simple Sentence Building"},
         }
+        
+        # 1. Prioritize weaknesses
+        for w in weaknesses:
+             w_str = str(w)
+             mod = module_mapping.get(w_str, {"module_id": f"core_{w_str.lower()}", "title": f"{w_str} Fundamentals"})
+             data_driven_path.append({
+                 "module_id": mod["module_id"],
+                 "title": mod["title"],
+                 "skill": w_str,
+                 "priority": priority_counter
+             })
+             priority_counter += 1
+             
+        # 2. Add remaining skills as follow-ups
+        for s in [score["skill"] for score in skill_proficiencies if score["skill"] not in weaknesses]:
+             s_str = str(s)
+             mod = module_mapping.get(s_str, {"module_id": f"core_{s_str.lower()}", "title": f"{s_str} Fundamentals"})
+             data_driven_path.append({
+                 "module_id": mod["module_id"],
+                 "title": mod["title"],
+                 "skill": s_str,
+                 "priority": priority_counter
+             })
+             priority_counter += 1
 
         # Update session status
         session.status = "completed"
@@ -497,7 +646,9 @@ class AssessmentService:
             skill_proficiencies=self._to_json(skill_proficiencies),
             strengths=self._to_json(strengths),
             weaknesses=self._to_json(weaknesses),
-            learning_path=self._to_json(learning_path),
+            learning_summary=learning_summary,
+            learning_path=self._to_json(data_driven_path),
+            assessment_version="1.0"
         )
         self.db.add(result)
         await self.db.commit()

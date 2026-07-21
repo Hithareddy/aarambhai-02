@@ -145,12 +145,14 @@ class AssessmentResult(Base, TimestampMixin):
     overall_proficiency: Mapped[str] = mapped_column(String(20), nullable=False)
     confidence_score: Mapped[float] = mapped_column(Float, nullable=False)
     readiness_level: Mapped[str] = mapped_column(String(20), nullable=False)
+    assessment_version: Mapped[str] = mapped_column(String(20), nullable=False, default="1.0")
 
     # JSON fields for complex data
     skill_proficiencies: Mapped[str] = mapped_column(Text, nullable=False)  # JSON array
     strengths: Mapped[str] = mapped_column(Text, nullable=False)  # JSON array
     weaknesses: Mapped[str] = mapped_column(Text, nullable=False)  # JSON array
-    learning_path: Mapped[str] = mapped_column(Text, nullable=False)  # JSON object
+    learning_summary: Mapped[str | None] = mapped_column(Text, nullable=True) # Natural language heuristic summary
+    learning_path: Mapped[str] = mapped_column(Text, nullable=False)  # JSON object array format
 
     # Relationships
     session: Mapped["AssessmentSession"] = relationship("AssessmentSession", back_populates="result")

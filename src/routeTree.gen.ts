@@ -24,6 +24,7 @@ import { Route as AssessmentAnalyzingRouteImport } from './routes/assessment-ana
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicIndexRouteImport } from './routes/_public.index'
+import { Route as LessonLessonIdRouteImport } from './routes/lesson.$lessonId'
 import { Route as PublicTermsRouteImport } from './routes/_public.terms'
 import { Route as PublicPrivacyRouteImport } from './routes/_public.privacy'
 import { Route as PublicHowItWorksRouteImport } from './routes/_public.how-it-works'
@@ -118,6 +119,11 @@ const PublicIndexRoute = PublicIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => PublicRoute,
+} as any)
+const LessonLessonIdRoute = LessonLessonIdRouteImport.update({
+  id: '/lesson/$lessonId',
+  path: '/lesson/$lessonId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const PublicTermsRoute = PublicTermsRouteImport.update({
   id: '/terms',
@@ -260,6 +266,7 @@ export interface FileRoutesByFullPath {
   '/how-it-works': typeof PublicHowItWorksRoute
   '/privacy': typeof PublicPrivacyRoute
   '/terms': typeof PublicTermsRoute
+  '/lesson/$lessonId': typeof LessonLessonIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
@@ -296,6 +303,7 @@ export interface FileRoutesByTo {
   '/how-it-works': typeof PublicHowItWorksRoute
   '/privacy': typeof PublicPrivacyRoute
   '/terms': typeof PublicTermsRoute
+  '/lesson/$lessonId': typeof LessonLessonIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -334,6 +342,7 @@ export interface FileRoutesById {
   '/_public/how-it-works': typeof PublicHowItWorksRoute
   '/_public/privacy': typeof PublicPrivacyRoute
   '/_public/terms': typeof PublicTermsRoute
+  '/lesson/$lessonId': typeof LessonLessonIdRoute
   '/_public/': typeof PublicIndexRoute
 }
 export interface FileRouteTypes {
@@ -373,6 +382,7 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/privacy'
     | '/terms'
+    | '/lesson/$lessonId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -409,6 +419,7 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/privacy'
     | '/terms'
+    | '/lesson/$lessonId'
   id:
     | '__root__'
     | '/_app'
@@ -446,6 +457,7 @@ export interface FileRouteTypes {
     | '/_public/how-it-works'
     | '/_public/privacy'
     | '/_public/terms'
+    | '/lesson/$lessonId'
     | '/_public/'
   fileRoutesById: FileRoutesById
 }
@@ -464,6 +476,7 @@ export interface RootRouteChildren {
   RoleSelectionRoute: typeof RoleSelectionRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  LessonLessonIdRoute: typeof LessonLessonIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -572,6 +585,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof PublicIndexRouteImport
       parentRoute: typeof PublicRoute
+    }
+    '/lesson/$lessonId': {
+      id: '/lesson/$lessonId'
+      path: '/lesson/$lessonId'
+      fullPath: '/lesson/$lessonId'
+      preLoaderRoute: typeof LessonLessonIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_public/terms': {
       id: '/_public/terms'
@@ -799,6 +819,7 @@ const rootRouteChildren: RootRouteChildren = {
   RoleSelectionRoute: RoleSelectionRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  LessonLessonIdRoute: LessonLessonIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

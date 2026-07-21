@@ -1,0 +1,41 @@
+Using test User ID: 237daed5-24ae-4331-9cbc-ae071b4d2e81
+Session 1 Initial Difficulty: 3
+
+--- Q1 Served (Difficulty: 3) ---
+Question text: 'తడి నేల: ___ తో నడవండి' బోర్డు నియమం?
+Options: ['వేగం', 'జాగ్రత్త (Caution)', 'కోపం', 'నవ్వు']
+Is Fallback: False
+Submitted correct answer: B. New Difficulty: 4
+
+--- Q2 Served (Difficulty: 4) ---
+Question text: వ్యాకరణపరంగా సరైన వాక్యాన్ని ఎంచుకోండి.
+Options: ['She has wrote a letter', 'She writes a letter yesterday', 'She wrote a letter yesterday', 'She write a letter']
+Is Fallback: False
+Submitted correct answer: C. New Difficulty: 5
+
+--- Q3 Served (Difficulty: 5) ---
+Question text: చట్టపరమైన నిబంధన: 'లైసెన్సర్ లైసెన్సీకి ప్రత్యేకత లేని, బదిలీ చేయలేని లైసెన్స్ ఇస్తున్నారు.' లైసెన్సీకి ఏ హక్కు లేదు?
+Options: ['ఉత్పత్తి వాడటం', 'లైసెన్స్ బదిలీ చేయడం', 'వ్యక్తిగత వినియోగం కోసం యాక్సెస్', 'డాక్యుమెంటేషన్ చదవడం']
+Is Fallback: False
+Submitted correct answer: B. New Difficulty: 5
+
+Session 1 Answered Question IDs: ['q-read-3-3', 'q-write-4-1', 'q-read-5-2']
+Session 2 Created. Starting Difficulty: 3
+
+--- Session 2 Q1 Served ---
+Question ID: q-write-3-2
+Text: వాక్యాన్ని అమర్చండి: 'market / to / went / Latha / yesterday'
+Is Repeate of Session 1: False
+Submitted incorrect answer 'X'. New Difficulty: 2
+
+--- Session 2 Q2 Served ---
+Question ID: q-read-2-3
+Text: చదవండి: 'మందులను పిల్లలకు దూరంగా ఉంచండి.' ఎందుకు?
+Is Repeate of Session 1: False
+Submitted incorrect answer 'X'. New Difficulty: 1
+
+--- Session 2 Q3 Served ---
+Question ID: q-write-1-1
+Text: 'G' అక్షరానికి చిన్న అక్షరం (lowercase) ఏది?
+Is Repeate of Session 1: False
+Submitted incorrect answer 'X'. New Difficulty: 1

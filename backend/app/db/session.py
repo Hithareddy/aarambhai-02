@@ -54,7 +54,7 @@ async def init_db() -> None:
     Note: In production, use Alembic migrations instead.
     """
     # Import all models to ensure they're registered with SQLAlchemy
-    from app.models import user, learner, assessment, question  # noqa: F401
+    from app.models import user, learner, assessment, question, translation  # noqa: F401
 
     async with engine.begin() as conn:
         # Import Base here to create all tables

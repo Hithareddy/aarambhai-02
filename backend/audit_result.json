@@ -1,0 +1,190 @@
+{
+  "mcq": [
+    {
+      "id": "q-list-1-1",
+      "skill": "listening",
+      "question_content": {
+        "text": "Listen to: 'Good morning'. Choose greeting."
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": "Hello"
+        },
+        {
+          "id": "B",
+          "text": "Goodbye"
+        },
+        {
+          "id": "C",
+          "text": "Maybe"
+        },
+        {
+          "id": "D",
+          "text": "Never"
+        }
+      ],
+      "correct_answer": "A"
+    }
+  ],
+  "true_false": [
+    {
+      "id": "q-list-1-2",
+      "skill": "listening",
+      "question_content": {
+        "text": "Dialogue: 'Good night'. True or False: This is said in the morning."
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": "True"
+        },
+        {
+          "id": "B",
+          "text": "False"
+        }
+      ],
+      "correct_answer": "B"
+    }
+  ],
+  "fill_blank": [
+    {
+      "id": "q-list-1-3",
+      "skill": "listening",
+      "question_content": {
+        "text": "Audio: 'My name is Ram'. Complete: 'My name ___ Ram'"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": "is"
+        },
+        {
+          "id": "B",
+          "text": "are"
+        },
+        {
+          "id": "C",
+          "text": "am"
+        },
+        {
+          "id": "D",
+          "text": "be"
+        }
+      ],
+      "correct_answer": "A"
+    }
+  ],
+  "match": [
+    {
+      "id": "q-list-2-3",
+      "skill": "listening",
+      "question_content": {
+        "text": "Audio: 'Meow'. Match sound to animal."
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": "Dog"
+        },
+        {
+          "id": "B",
+          "text": "Cat"
+        },
+        {
+          "id": "C",
+          "text": "Cow"
+        },
+        {
+          "id": "D",
+          "text": "Bird"
+        }
+      ],
+      "correct_answer": "B"
+    }
+  ],
+  "comprehension": [
+    {
+      "id": "q-list-3-1",
+      "skill": "listening",
+      "question_content": {
+        "text": "Dialogue: 'I need to see Dr. Kumar on Monday at 10 AM.' When is the appointment?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": "Monday"
+        },
+        {
+          "id": "B",
+          "text": "Tuesday"
+        },
+        {
+          "id": "C",
+          "text": "Wednesday"
+        },
+        {
+          "id": "D",
+          "text": "Friday"
+        }
+      ],
+      "correct_answer": "A"
+    }
+  ],
+  "arrange": [
+    {
+      "id": "q-list-3-2",
+      "skill": "listening",
+      "question_content": {
+        "text": "Audio: 'I eat an apple every day'. Arrange parts."
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": "apple/every/day/I/eat"
+        },
+        {
+          "id": "B",
+          "text": "I/eat/an/apple/every/day"
+        },
+        {
+          "id": "C",
+          "text": "every/day/apple/eat/I"
+        },
+        {
+          "id": "D",
+          "text": "I/apple/eat/every/day"
+        }
+      ],
+      "correct_answer": "B"
+    }
+  ],
+  "image_mcq": [
+    {
+      "id": "q-read-2-2",
+      "skill": "reading",
+      "question_content": {
+        "text": "Which sign means 'No Parking'?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": "P with red slash"
+        },
+        {
+          "id": "B",
+          "text": "P with green circle"
+        },
+        {
+          "id": "C",
+          "text": "Toll sign"
+        },
+        {
+          "id": "D",
+          "text": "Stop sign"
+        }
+      ],
+      "correct_answer": "A"
+    }
+  ]
+}

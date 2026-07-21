@@ -7,7 +7,14 @@ from app.models.assessment import (
 )
 from app.models.learner import LearnerProfile
 from app.models.question import Question
+from app.models.translation import ContentTranslation
 from app.models.user import User
+from app.models.learning import (
+    LearningModule,
+    Lesson,
+    LessonProgress,
+    ModuleProgress,
+)
 
 __all__ = [
     "User",
@@ -17,4 +24,9 @@ __all__ = [
     "QuestionResponse",
     "AssessmentResult",
     "Question",
+    "ContentTranslation",
+    "LearningModule",
+    "Lesson",
+    "LessonProgress",
+    "ModuleProgress",
 ]

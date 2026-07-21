@@ -60,6 +60,10 @@ class QuestionForAssessment(QuestionBase):
     question_content: dict[str, Any]
     options: list[dict[str, Any]]
     is_fallback: bool | None = None
+    audio_url: str | None = None
+    image_url: str | None = None
+    reference_text: str | None = None
+    max_duration_seconds: int = 30
 
     class Config:
         from_attributes = True

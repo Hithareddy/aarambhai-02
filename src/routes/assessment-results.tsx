@@ -63,10 +63,8 @@ function AssessmentResultsPage() {
   const outcomes = result.skillOutcomes ?? [];
   const strengths = result.strengths ?? [];
   const improvements = result.improvements ?? [];
-  const path =
-    result.recommendedLearningPath.length > 0
-      ? result.recommendedLearningPath
-      : [result.recommendedFocus];
+  // Note: path is now an array of objects: { module_id, title, skill, priority }
+  const path = result.recommendedLearningPath || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -102,6 +100,19 @@ function AssessmentResultsPage() {
                 <p className="text-sm text-muted-foreground mt-2">{t("assessmentResults.questionsEvaluatedSub") || "Spanning LSRW methods"}</p>
               </Card>
             </div>
+
+            {/* AI Summary Banner */}
+            {result.learningSummary && (
+              <Card className="p-6 bg-secondary/30 border-secondary/50">
+                <h2 className="flex items-center gap-2 text-xl font-semibold mb-3">
+                  <Award size={20} className="text-primary" />
+                  {t("assessmentResults.summaryTitle") || "Learning Summary"}
+                </h2>
+                <p className="text-lg leading-relaxed text-foreground">
+                  {result.learningSummary}
+                </p>
+              </Card>
+            )}
 
             <Card className="p-6">
               <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
@@ -168,23 +179,29 @@ function AssessmentResultsPage() {
               <p className="text-muted-foreground mb-6">
                 {t("assessmentResults.pathDesc") || "Our adaptive engine suggests progressing through skill areas in this sequence:"}
               </p>
-              <ol className="space-y-3">
-                {path.map((p, i) => (
-                  <li
-                    key={p + i}
-                    className="flex items-center gap-4 p-4 bg-muted rounded-lg border"
-                  >
-                    <span className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">
-                      {i + 1}
-                    </span>
-                    <span className="font-semibold">{p} {t("assessmentResults.modulePractice") || "Module Practice"}</span>
-                    {i === 0 && (
-                      <Badge variant="secondary" className="ml-auto">
-                        {t("assessmentResults.recommendedStarting") || "Recommended Starting Point"}
-                      </Badge>
-                    )}
-                  </li>
-                ))}
+              <ol className="relative border-l border-muted-foreground/30 ml-4 space-y-6">
+                {path.length > 0 ? (
+                  path.map((p, i) => (
+                    <li key={p.module_id} className="ml-6">
+                      <span className="absolute -left-3 flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-bold ring-4 ring-background">
+                        {p.priority}
+                      </span>
+                      <div className="flex flex-col gap-1 p-4 bg-muted rounded-lg border">
+                        <div className="flex justify-between items-start">
+                          <span className="font-bold text-lg">{p.title}</span>
+                          {i === 0 && (
+                            <Badge variant="secondary">
+                              {t("assessmentResults.recommendedStarting") || "Recommended Starting Point"}
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-sm text-muted-foreground">Focuses on {p.skill} methodology</span>
+                      </div>
+                    </li>
+                  ))
+                ) : (
+                  <li className="ml-6 text-muted-foreground italic">No specific roadmap available. Please return to dashboard.</li>
+                )}
               </ol>
             </Card>
           </div>

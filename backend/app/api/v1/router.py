@@ -12,6 +12,7 @@ from app.api.v1.endpoints import (
     learners,
     questions,
     users,
+    learning,
 )
 
 api_router = APIRouter()
@@ -33,3 +34,6 @@ api_router.include_router(assessments.router, prefix="/assessments", tags=["asse
 
 # Question bank endpoints
 api_router.include_router(questions.router, prefix="/questions", tags=["questions"])
+
+# Learning module endpoints
+api_router.include_router(learning.router, prefix="/learning", tags=["learning"])

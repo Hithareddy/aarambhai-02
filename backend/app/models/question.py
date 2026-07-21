@@ -6,7 +6,7 @@ Stores questions, options, and metadata for the adaptive assessment system.
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Integer, String, Text
+from sqlalchemy import Integer, String, Text, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
@@ -42,6 +42,16 @@ class Question(Base, TimestampMixin):
     question_content: Mapped[str] = mapped_column(Text, nullable=False)  # JSON object
     options: Mapped[str] = mapped_column(Text, nullable=False)  # JSON array
     correct_answer: Mapped[str] = mapped_column(Text, nullable=False)  # JSON value
+
+    # Media references (optional)
+    audio_url: Mapped[str | None] = mapped_column(Text, nullable=True)  # URL for listening audio
+    image_url: Mapped[str | None] = mapped_column(Text, nullable=True)  # URL for image_mcq
+    
+    # Speaking evaluation references
+    reference_text: Mapped[str | None] = mapped_column(Text, nullable=True)  # Text for STT engine
+    expected_keywords: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array or string
+    max_duration_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
+    language_code: Mapped[str | None] = mapped_column(String(20), nullable=True, default="en-IN")
 
     # Assessment Parameters
     discrimination_index: Mapped[float] = mapped_column(nullable=True)  # IRT parameter

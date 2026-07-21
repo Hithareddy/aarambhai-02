@@ -18,6 +18,8 @@ from app.schemas.assessment import (
 )
 from app.schemas.question import QuestionForAssessment
 from app.services.assessment_service import AssessmentService
+from app.services.speaking_evaluation_service import SpeakingEvaluationService
+from fastapi import File, UploadFile, Form
 
 router = APIRouter()
 
@@ -149,7 +151,42 @@ async def submit_question_response(
         raise HTTPException(status_code=status_code, detail=message) from exc
 
 
-@router.post("/sessions/{session_id}/complete", response_model=AssessmentResultResponse)
+@router.post("/sessions/{session_id}/evaluate-speech")
+async def evaluate_speech(
+    session_id: str,
+    question_id: str = Form(...),
+    language_code: str = Form("en-IN"),
+    audio_file: UploadFile = File(...),
+    current_user=Depends(get_current_active_user),
+    db=Depends(get_db),
+):
+    """
+    Evaluate recorded speech via STT and pronunciation heuristics.
+    Returns transcript to the frontend while persisting full scores.
+    """
+    service = AssessmentService(db)
+    stt_service = SpeakingEvaluationService()
+    
+    try:
+        # Load the question to get the reference text
+        question = await service._get_active_question(question_id)
+        audio_bytes = await audio_file.read()
+        
+        evaluation = await stt_service.evaluate(
+            audio_bytes=audio_bytes,
+            reference_text=question.reference_text,
+            language_code=language_code
+        )
+
+        return {
+            "transcript": evaluation["transcript"],
+            "scores": evaluation["scores"]
+        }
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Speech evaluation failed: {str(exc)}"
+        )
 async def complete_assessment(
     session_id: str,
     current_user=Depends(get_current_active_user),

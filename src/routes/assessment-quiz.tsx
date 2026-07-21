@@ -5,10 +5,12 @@ import {
   startAssessmentSession,
   getNextQuestion,
   submitAnswer,
-  TOTAL_QUESTIONS,
   type Question,
+  type AssessmentSession,
 } from "@/lib/api/assessment";
 import { AssessmentProgress } from "@/components/AssessmentProgress";
+import { QuestionRenderer } from "@/components/questions/QuestionRenderer";
+import { HelpWidget } from "@/components/questions/HelpWidget";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -36,7 +38,8 @@ export const Route = createFileRoute("/assessment-quiz")({
 function AssessmentQuizPage() {
   const navigate = useNavigate();
   const { s: searchSessionId } = Route.useSearch();
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [session, setSession] = useState<AssessmentSession | null>(null);
+  const sessionId = session?.id ?? null;
   const [question, setQuestion] = useState<Question | null>(null);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
@@ -60,15 +63,23 @@ function AssessmentQuizPage() {
     const load = async () => {
       setLoading(true);
       try {
+        let currentSession: AssessmentSession | null = null;
         let id = searchSessionId || localStorage.getItem("assessment_session_id");
+
         if (!id) {
-          const session = await startAssessmentSession();
-          id = session.id;
+          currentSession = await startAssessmentSession();
+          id = currentSession.id;
           localStorage.setItem("assessment_session_id", id);
+        } else {
+          // We don't have a getSession API yet, rely on fallback of 15 questions
+          currentSession = { id, status: "in_progress", currentIndex: 0, totalQuestions: 15 };
         }
-        const firstQuestion = await getNextQuestion(id);
+
         if (!active) return;
-        setSessionId(id);
+        setSession(currentSession);
+
+        const firstQuestion = await getNextQuestion(id);
+
         if (!firstQuestion) {
           goToAnalyzing(id);
           return;
@@ -163,7 +174,7 @@ function AssessmentQuizPage() {
       <main className="max-w-3xl mx-auto p-6 space-y-6">
         <AssessmentProgress
           currentIndex={answeredCount}
-          total={TOTAL_QUESTIONS}
+          total={session?.totalQuestions ?? 15}
           currentSkill={question.skill}
         />
 
@@ -177,33 +188,15 @@ function AssessmentQuizPage() {
         )}
 
         <Card className="p-8 space-y-6" aria-live="polite">
-          <h2 className="text-xl font-semibold">{question.prompt}</h2>
-
-          <div className="grid gap-3">
-            {question.options.map((option) => {
-              const isSelected = selected === option.id;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  disabled={submitting}
-                  onClick={() => setSelected(option.id)}
-                  className={`flex items-center gap-3 rounded-lg border p-4 text-left transition-colors ${isSelected ? "border-primary bg-primary/10" : "border-border hover:bg-muted/50"
-                    }`}
-                >
-                  <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${isSelected
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border"
-                      }`}
-                  >
-                    {option.id}
-                  </span>
-                  <span>{option.text}</span>
-                </button>
-              );
-            })}
+          <div className="flex justify-end">
+            <HelpWidget question={question} />
           </div>
+          <QuestionRenderer
+            question={question}
+            selected={selected}
+            onSelect={setSelected}
+            submitting={submitting}
+          />
 
           {error && (
             <Alert variant="destructive">
@@ -216,7 +209,7 @@ function AssessmentQuizPage() {
             <Button size="lg" onClick={handleSubmit} disabled={selected === null || submitting}>
               {submitting
                 ? (t("assessmentQuiz.saving") || "Saving...")
-                : answeredCount + 1 >= TOTAL_QUESTIONS
+                : answeredCount + 1 >= (session?.totalQuestions ?? 15)
                   ? (t("assessmentQuiz.submitFinish") || "Submit & finish")
                   : (t("assessmentQuiz.nextQuestion") || "Next question")}
             </Button>
