@@ -5,7 +5,7 @@ Handles business logic for assessment blueprint generation, session management,
 and result calculation.
 """
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import select
@@ -145,21 +145,25 @@ class AssessmentService:
         """
         Generate assessment blueprint based on learner profile.
 
-        TODO: Implement blueprint generation logic
-        - Analyze learner profile
-        - Select appropriate domains and skills
-        - Determine question distribution
-        - Calculate estimated duration
-        - Create blueprint record
-
-        Args:
-            blueprint_data: Blueprint creation data
-            user_id: User ID
-
-        Returns:
-            Generated assessment blueprint
+        Analyzes the user's onboarding profile to personalize the domains, skills,
+        duration, and difficulty limits of their placement test.
         """
-        raise NotImplementedError("Blueprint generation not yet implemented")
+        analysis = await LearnerService(self.db).analyze_profile(user_id)
+        
+        blueprint = AssessmentBlueprint(
+            learning_goal=blueprint_data.learning_goal,
+            question_count=analysis["question_count"],
+            min_difficulty=analysis["min_difficulty"],
+            max_difficulty=analysis["max_difficulty"],
+            estimated_duration_minutes=analysis["estimated_duration_minutes"],
+            domains=self._to_json(analysis["priority_domains"]),
+            skills=self._to_json(analysis["priority_skills"]),
+            question_distribution=self._to_json(blueprint_data.question_distribution or {}),
+        )
+        self.db.add(blueprint)
+        await self.db.commit()
+        await self.db.refresh(blueprint)
+        return blueprint
 
     async def create_session(
         self, session_data: AssessmentSessionCreate, user_id: str
@@ -194,7 +198,7 @@ class AssessmentService:
             status="in_progress",
             current_question_index=0,
             current_difficulty=starting_difficulty,
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc).replace(tzinfo=None),
         )
         self.db.add(session)
         await self.db.commit()
@@ -255,11 +259,28 @@ class AssessmentService:
         if len(previous_question_ids) >= question_count:
             raise ValueError("No more questions available")
 
+        # Target domains/skills specified by blueprint
+        base_query = select(Question).where(Question.is_active.is_(True))
+        if blueprint:
+            blueprint_domains = self._from_json(blueprint.domains) if blueprint.domains else []
+            blueprint_skills = self._from_json(blueprint.skills) if blueprint.skills else []
+            
+            from sqlalchemy import or_
+            conditions = []
+            if blueprint_domains:
+                conditions.append(Question.domain.in_(blueprint_domains))
+                conditions.append(Question.domain.in_([d.lower() for d in blueprint_domains]))
+                conditions.append(Question.domain.in_([d.capitalize() for d in blueprint_domains]))
+            if blueprint_skills:
+                conditions.append(Question.skill.in_(blueprint_skills))
+                conditions.append(Question.skill.in_([s.lower() for s in blueprint_skills]))
+                conditions.append(Question.skill.in_([s.capitalize() for s in blueprint_skills]))
+            
+            if conditions:
+                base_query = base_query.where(or_(*conditions))
+
         # Try to get question at current difficulty
-        query = select(Question).where(
-            Question.is_active.is_(True),
-            Question.difficulty == session.current_difficulty,
-        )
+        query = base_query.where(Question.difficulty == session.current_difficulty)
         if previous_question_ids:
             query = query.where(Question.id.notin_(previous_question_ids))
 
@@ -270,10 +291,7 @@ class AssessmentService:
         # If no question at current difficulty, try higher difficulties
         if not question:
             for diff in range(session.current_difficulty + 1, 6):
-                query = select(Question).where(
-                    Question.is_active.is_(True),
-                    Question.difficulty == diff,
-                )
+                query = base_query.where(Question.difficulty == diff)
                 if previous_question_ids:
                     query = query.where(Question.id.notin_(previous_question_ids))
                 query = query.order_by(Question.created_at.asc()).limit(1)
@@ -285,10 +303,7 @@ class AssessmentService:
         # If still no question, try lower difficulties
         if not question:
             for diff in range(session.current_difficulty - 1, 0, -1):
-                query = select(Question).where(
-                    Question.is_active.is_(True),
-                    Question.difficulty == diff,
-                )
+                query = base_query.where(Question.difficulty == diff)
                 if previous_question_ids:
                     query = query.where(Question.id.notin_(previous_question_ids))
                 query = query.order_by(Question.created_at.asc()).limit(1)
@@ -415,8 +430,8 @@ class AssessmentService:
             overall_proficiency = "Beginner"
 
         # Determine strengths and weaknesses
-        strengths = [s["skill"] for s in skill_proficiencies if s["proficiency"] >= 0.7]
-        weaknesses = [s["skill"] for s in skill_proficiencies if s["proficiency"] < 0.5]
+        strengths = [s["skill"] for s in skill_proficiencies if float(s["proficiency"]) >= 0.7]
+        weaknesses = [s["skill"] for s in skill_proficiencies if float(s["proficiency"]) < 0.5]
 
         # Generate simple learning path (placeholder)
         learning_path = {
@@ -426,7 +441,7 @@ class AssessmentService:
 
         # Update session status
         session.status = "completed"
-        session.end_time = datetime.utcnow()
+        session.end_time = datetime.now(timezone.utc).replace(tzinfo=None)
 
         # Create result
         result = AssessmentResult(

@@ -34,20 +34,29 @@ async def generate_assessment_blueprint(
     Creates a personalized assessment blueprint based on learner profile.
     This is the first step in starting an adaptive assessment.
 
-    TODO: Implement blueprint generation
-    - Analyze learner profile
-    - Select appropriate domains and skills
-    - Determine question distribution
-    - Calculate estimated duration
-    - Generate blueprint
-
     Returns:
         AssessmentBlueprintResponse: Generated blueprint
     """
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Assessment blueprint generation not yet implemented",
-    )
+    service = AssessmentService(db)
+    try:
+        blueprint_record = await service.generate_blueprint(blueprint, current_user.id)
+        return AssessmentBlueprintResponse(
+            id=str(blueprint_record.id),
+            learning_goal=blueprint_record.learning_goal,
+            question_count=blueprint_record.question_count,
+            min_difficulty=blueprint_record.min_difficulty,
+            max_difficulty=blueprint_record.max_difficulty,
+            estimated_duration_minutes=blueprint_record.estimated_duration_minutes,
+            domains=service._from_json(blueprint_record.domains) if blueprint_record.domains else [],
+            skills=service._from_json(blueprint_record.skills) if blueprint_record.skills else [],
+            question_distribution=service._from_json(blueprint_record.question_distribution) if blueprint_record.question_distribution else {},
+            created_at=blueprint_record.created_at,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
 
 
 @router.post("/sessions", response_model=AssessmentSessionResponse, status_code=status.HTTP_201_CREATED)

@@ -1,0 +1,41 @@
+--- Starting End-to-End Assessment Flow Test ---
+Test user already exists.
+Cleaned up old test data.
+Learner Profile created for: Alice Tester
+Profile Analysis results:
+   Complexity Score: 83.0
+   Priority Domains: ['Reading', 'Grammar', 'Listening', 'Speaking', 'Vocabulary']
+   Priority Skills: ['reading', 'grammar', 'listening', 'speaking', 'vocabulary']
+   Min/Max Difficulty: 1/5
+   Expected Q Count: 10
+Blueprint generated successfully. ID: d54ccd35-2246-4a32-8337-1d3db46b7a41
+Session started. ID: c228d9ef-3aa0-47e9-9e1d-5db81579550a, starting difficulty: 2
+Question 1: q-speaking-introduction-001 | Domain: Speaking | Skill: speaking | Difficulty: 2
+   Submitted answer (Correct=True). Next target difficulty: 3
+Question 2: q-reading-words-001 | Domain: Reading | Skill: reading | Difficulty: 2
+   Submitted answer (Correct=True). Next target difficulty: 4
+Question 3: q-listening-comprehension-001 | Domain: Listening | Skill: listening | Difficulty: 2
+   Submitted answer (Correct=False). Next target difficulty: 3
+Question 4: q-vocabulary-food-001 | Domain: Vocabulary | Skill: vocabulary | Difficulty: 2
+   Submitted answer (Correct=True). Next target difficulty: 4
+Question 5: q-grammar-tenses-001 | Domain: Grammar | Skill: grammar | Difficulty: 2
+   Submitted answer (Correct=True). Next target difficulty: 5
+Question 6: q-speaking-greetings-001 | Domain: Speaking | Skill: speaking | Difficulty: 1
+   Submitted answer (Correct=False). Next target difficulty: 4
+Question 7: q-reading-alphabet-001 | Domain: Reading | Skill: reading | Difficulty: 1
+   Submitted answer (Correct=True). Next target difficulty: 5
+Question 8: q-listening-sounds-001 | Domain: Listening | Skill: listening | Difficulty: 1
+   Submitted answer (Correct=True). Next target difficulty: 5
+Question 9: q-vocabulary-family-001 | Domain: Vocabulary | Skill: vocabulary | Difficulty: 1
+   Submitted answer (Correct=True). Next target difficulty: 5
+Question 10: q-grammar-articles-001 | Domain: Grammar | Skill: grammar | Difficulty: 1
+   Submitted answer (Correct=True). Next target difficulty: 5
+Received completion signal: No more questions available.
+Assessment completed successfully!
+Final Report:
+   Overall level: Advanced
+   Confidence: 80.0%
+   Recommended start: speaking
+   Full Path: ['speaking', 'reading', 'listening', 'vocabulary', 'grammar']
+Learner Profile assessment_completed status: True
+Cleanup successful. Test complete!

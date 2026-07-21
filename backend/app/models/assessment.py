@@ -83,10 +83,10 @@ class AssessmentSession(Base, TimestampMixin):
     learner: Mapped["User"] = relationship("User")
     blueprint: Mapped["AssessmentBlueprint"] = relationship("AssessmentBlueprint", back_populates="sessions")
     responses: Mapped[list["QuestionResponse"]] = relationship(
-        "QuestionResponse", back_populates="session"
+        "QuestionResponse", back_populates="session", cascade="all, delete-orphan"
     )
     result: Mapped["AssessmentResult"] = relationship(
-        "AssessmentResult", back_populates="session", uselist=False
+        "AssessmentResult", back_populates="session", uselist=False, cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
