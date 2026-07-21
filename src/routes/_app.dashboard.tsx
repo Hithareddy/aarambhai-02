@@ -40,6 +40,7 @@ import { toast } from "sonner";
 
 import { QueryState } from "@/components/data-state";
 import { useDashboard, useMarkAllNotificationsRead } from "@/lib/api/hooks";
+import { useLanguage } from "@/hooks/use-language";
 import type {
   AchievementBadge,
   ActivityDay,
@@ -74,6 +75,7 @@ function DashboardPage() {
 }
 
 function DashboardContent({ data }: { data: DashboardSnapshot }) {
+  const { websiteLanguage, t } = useLanguage();
   const {
     profile,
     goal,
@@ -112,31 +114,31 @@ function DashboardContent({ data }: { data: DashboardSnapshot }) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={Flame}
-          label="Streak"
-          value={`${goal.streakDays} days`}
-          hint={`Longest ${goal.longestStreak} days`}
+          label={t("dashboard.streak") || "Streak"}
+          value={`${goal.streakDays} ${t("dashboard.days") || "days"}`}
+          hint={`${t("dashboard.longestStreak") || "Longest"} ${goal.longestStreak} ${t("dashboard.days") || "days"}`}
           tone="primary"
         />
         <StatCard
           icon={Target}
-          label="Today's goal"
+          label={t("dashboard.todayGoal") || "Today's goal"}
           value={`${goal.completedMinutes}/${goal.targetMinutes} min`}
-          hint={goalPct >= 100 ? "Goal complete" : `${100 - goalPct}% to go`}
+          hint={goalPct >= 100 ? (t("dashboard.goalComplete") || "Goal complete") : `${100 - goalPct}% ${t("dashboard.toGo") || "to go"}`}
           progress={goalPct}
           tone="accent"
         />
         <StatCard
           icon={Zap}
-          label="Weekly time"
+          label={t("dashboard.weeklyTime") || "Weekly time"}
           value={`${goal.learningHoursThisWeek}h`}
-          hint={`${goal.consistencyPercent}% consistency`}
+          hint={`${goal.consistencyPercent}% ${t("dashboard.consistency") || "consistency"}`}
           tone="primary"
         />
         <StatCard
           icon={BookOpen}
-          label="Course progress"
+          label={t("dashboard.courseProgress") || "Course progress"}
           value={`${courseCompletionPercent}%`}
-          hint="Everyday English"
+          hint={t("dashboard.courseEnglish") || "Everyday English"}
           progress={courseCompletionPercent}
           tone="accent"
         />
@@ -183,43 +185,44 @@ function WelcomeHero({
   xpPct: number;
   streak: number;
 }) {
+  const { t } = useLanguage();
   const firstName = name.split(" ")[0];
   return (
     <Card className="gradient-hero relative overflow-hidden rounded-2xl border-none p-6 sm:p-8">
       <div className="grid gap-6 sm:grid-cols-[1fr_auto] sm:items-center">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-            Welcome back
+            {t("dashboard.welcomeBack") || "Welcome back"}
           </p>
           <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight sm:text-3xl">
-            Good to see you, {firstName}
+            {t("dashboard.greeting", { name: firstName }) || `Good to see you, ${firstName}`}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">{headline}</p>
           <div className="mt-5 max-w-md">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-medium">Level {level}</span>
+              <span className="font-medium">{t("dashboard.level", { level: String(level) }) || `Level ${level}`}</span>
               <span className="text-muted-foreground">
                 {xp.toLocaleString()} / {xpForNextLevel.toLocaleString()} XP
               </span>
             </div>
             <Progress value={xpPct} className="mt-1.5 h-2" />
             <p className="mt-1.5 text-xs text-muted-foreground">
-              {xpForNextLevel - xp} XP to Level {level + 1}
+              {t("dashboard.xpToNext", { xp: String(xpForNextLevel - xp), level: String(level + 1) }) || `${xpForNextLevel - xp} XP to Level ${level + 1}`}
             </p>
           </div>
         </div>
         <div className="flex flex-col items-start gap-3 sm:items-end">
           <Badge className="gap-1 bg-primary-soft text-primary hover:bg-primary-soft">
-            <Flame className="h-3.5 w-3.5" /> {streak}-day streak
+            <Flame className="h-3.5 w-3.5" /> {t("dashboard.streakCount", { count: String(streak) }) || `${streak}-day streak`}
           </Badge>
           <div className="flex flex-wrap gap-2">
             <Button asChild size="lg" className="gap-2">
               <Link to="/learn">
-                <PlayCircle className="h-4 w-4" /> Continue learning
+                <PlayCircle className="h-4 w-4" /> {t("dashboard.continueLearning") || "Continue learning"}
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link to="/learning-path">View path</Link>
+              <Link to="/learning-path">{t("dashboard.viewPathHero") || "View path"}</Link>
             </Button>
           </div>
         </div>
@@ -229,11 +232,12 @@ function WelcomeHero({
 }
 
 function QuickActions() {
+  const { t } = useLanguage();
   const actions = [
-    { to: "/learn" as const, icon: BookOpen, label: "Browse lessons" },
-    { to: "/practice" as const, icon: Zap, label: "Quick practice" },
-    { to: "/assessments" as const, icon: ClipboardCheck, label: "Take assessment" },
-    { to: "/progress" as const, icon: TrendingUp, label: "See progress" },
+    { to: "/learn" as const, icon: BookOpen, label: t("dashboard.browseLessons") || "Browse lessons" },
+    { to: "/practice" as const, icon: Zap, label: t("dashboard.quickPractice") || "Quick practice" },
+    { to: "/assessments" as const, icon: ClipboardCheck, label: t("dashboard.takeAssessment") || "Take assessment" },
+    { to: "/progress" as const, icon: TrendingUp, label: t("dashboard.seeProgress") || "See progress" },
   ];
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -295,6 +299,7 @@ function StatCard({
 }
 
 function ContinueLessonCard({ lesson }: { lesson: ContinueLesson }) {
+  const { t } = useLanguage();
   return (
     <Card className="overflow-hidden p-0">
       <div
@@ -304,7 +309,7 @@ function ContinueLessonCard({ lesson }: { lesson: ContinueLesson }) {
         }}
       >
         <p className="text-xs font-semibold uppercase tracking-[0.14em] opacity-80">
-          Continue where you left off
+          {t("dashboard.continueTitle") || "Continue where you left off"}
         </p>
         <h2 className="mt-1 font-display text-xl font-semibold sm:text-2xl">
           {lesson.lessonTitle}
@@ -315,17 +320,17 @@ function ContinueLessonCard({ lesson }: { lesson: ContinueLesson }) {
       </div>
       <div className="p-5">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{lesson.progress}% complete</span>
-          <span>{lesson.minutesLeft} min left</span>
+          <span>{lesson.progress}% {t("dashboard.complete") || "complete"}</span>
+          <span>{lesson.minutesLeft} {t("dashboard.minLeft") || "min left"}</span>
         </div>
         <Progress value={lesson.progress} className="mt-2 h-2" />
         <div className="mt-4 flex flex-wrap justify-end gap-2">
           <Button asChild variant="ghost" size="sm">
-            <Link to="/learning-path">View chapter</Link>
+            <Link to="/learning-path">{t("dashboard.viewChapter") || "View chapter"}</Link>
           </Button>
           <Button asChild size="sm" className="gap-1">
             <Link to="/learn">
-              Resume <ArrowRight className="h-4 w-4" />
+              {t("dashboard.resume") || "Resume"} <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
         </div>
@@ -335,6 +340,7 @@ function ContinueLessonCard({ lesson }: { lesson: ContinueLesson }) {
 }
 
 function WeeklyActivityCard({ data }: { data: ActivityDay[] }) {
+  const { t } = useLanguage();
   const chart = data.map((d) => ({
     day: new Date(d.date).toLocaleDateString(undefined, { weekday: "short" }),
     minutes: d.minutes,
@@ -344,12 +350,12 @@ function WeeklyActivityCard({ data }: { data: ActivityDay[] }) {
     <Card className="p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="font-display text-lg font-semibold">This week</h2>
+          <h2 className="font-display text-lg font-semibold">{t("dashboard.thisWeek") || "This week"}</h2>
           <p className="text-xs text-muted-foreground">
-            {total} minutes of learning across 7 days
+            {t("dashboard.learningMinutesText", { minutes: String(total) }) || `${total} minutes of learning across 7 days`}
           </p>
         </div>
-        <Badge variant="secondary">Minutes / day</Badge>
+        <Badge variant="secondary">{t("dashboard.minutesPerDay") || "Minutes / day"}</Badge>
       </div>
       <div className="mt-5 h-56 w-full">
         <ResponsiveContainer width="100%" height="100%">
@@ -363,7 +369,7 @@ function WeeklyActivityCard({ data }: { data: ActivityDay[] }) {
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
             <XAxis dataKey="day" tickLine={false} axisLine={false} stroke="var(--color-muted-foreground)" fontSize={12} />
             <YAxis tickLine={false} axisLine={false} stroke="var(--color-muted-foreground)" fontSize={12} width={30} />
-            <Tooltip content={<ChartTooltip suffix=" min" />} cursor={{ stroke: "var(--color-border)" }} />
+            <Tooltip content={<ChartTooltip suffix={` ${t("dashboard.minSuffix") || "min"}`} />} cursor={{ stroke: "var(--color-border)" }} />
             <Area
               type="monotone"
               dataKey="minutes"
@@ -379,6 +385,7 @@ function WeeklyActivityCard({ data }: { data: ActivityDay[] }) {
 }
 
 function MonthlyActivityCard({ data }: { data: ActivityDay[] }) {
+  const { t } = useLanguage();
   const chart = data.map((d) => ({
     date: new Date(d.date).toLocaleDateString(undefined, { day: "2-digit" }),
     minutes: d.minutes,
@@ -389,12 +396,16 @@ function MonthlyActivityCard({ data }: { data: ActivityDay[] }) {
     <Card className="p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="font-display text-lg font-semibold">Last 28 days</h2>
+          <h2 className="font-display text-lg font-semibold">{t("dashboard.last28Days") || "Last 28 days"}</h2>
           <p className="text-xs text-muted-foreground">
-            {activeDays} active days · {Math.round(total / 60)}h {total % 60}m total
+            {t("dashboard.activeDaysText", {
+              days: String(activeDays),
+              hours: String(Math.round(total / 60)),
+              minutes: String(total % 60),
+            }) || `${activeDays} active days · ${Math.round(total / 60)}h ${total % 60}m total`}
           </p>
         </div>
-        <Badge variant="secondary">Daily minutes</Badge>
+        <Badge variant="secondary">{t("dashboard.dailyMinutes") || "Daily minutes"}</Badge>
       </div>
       <div className="mt-5 h-52 w-full">
         <ResponsiveContainer width="100%" height="100%">
@@ -409,7 +420,7 @@ function MonthlyActivityCard({ data }: { data: ActivityDay[] }) {
               interval={3}
             />
             <YAxis tickLine={false} axisLine={false} stroke="var(--color-muted-foreground)" fontSize={11} width={30} />
-            <Tooltip content={<ChartTooltip suffix=" min" />} cursor={{ fill: "color-mix(in oklab, var(--color-primary) 8%, transparent)" }} />
+            <Tooltip content={<ChartTooltip suffix={` ${t("dashboard.minSuffix") || "min"}`} />} cursor={{ fill: "color-mix(in oklab, var(--color-primary) 8%, transparent)" }} />
             <Bar dataKey="minutes" radius={[6, 6, 0, 0]}>
               {chart.map((entry, i) => (
                 <Cell
@@ -452,6 +463,7 @@ function ChartTooltip({
 }
 
 function AIRecommendationsCard({ items }: { items: RecommendedLesson[] }) {
+  const { t } = useLanguage();
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between gap-2">
@@ -459,11 +471,11 @@ function AIRecommendationsCard({ items }: { items: RecommendedLesson[] }) {
           <span className="grid h-8 w-8 place-items-center rounded-xl bg-accent-soft text-accent">
             <Sparkles className="h-4 w-4" />
           </span>
-          <h2 className="font-display text-lg font-semibold">AI recommendations</h2>
+          <h2 className="font-display text-lg font-semibold">{t("dashboard.aiRecommendations") || "AI recommendations"}</h2>
         </div>
         <Button asChild variant="ghost" size="sm" className="gap-1">
           <Link to="/learn">
-            Explore <ArrowRight className="h-4 w-4" />
+            {t("dashboard.explore") || "Explore"} <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>
       </div>
@@ -503,10 +515,11 @@ function TopicsCard({
   weak: TopicInsight[];
   strong: TopicInsight[];
 }) {
+  const { t } = useLanguage();
   return (
     <div className="grid gap-6 md:grid-cols-2">
-      <TopicList title="Areas to nurture" icon={<TrendingDown className="h-4 w-4 text-warning" />} items={weak} />
-      <TopicList title="Your strengths" icon={<TrendingUp className="h-4 w-4 text-success" />} items={strong} />
+      <TopicList title={t("dashboard.weakTopicsTitle") || "Areas to nurture"} icon={<TrendingDown className="h-4 w-4 text-warning" />} items={weak} />
+      <TopicList title={t("dashboard.strongTopicsTitle") || "Your strengths"} icon={<TrendingUp className="h-4 w-4 text-success" />} items={strong} />
     </div>
   );
 }
@@ -532,9 +545,8 @@ function TopicList({
             <div className="flex items-center justify-between text-sm">
               <span className="truncate pr-2 font-medium">{t.topic}</span>
               <span
-                className={`shrink-0 tabular-nums text-xs ${
-                  t.delta >= 0 ? "text-success" : "text-destructive"
-                }`}
+                className={`shrink-0 tabular-nums text-xs ${t.delta >= 0 ? "text-success" : "text-destructive"
+                  }`}
               >
                 {t.delta >= 0 ? "+" : ""}
                 {t.delta}%
@@ -549,13 +561,14 @@ function TopicList({
 }
 
 function RecentlyCompletedCard({ items }: { items: DashboardSnapshot["recentlyCompleted"] }) {
+  const { t } = useLanguage();
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-lg font-semibold">Recently completed</h2>
+        <h2 className="font-display text-lg font-semibold">{t("dashboard.recentlyCompleted") || "Recently completed"}</h2>
         <Button asChild variant="ghost" size="sm" className="gap-1">
           <Link to="/progress">
-            History <ArrowRight className="h-4 w-4" />
+            {t("dashboard.history") || "History"} <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>
       </div>
@@ -580,9 +593,10 @@ function RecentlyCompletedCard({ items }: { items: DashboardSnapshot["recentlyCo
 }
 
 function SkillOverviewCard({ skills }: { skills: SkillMastery[] }) {
+  const { t } = useLanguage();
   return (
     <Card className="p-6">
-      <h2 className="font-display text-lg font-semibold">Skill overview</h2>
+      <h2 className="font-display text-lg font-semibold">{t("dashboard.skillOverview") || "Skill overview"}</h2>
       <div className="mt-4 space-y-3">
         {skills.map((s) => (
           <div key={s.skill}>
@@ -599,12 +613,13 @@ function SkillOverviewCard({ skills }: { skills: SkillMastery[] }) {
 }
 
 function UpcomingAssessmentsCard({ items }: { items: UpcomingAssessment[] }) {
+  const { t } = useLanguage();
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-lg font-semibold">Upcoming assessments</h2>
+        <h2 className="font-display text-lg font-semibold">{t("dashboard.upcomingAssessments") || "Upcoming assessments"}</h2>
         <Button asChild variant="ghost" size="sm">
-          <Link to="/assessments">All</Link>
+          <Link to="/assessments">{t("dashboard.all") || "All"}</Link>
         </Button>
       </div>
       <ul className="mt-3 space-y-3">
@@ -623,7 +638,7 @@ function UpcomingAssessmentsCard({ items }: { items: UpcomingAssessment[] }) {
               </p>
             </div>
             <Button asChild size="sm" variant="ghost">
-              <Link to="/assessment-quiz">Start</Link>
+              <Link to="/assessment-quiz">{t("dashboard.start") || "Start"}</Link>
             </Button>
           </li>
         ))}
@@ -633,6 +648,7 @@ function UpcomingAssessmentsCard({ items }: { items: UpcomingAssessment[] }) {
 }
 
 function AchievementsCard({ items }: { items: AchievementBadge[] }) {
+  const { t } = useLanguage();
   const iconFor = {
     flame: Flame,
     trophy: Trophy,
@@ -644,9 +660,9 @@ function AchievementsCard({ items }: { items: AchievementBadge[] }) {
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-lg font-semibold">Achievements</h2>
+        <h2 className="font-display text-lg font-semibold">{t("dashboard.achievements") || "Achievements"}</h2>
         <Button asChild variant="ghost" size="sm">
-          <Link to="/achievements">All</Link>
+          <Link to="/achievements">{t("dashboard.all") || "All"}</Link>
         </Button>
       </div>
       <ul className="mt-3 space-y-3">
@@ -656,9 +672,8 @@ function AchievementsCard({ items }: { items: AchievementBadge[] }) {
           return (
             <li key={b.id} className="flex items-start gap-3">
               <span
-                className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${
-                  earned ? "bg-accent-soft text-accent" : "bg-muted text-muted-foreground"
-                }`}
+                className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${earned ? "bg-accent-soft text-accent" : "bg-muted text-muted-foreground"
+                  }`}
               >
                 <Icon className="h-4 w-4" />
               </span>
@@ -683,13 +698,14 @@ function AchievementsCard({ items }: { items: AchievementBadge[] }) {
 }
 
 function NotificationsCard({ items }: { items: NotificationItem[] }) {
+  const { t } = useLanguage();
   const markAll = useMarkAllNotificationsRead();
   const unread = items.filter((n) => !n.read).length;
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h2 className="font-display text-lg font-semibold">Notifications</h2>
+          <h2 className="font-display text-lg font-semibold">{t("dashboard.notifications") || "Notifications"}</h2>
           {unread > 0 && (
             <Badge className="bg-primary text-primary-foreground hover:bg-primary">
               {unread}
@@ -704,32 +720,31 @@ function NotificationsCard({ items }: { items: NotificationItem[] }) {
               disabled={markAll.isPending}
               onClick={() =>
                 markAll.mutate(undefined, {
-                  onSuccess: () => toast.success("All notifications marked as read"),
-                  onError: () => toast.error("Couldn't update notifications"),
+                  onSuccess: () => toast.success(t("dashboard.notificationsMarkedRead") || "All notifications marked as read"),
+                  onError: () => toast.error(t("dashboard.notificationsMarkedError") || "Couldn't update notifications"),
                 })
               }
             >
-              Mark all
+              {t("dashboard.markAll") || "Mark all"}
             </Button>
           )}
           <Button asChild size="sm" variant="ghost">
-            <Link to="/notifications">All</Link>
+            <Link to="/notifications">{t("dashboard.all") || "All"}</Link>
           </Button>
         </div>
       </div>
       {items.length === 0 ? (
         <div className="mt-4 flex flex-col items-center rounded-xl border border-dashed border-border py-8 text-center">
           <Bell className="h-5 w-5 text-muted-foreground" />
-          <p className="mt-2 text-sm text-muted-foreground">You're all caught up.</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t("dashboard.allCaughtUp") || "You're all caught up."}</p>
         </div>
       ) : (
         <ul className="mt-3 space-y-2">
           {items.slice(0, 3).map((n) => (
             <li
               key={n.id}
-              className={`rounded-xl border p-3 ${
-                n.read ? "border-border" : "border-primary/30 bg-primary-soft/40"
-              }`}
+              className={`rounded-xl border p-3 ${n.read ? "border-border" : "border-primary/30 bg-primary-soft/40"
+                }`}
             >
               <div className="flex items-start gap-2">
                 {!n.read && (
@@ -752,9 +767,10 @@ function NotificationsCard({ items }: { items: NotificationItem[] }) {
 }
 
 function ActivityTimelineCard({ items }: { items: DashboardSnapshot["activityFeed"] }) {
+  const { t } = useLanguage();
   return (
     <Card className="p-6">
-      <h2 className="font-display text-lg font-semibold">Recent activity</h2>
+      <h2 className="font-display text-lg font-semibold">{t("dashboard.recentActivity") || "Recent activity"}</h2>
       <ol className="mt-4 space-y-4 border-l border-border pl-4">
         {items.map((e) => (
           <li key={e.id} className="relative">
@@ -766,7 +782,7 @@ function ActivityTimelineCard({ items }: { items: DashboardSnapshot["activityFee
       </ol>
       <Separator className="my-4" />
       <Button asChild variant="ghost" size="sm" className="w-full">
-        <Link to="/progress">View full history</Link>
+        <Link to="/progress">{t("dashboard.viewFullHistory") || "View full history"}</Link>
       </Button>
     </Card>
   );

@@ -23,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useLanguage } from "@/hooks/use-language";
 
 const searchSchema = z.object({ s: z.string().optional() });
 
@@ -44,6 +45,7 @@ function AssessmentQuizPage() {
   const [error, setError] = useState<string | null>(null);
   const [confirmExit, setConfirmExit] = useState(false);
   const questionStartedAt = useRef<number>(Date.now());
+  const { t } = useLanguage();
 
   const goToAnalyzing = useCallback(
     (id: string) => {
@@ -120,7 +122,7 @@ function AssessmentQuizPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading assessment...</p>
+          <p className="text-muted-foreground">{t("assessmentQuiz.loading") || "Loading assessment..."}</p>
         </div>
       </div>
     );
@@ -131,9 +133,9 @@ function AssessmentQuizPage() {
       <main className="flex items-center justify-center min-h-screen p-6">
         <Card className="max-w-md w-full p-8 text-center">
           <AlertCircle className="mx-auto mb-4 text-destructive" size={40} />
-          <h2 className="text-xl font-semibold mb-2">Unable to start assessment</h2>
+          <h2 className="text-xl font-semibold mb-2">{t("assessmentQuiz.unableStart") || "Unable to start assessment"}</h2>
           <p className="text-muted-foreground mb-6">{error}</p>
-          <Button onClick={() => navigate({ to: "/assessment-intro" })}>Back to setup</Button>
+          <Button onClick={() => navigate({ to: "/assessment-intro" })}>{t("assessmentQuiz.backSetup") || "Back to setup"}</Button>
         </Card>
       </main>
     );
@@ -146,7 +148,7 @@ function AssessmentQuizPage() {
       <header className="flex items-center justify-between px-6 py-5 border-b">
         <div className="flex items-center gap-2 text-primary font-bold">
           <BookOpen size={20} />
-          <span>Aarambh AI Evaluation Workspace</span>
+          <span>{t("assessmentQuiz.workspaceTitle") || "Aarambh AI Evaluation Workspace"}</span>
         </div>
         <Button
           variant="ghost"
@@ -154,7 +156,7 @@ function AssessmentQuizPage() {
           className="gap-2 text-muted-foreground"
         >
           <LogOut size={16} />
-          Abandon Test
+          {t("assessmentQuiz.abandonBtn") || "Abandon Test"}
         </Button>
       </header>
 
@@ -164,6 +166,15 @@ function AssessmentQuizPage() {
           total={TOTAL_QUESTIONS}
           currentSkill={question.skill}
         />
+
+        {question.isFallback && (
+          <Alert className="bg-warning/10 border-warning/30 text-warning-foreground">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              {t("assessmentQuiz.fallbackMessage") || "Questions are temporarily shown in English while content for the selected language is being prepared."}
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Card className="p-8 space-y-6" aria-live="polite">
           <h2 className="text-xl font-semibold">{question.prompt}</h2>
@@ -177,16 +188,14 @@ function AssessmentQuizPage() {
                   type="button"
                   disabled={submitting}
                   onClick={() => setSelected(option.id)}
-                  className={`flex items-center gap-3 rounded-lg border p-4 text-left transition-colors ${
-                    isSelected ? "border-primary bg-primary/10" : "border-border hover:bg-muted/50"
-                  }`}
+                  className={`flex items-center gap-3 rounded-lg border p-4 text-left transition-colors ${isSelected ? "border-primary bg-primary/10" : "border-border hover:bg-muted/50"
+                    }`}
                 >
                   <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${
-                      isSelected
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border"
-                    }`}
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${isSelected
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border"
+                      }`}
                   >
                     {option.id}
                   </span>
@@ -206,10 +215,10 @@ function AssessmentQuizPage() {
           <div className="flex justify-end">
             <Button size="lg" onClick={handleSubmit} disabled={selected === null || submitting}>
               {submitting
-                ? "Saving..."
+                ? (t("assessmentQuiz.saving") || "Saving...")
                 : answeredCount + 1 >= TOTAL_QUESTIONS
-                  ? "Submit & finish"
-                  : "Next question"}
+                  ? (t("assessmentQuiz.submitFinish") || "Submit & finish")
+                  : (t("assessmentQuiz.nextQuestion") || "Next question")}
             </Button>
           </div>
         </Card>
@@ -220,16 +229,15 @@ function AssessmentQuizPage() {
           <AlertDialogHeader>
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle size={24} className="text-primary" />
-              <AlertDialogTitle>Abandon placement assessment?</AlertDialogTitle>
+              <AlertDialogTitle>{t("assessmentQuiz.dialogTitle") || "Abandon placement assessment?"}</AlertDialogTitle>
             </div>
             <AlertDialogDescription>
-              Your current answers in this session will not yield placement records. You can run the
-              calibration setup screens again later.
+              {t("assessmentQuiz.dialogDesc") || "Your current answers in this session will not yield placement records. You can run the calibration setup screens again later."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Go Back to Quiz</AlertDialogCancel>
-            <AlertDialogAction onClick={doExit}>Discard Session</AlertDialogAction>
+            <AlertDialogCancel>{t("assessmentQuiz.dialogCancel") || "Go Back to Quiz"}</AlertDialogCancel>
+            <AlertDialogAction onClick={doExit}>{t("assessmentQuiz.dialogDiscard") || "Discard Session"}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

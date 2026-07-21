@@ -46,6 +46,7 @@ class LearnerProfile(Base, TimestampMixin):
     # Learning Preferences
     learning_goal: Mapped[str] = mapped_column(String(100), nullable=False)
     learning_language: Mapped[str] = mapped_column(String(10), nullable=False)
+    website_language: Mapped[str] = mapped_column(String(10), nullable=False, default="en", server_default="en")
     current_familiarity: Mapped[str] = mapped_column(String(50), nullable=False)
     digital_comfort: Mapped[str] = mapped_column(String(50), nullable=False)
 

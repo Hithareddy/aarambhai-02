@@ -59,6 +59,7 @@ class QuestionForAssessment(QuestionBase):
     id: str
     question_content: dict[str, Any]
     options: list[dict[str, Any]]
+    is_fallback: bool | None = None
 
     class Config:
         from_attributes = True

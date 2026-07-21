@@ -29,6 +29,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { BrandLogo } from "./brand-logo";
+import { useLanguage } from "@/hooks/use-language";
 
 const learnItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -56,33 +57,50 @@ const accountItems = [
   { title: "Help", url: "/help", icon: LifeBuoy },
 ] as const;
 
+const getTranslationKey = (title: string): string => {
+  if (title === "Learning Path") return "nav.learningPath";
+  if (title === "Log out") return "nav.logout";
+  return `nav.${title.toLowerCase()}`;
+};
+
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const isActive = (url: string) => pathname === url;
 
   const renderGroup = (
     label: string,
     items: readonly { title: string; url: string; icon: typeof BookOpen }[],
-  ) => (
-    <SidebarGroup>
-      <SidebarGroupLabel>{label}</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.url}>
-              <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                <Link to={item.url}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  );
+  ) => {
+    const groupKey = `nav.${label.toLowerCase()}Group`;
+    const translatedLabel = t(groupKey) || label;
+    return (
+      <SidebarGroup>
+        <SidebarGroupLabel>{translatedLabel}</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {items.map((item) => {
+              const transKey = getTranslationKey(item.title);
+              const labelText = t(transKey) || item.title;
+              return (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={labelText}>
+                    <Link to={item.url}>
+                      <item.icon />
+                      <span>{labelText}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    );
+  };
+
+  const logoutLabel = t("nav.logout") || "Log out";
 
   return (
     <Sidebar collapsible="icon">
@@ -104,11 +122,11 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              tooltip="Log out"
+              tooltip={logoutLabel}
               onClick={() => navigate({ to: "/login" })}
             >
               <LogOut />
-              <span>Log out</span>
+              <span>{logoutLabel}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

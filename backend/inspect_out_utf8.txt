@@ -1,0 +1,16 @@
+DATABASE_URL: postgresql+asyncpg://postgres.amxtunhqypkvlypeuxnj:Aarambh2709@aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres
+
+Columns in learner_profiles:
+  id: character varying
+  user_id: character varying
+  name: character varying
+  age_group: character varying
+  educational_background: character varying
+  current_role: character varying
+  learning_goal: character varying
+  learning_language: character varying
+  current_familiarity: character varying
+  digital_comfort: character varying
+  assessment_completed: boolean
+  created_at: timestamp with time zone
+  updated_at: timestamp with time zone

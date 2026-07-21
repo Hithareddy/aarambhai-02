@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { login } from "@/lib/api/auth";
+import { useLanguage } from "@/hooks/use-language";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign in — Aarambh AI" }] }),
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
+  const { t } = useLanguage();
   const [show, setShow] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,20 +33,20 @@ function LoginPage() {
       await login(email, password);
       navigate({ to: "/dashboard" });
     } catch (err) {
-      setError((err as Error).message || "Failed to sign in");
+      setError((err as Error).message || t("login.failed") || "Failed to sign in");
       setSubmitting(false);
     }
   };
 
   return (
     <AuthShell
-      title="Welcome back"
-      subtitle="Sign in to continue your learning journey."
+      title={t("login.title") || "Welcome back"}
+      subtitle={t("login.subtitle") || "Sign in to continue your learning journey."}
       footer={
         <>
-          Don't have an account?{" "}
+          {t("login.dontHaveAccount") || "Don't have an account?"}{" "}
           <Link to="/signup" className="font-medium text-primary hover:underline">
-            Create one
+            {t("login.createOne") || "Create one"}
           </Link>
         </>
       }
@@ -57,7 +59,7 @@ function LoginPage() {
           </Alert>
         )}
         <div className="grid gap-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t("login.email") || "Email"}</Label>
           <Input
             id="email"
             type="email"
@@ -69,9 +71,9 @@ function LoginPage() {
         </div>
         <div className="grid gap-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t("login.password") || "Password"}</Label>
             <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-              Forgot password?
+              {t("login.forgotPassword") || "Forgot password?"}
             </Link>
           </div>
           <div className="relative">
@@ -94,20 +96,20 @@ function LoginPage() {
           </div>
         </div>
         <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Checkbox id="remember" /> Remember me
+          <Checkbox id="remember" /> {t("login.rememberMe") || "Remember me"}
         </label>
         <Button type="submit" size="lg" disabled={submitting}>
-          {submitting ? "Signing in..." : "Sign in"}
+          {submitting ? (t("login.signingIn") || "Signing in...") : (t("login.signIn") || "Sign in")}
         </Button>
       </form>
       <div className="my-5 flex items-center gap-3">
         <Separator className="flex-1" />
-        <span className="text-xs uppercase tracking-wider text-muted-foreground">or</span>
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">{t("login.or") || "or"}</span>
         <Separator className="flex-1" />
       </div>
       <div className="grid gap-2">
-        <Button variant="outline" type="button">Continue with Google</Button>
-        <Button variant="outline" type="button">Continue with Apple</Button>
+        <Button variant="outline" type="button">{t("login.continueWithGoogle") || "Continue with Google"}</Button>
+        <Button variant="outline" type="button">{t("login.continueWithApple") || "Continue with Apple"}</Button>
       </div>
     </AuthShell>
   );

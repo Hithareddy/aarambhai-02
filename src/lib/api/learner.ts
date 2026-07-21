@@ -15,12 +15,14 @@ export interface LearnerProfileInput {
   learning_language: string;
   current_familiarity: string;
   digital_comfort: string;
+  website_language?: string;
 }
 
 export interface LearnerProfile extends LearnerProfileInput {
   id: string;
   user_id: string;
   assessment_completed: boolean;
+  website_language: string;
   created_at: string;
   updated_at: string;
 }

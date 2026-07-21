@@ -9,13 +9,15 @@ import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { saveLearnerProfile } from "@/lib/api/learner";
+import { useLanguage } from "@/hooks/use-language";
+import { LANGUAGES } from "@/constants/languages";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: "Getting to know you — Aarambh AI" }] }),
   component: OnboardingPage,
 });
 
-type StepKey = "name" | "age" | "background" | "context" | "goal" | "familiarity" | "digital";
+type StepKey = "name" | "age" | "background" | "context" | "goal" | "familiarity" | "digital" | "target_language";
 
 interface Step {
   key: StepKey;
@@ -93,11 +95,44 @@ const steps: Step[] = [
       "Very comfortable",
     ],
   },
+  {
+    key: "target_language",
+    title: "Which language do you want to learn?",
+    subtitle: "This will be the target language for lessons and assessments.",
+    field: "options",
+    options: LANGUAGES.map(l => l.native),
+  },
 ];
 
+const getStepTranslationKeys = (key: StepKey) => {
+  switch (key) {
+    case "name": return { title: "onboarding.qNameTitle", sub: "onboarding.qNameSub" };
+    case "age": return { title: "onboarding.qAgeTitle", sub: "onboarding.qAgeSub" };
+    case "background": return { title: "onboarding.qBgTitle", sub: "onboarding.qBgSub" };
+    case "context": return { title: "onboarding.qRoleTitle", sub: "onboarding.qRoleSub" };
+    case "goal": return { title: "onboarding.qGoalTitle", sub: "onboarding.qGoalSub" };
+    case "familiarity": return { title: "onboarding.qFamTitle", sub: "onboarding.qFamSub" };
+    case "digital": return { title: "onboarding.qDigTitle", sub: "onboarding.qDigSub" };
+    case "target_language": return { title: "onboarding.qTgtLangTitle", sub: "onboarding.qTgtLangSub" };
+  }
+};
+
 function OnboardingPage() {
+  const { t, websiteLanguage, setTargetLanguage } = useLanguage();
   const [i, setI] = useState(0);
-  const [answers, setAnswers] = useState<Partial<Record<StepKey, string>>>({});
+  const [answers, setAnswers] = useState<Partial<Record<StepKey, string>>>(() => {
+    const defaultTgt = localStorage.getItem("target_language") || localStorage.getItem("learning_language") || "en";
+    const uiLabelMap: Record<string, string> = {
+      en: "English",
+      te: "తెలుగు",
+      hi: "हिन्दी",
+      ta: "தமிழ்",
+      mr: "मराठी",
+    };
+    return {
+      target_language: uiLabelMap[defaultTgt] || "English",
+    };
+  });
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -108,6 +143,10 @@ function OnboardingPage() {
   const canContinue = value.trim().length > 0;
   const pct = Math.round(((i + 1) / steps.length) * 100);
 
+  const translationKeys = getStepTranslationKeys(step.key);
+  const stepTitle = t(translationKeys.title) || step.title;
+  const stepSubtitle = t(translationKeys.sub) || step.subtitle;
+
   async function next() {
     if (i < steps.length - 1) {
       setI(i + 1);
@@ -115,6 +154,13 @@ function OnboardingPage() {
     }
     setSaving(true);
     setError(null);
+
+    // Map native language presentation to code
+    const targetLangCode = LANGUAGES.find(l => l.native === answers.target_language)?.code || "en";
+
+    // Set immediate client-side reactive target preference
+    setTargetLanguage(targetLangCode as any);
+
     try {
       await saveLearnerProfile({
         name: answers.name ?? "",
@@ -122,7 +168,8 @@ function OnboardingPage() {
         educational_background: answers.background ?? "",
         current_role: answers.context ?? "",
         learning_goal: answers.goal ?? "",
-        learning_language: localStorage.getItem("learning_language") || "en",
+        learning_language: targetLangCode,
+        website_language: websiteLanguage,
         current_familiarity: answers.familiarity ?? "",
         digital_comfort: answers.digital ?? "",
       });
@@ -145,14 +192,14 @@ function OnboardingPage() {
             <CheckCircle2 className="h-8 w-8" />
           </div>
           <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">
-            You're all set, {answers.name || "friend"}!
+            {t("onboarding.setGreeting", { name: answers.name || "friend" })}
           </h1>
           <p className="mt-2 text-muted-foreground">
-            We'll take everything you shared and shape a learning path that fits you.
+            {t("onboarding.setDesc")}
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button size="lg" onClick={() => navigate({ to: "/assessment-intro" })}>
-              Continue
+              {t("onboarding.continue")}
             </Button>
             <Button
               size="lg"
@@ -162,7 +209,7 @@ function OnboardingPage() {
                 setI(0);
               }}
             >
-              Review my answers
+              {t("onboarding.reviewAnswers")}
             </Button>
           </div>
         </main>
@@ -175,7 +222,7 @@ function OnboardingPage() {
       <header className="flex items-center justify-between px-6 py-5">
         <BrandLogo />
         <span className="text-sm text-muted-foreground">
-          Step {i + 1} of {steps.length}
+          {t("onboarding.stepText", { current: String(i + 1), total: String(steps.length) })}
         </span>
       </header>
       <div className="px-6">
@@ -183,12 +230,12 @@ function OnboardingPage() {
       </div>
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-4 py-10">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-          Getting to know you
+          {t("onboarding.eyebrow")}
         </p>
         <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-balance">
-          {step.title}
+          {stepTitle}
         </h1>
-        <p className="mt-2 text-muted-foreground">{step.subtitle}</p>
+        <p className="mt-2 text-muted-foreground">{stepSubtitle}</p>
 
         <Card className="mt-8 p-6">
           {step.field === "input" ? (
@@ -205,17 +252,20 @@ function OnboardingPage() {
           ) : (
             <RadioGroup
               value={value}
-              onValueChange={(v) => setAnswers((a) => ({ ...a, [step.key]: v }))}
+              onValueChange={(v) => {
+                setAnswers((a) => {
+                  return { ...a, [step.key]: v };
+                });
+              }}
               className="grid gap-2"
             >
               {step.options!.map((opt) => (
                 <label
                   key={opt}
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${
-                    value === opt
-                      ? "border-primary bg-primary-soft"
-                      : "border-border hover:border-primary/40"
-                  }`}
+                  className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${value === opt
+                    ? "border-primary bg-primary-soft"
+                    : "border-border hover:border-primary/40"
+                    }`}
                 >
                   <RadioGroupItem value={opt} />
                   <span className="text-sm font-medium">{opt}</span>
@@ -231,10 +281,10 @@ function OnboardingPage() {
             onClick={() => (i === 0 ? navigate({ to: "/signup" }) : setI(i - 1))}
             className="gap-1"
           >
-            <ArrowLeft className="h-4 w-4" /> Back
+            <ArrowLeft className="h-4 w-4" /> {t("onboarding.back")}
           </Button>
           <Button onClick={next} disabled={!canContinue || saving} className="gap-1">
-            {i === steps.length - 1 ? (saving ? "Saving…" : "Finish") : "Continue"}{" "}
+            {i === steps.length - 1 ? (saving ? t("onboarding.saving") : t("onboarding.finish")) : t("onboarding.continue")}{" "}
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>

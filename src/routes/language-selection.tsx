@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
+import { LANGUAGES, LanguageCode } from "@/constants/languages";
 
 export const Route = createFileRoute("/language-selection")({
   head: () => ({
@@ -12,46 +13,43 @@ export const Route = createFileRoute("/language-selection")({
   component: LanguageSelectionPage,
 });
 
-const languages = [
-  { code: "en", label: "English", native: "English" },
-  { code: "te", label: "Telugu", native: "తెలుగు" },
-  { code: "hi", label: "Hindi", native: "हिन्दी" },
-  { code: "ta", label: "Tamil", native: "தமிழ்" },
-  { code: "mr", label: "Marathi", native: "मराठी" },
-];
-
 function LanguageSelectionPage() {
-  const [picked, setPicked] = useState("en");
+  const { websiteLanguage, setWebsiteLanguage, t } = useLanguage();
+  const [picked, setPicked] = useState<LanguageCode>(websiteLanguage);
   const navigate = useNavigate();
+
   return (
     <div className="flex min-h-dvh flex-col bg-background">
       <header className="flex items-center justify-between px-6 py-5">
         <BrandLogo />
         <Button asChild variant="ghost" size="sm">
-          <Link to="/">Back to home</Link>
+          <Link to="/">{t("languageSelection.backToHome") || "Back to home"}</Link>
         </Button>
       </header>
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 py-10">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-          Step 1 of 2
+          {t("languageSelection.stepText") || "Step 1 of 2"}
         </p>
         <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-          Choose your language
+          {t("languageSelection.title") || "Choose your language"}
         </h1>
         <p className="mt-2 max-w-xl text-center text-muted-foreground">
-          Aarambh AI will speak your language — pick the one that feels most at home.
+          {t("languageSelection.desc") || "Aarambh AI will speak your language — pick the one that feels most at home."}
         </p>
 
         <div className="mt-10 grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {languages.map((l) => {
+          {LANGUAGES.map((l) => {
             const active = picked === l.code;
             return (
               <button
                 key={l.code}
-                onClick={() => setPicked(l.code)}
-                className={`group relative rounded-2xl border-2 bg-card p-6 text-left transition ${
-                  active ? "border-primary shadow-md" : "border-border hover:border-primary/40"
-                }`}
+                onClick={() => {
+                  setPicked(l.code as LanguageCode);
+                  // Update website language immediately so the header back link translates reactively
+                  setWebsiteLanguage(l.code as LanguageCode);
+                }}
+                className={`group relative rounded-2xl border-2 bg-card p-6 text-left transition ${active ? "border-primary shadow-md" : "border-border hover:border-primary/40"
+                  }`}
               >
                 <p className="font-display text-2xl font-semibold">{l.native}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{l.label}</p>
@@ -69,11 +67,11 @@ function LanguageSelectionPage() {
           size="lg"
           className="mt-10"
           onClick={() => {
-            localStorage.setItem("learning_language", picked);
+            setWebsiteLanguage(picked);
             navigate({ to: "/role-selection" });
           }}
         >
-          Continue
+          {t("onboarding.continue") || "Continue"}
         </Button>
       </main>
     </div>

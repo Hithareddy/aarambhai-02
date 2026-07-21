@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Lock, PlayCircle } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
 
 export const Route = createFileRoute("/_app/learning-path")({
   head: () => ({ meta: [{ title: "Learning Path — Aarambh AI" }] }),
@@ -20,13 +21,14 @@ const chapters = [
 ];
 
 function LearningPathPage() {
+  const { t } = useLanguage();
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Your journey"
-        title="Everyday English — beginner path"
-        description="A gentle path built for you. Complete one step at a time, at your own pace."
-        actions={<Button variant="outline">Change path</Button>}
+        eyebrow={t("learningPath.eyebrow") || "Your journey"}
+        title={t("learningPath.title") || "Everyday English — beginner path"}
+        description={t("learningPath.description") || "A gentle path built for you. Complete one step at a time, at your own pace."}
+        actions={<Button variant="outline">{t("learningPath.changePath") || "Change path"}</Button>}
       />
 
       <div className="relative pl-6">
@@ -35,58 +37,56 @@ function LearningPathPage() {
           {chapters.map((c, i) => (
             <div key={c.title} className="relative">
               <span
-                className={`absolute -left-6 top-4 grid h-4 w-4 place-items-center rounded-full ring-4 ring-background ${
-                  c.state === "done"
+                className={`absolute -left-6 top-4 grid h-4 w-4 place-items-center rounded-full ring-4 ring-background ${c.state === "done"
                     ? "bg-success"
                     : c.state === "current"
-                    ? "bg-primary"
-                    : "bg-muted"
-                }`}
+                      ? "bg-primary"
+                      : "bg-muted"
+                  }`}
               />
               <Card
-                className={`p-5 ${
-                  c.state === "current" ? "border-primary/40 shadow-sm" : ""
-                }`}
+                className={`p-5 ${c.state === "current" ? "border-primary/40 shadow-sm" : ""
+                  }`}
               >
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-xs text-muted-foreground">
-                        Chapter {String(i + 1).padStart(2, "0")}
+                        {t("learningPath.chapterNum", { num: String(i + 1).padStart(2, "0") }) || `Chapter ${String(i + 1).padStart(2, "0")}`}
                       </span>
                       {c.state === "done" && (
                         <Badge className="bg-success/15 text-success hover:bg-success/15">
-                          Completed
+                          {t("learningPath.completed") || "Completed"}
                         </Badge>
                       )}
                       {c.state === "current" && (
                         <Badge className="bg-primary-soft text-primary hover:bg-primary-soft">
-                          In progress
+                          {t("learningPath.inProgress") || "In progress"}
                         </Badge>
                       )}
                       {c.state === "locked" && (
-                        <Badge variant="secondary">Locked</Badge>
+                        <Badge variant="secondary">{t("learningPath.locked") || "Locked"}</Badge>
                       )}
                     </div>
-                    <h3 className="mt-1 font-display text-lg font-semibold">{c.title}</h3>
+                    <h3 className="mt-1 font-display text-lg font-semibold">{t(`learningPath.chapters.${i}.title`) || c.title}</h3>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {c.state === "current"
-                        ? `${c.current} of ${c.lessons} lessons done`
-                        : `${c.lessons} lessons`}
+                        ? t("learningPath.currentStatus", { current: String(c.current), total: String(c.lessons) }) || `${c.current} of ${c.lessons} lessons done`
+                        : t("learningPath.totalLessons", { total: String(c.lessons) }) || `${c.lessons} lessons`}
                     </p>
                   </div>
                   <div className="shrink-0">
                     {c.state === "done" ? (
                       <Button variant="ghost" size="sm" className="gap-1">
-                        <CheckCircle2 className="h-4 w-4 text-success" /> Review
+                        <CheckCircle2 className="h-4 w-4 text-success" /> {t("learningPath.btnReview") || "Review"}
                       </Button>
                     ) : c.state === "current" ? (
                       <Button size="sm" className="gap-1">
-                        <PlayCircle className="h-4 w-4" /> Continue
+                        <PlayCircle className="h-4 w-4" /> {t("learningPath.btnContinue") || "Continue"}
                       </Button>
                     ) : (
                       <Button size="sm" variant="outline" disabled className="gap-1">
-                        <Lock className="h-4 w-4" /> Locked
+                        <Lock className="h-4 w-4" /> {t("learningPath.btnLocked") || "Locked"}
                       </Button>
                     )}
                   </div>

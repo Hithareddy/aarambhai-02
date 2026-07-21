@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { register } from "@/lib/api/auth";
+import { useLanguage } from "@/hooks/use-language";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({ meta: [{ title: "Create account — Aarambh AI" }] }),
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/signup")({
 });
 
 function SignupPage() {
+  const { t } = useLanguage();
   const [show, setShow] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -30,20 +32,20 @@ function SignupPage() {
       await register(name, email, password);
       navigate({ to: "/onboarding" });
     } catch (err) {
-      setError((err as Error).message || "Failed to create account");
+      setError((err as Error).message || t("signup.failed") || "Failed to create account");
       setSubmitting(false);
     }
   };
 
   return (
     <AuthShell
-      title="Create your account"
-      subtitle="A few details and you're on your way."
+      title={t("signup.title") || "Create your account"}
+      subtitle={t("signup.subtitle") || "A few details and you're on your way."}
       footer={
         <>
-          Already have an account?{" "}
+          {t("signup.alreadyHaveAccount") || "Already have an account?"}{" "}
           <Link to="/login" className="font-medium text-primary hover:underline">
-            Sign in
+            {t("signup.signIn") || "Sign in"}
           </Link>
         </>
       }
@@ -56,17 +58,17 @@ function SignupPage() {
           </Alert>
         )}
         <div className="grid gap-2">
-          <Label htmlFor="name">Full name</Label>
+          <Label htmlFor="name">{t("signup.fullName") || "Full name"}</Label>
           <Input
             id="name"
             required
-            placeholder="Your name"
+            placeholder={t("signup.fullNamePlaceholder") || "Your name"}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t("signup.email") || "Email"}</Label>
           <Input
             id="email"
             type="email"
@@ -77,7 +79,7 @@ function SignupPage() {
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{t("signup.password") || "Password"}</Label>
           <div className="relative">
             <Input
               id="password"
@@ -96,15 +98,15 @@ function SignupPage() {
               {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          <p className="text-xs text-muted-foreground">Use at least 8 characters.</p>
+          <p className="text-xs text-muted-foreground">{t("signup.passwordHint") || "Use at least 8 characters."}</p>
         </div>
         <Button type="submit" size="lg" disabled={submitting}>
-          {submitting ? "Creating account..." : "Create account"}
+          {submitting ? (t("signup.creating") || "Creating account...") : (t("signup.createAccount") || "Create account")}
         </Button>
         <p className="text-center text-xs text-muted-foreground">
-          By continuing, you agree to our{" "}
-          <Link to="/terms" className="underline">Terms</Link> and{" "}
-          <Link to="/privacy" className="underline">Privacy Policy</Link>.
+          {t("signup.agreeText") || "By continuing, you agree to our"}{" "}
+          <Link to="/terms" className="underline">{t("signup.terms") || "Terms"}</Link> {t("signup.and") || "and"}{" "}
+          <Link to="/privacy" className="underline">{t("signup.privacy") || "Privacy Policy"}</Link>.
         </p>
       </form>
     </AuthShell>

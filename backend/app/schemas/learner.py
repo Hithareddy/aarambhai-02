@@ -18,6 +18,7 @@ class LearnerProfileBase(BaseModel):
     current_role: str = Field(..., max_length=100)
     learning_goal: str = Field(..., max_length=100)
     learning_language: str = Field(..., max_length=10)
+    website_language: str = Field(default="en", max_length=10)
     current_familiarity: str = Field(..., max_length=50)
     digital_comfort: str = Field(..., max_length=50)
 
@@ -37,6 +38,7 @@ class LearnerProfileUpdate(BaseModel):
     current_role: str | None = Field(None, max_length=100)
     learning_goal: str | None = Field(None, max_length=100)
     learning_language: str | None = Field(None, max_length=10)
+    website_language: str | None = Field(None, max_length=10)
     current_familiarity: str | None = Field(None, max_length=50)
     digital_comfort: str | None = Field(None, max_length=50)
     assessment_completed: bool | None = None

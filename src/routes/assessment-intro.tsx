@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { HeartHandshake, Sparkles, Timer } from "lucide-react";
 import { abandonSession } from "@/lib/api/assessment";
+import { useLanguage } from "@/hooks/use-language";
 
 export const Route = createFileRoute("/assessment-intro")({
   head: () => ({ meta: [{ title: "Your first check-in — Aarambh AI" }] }),
@@ -12,6 +13,7 @@ export const Route = createFileRoute("/assessment-intro")({
 
 function AssessmentIntroPage() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   return (
     <div className="flex min-h-dvh flex-col bg-background">
       <header className="flex items-center justify-between px-6 py-5">
@@ -22,11 +24,10 @@ function AssessmentIntroPage() {
           <Sparkles className="h-7 w-7" />
         </div>
         <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-          A gentle first check-in
+          {t("assessmentIntro.title") || "A gentle first check-in"}
         </h1>
         <p className="mt-3 max-w-xl text-balance text-muted-foreground">
-          This is not a test. There is no pass or fail. Just a few friendly questions to help us
-          understand where to begin your journey.
+          {t("assessmentIntro.description") || "This is not a test. There is no pass or fail. Just a few friendly questions to help us understand where to begin your journey."}
         </p>
 
         <div className="mt-10 grid w-full gap-4 sm:grid-cols-3">
@@ -34,22 +35,22 @@ function AssessmentIntroPage() {
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent-soft text-accent">
               <Timer className="h-5 w-5" />
             </div>
-            <p className="mt-3 font-semibold">About 5 minutes</p>
-            <p className="mt-1 text-sm text-muted-foreground">Take your time. Pause anytime.</p>
+            <p className="mt-3 font-semibold">{t("assessmentIntro.card1Title") || "About 5 minutes"}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("assessmentIntro.card1Sub") || "Take your time. Pause anytime."}</p>
           </Card>
           <Card className="p-5 text-left">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent-soft text-accent">
               <HeartHandshake className="h-5 w-5" />
             </div>
-            <p className="mt-3 font-semibold">No pass, no fail</p>
-            <p className="mt-1 text-sm text-muted-foreground">There are no wrong answers here.</p>
+            <p className="mt-3 font-semibold">{t("assessmentIntro.card2Title") || "No pass, no fail"}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("assessmentIntro.card2Sub") || "There are no wrong answers here."}</p>
           </Card>
           <Card className="p-5 text-left">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent-soft text-accent">
               <Sparkles className="h-5 w-5" />
             </div>
-            <p className="mt-3 font-semibold">Personalised path</p>
-            <p className="mt-1 text-sm text-muted-foreground">A plan built just for you.</p>
+            <p className="mt-3 font-semibold">{t("assessmentIntro.card3Title") || "Personalised path"}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("assessmentIntro.card3Sub") || "A plan built just for you."}</p>
           </Card>
         </div>
 
@@ -61,10 +62,10 @@ function AssessmentIntroPage() {
               navigate({ to: "/assessment-quiz" });
             }}
           >
-            Start assessment
+            {t("assessmentIntro.startBtn") || "Start assessment"}
           </Button>
           <Button size="lg" variant="outline" onClick={() => navigate({ to: "/onboarding" })}>
-            Edit my details
+            {t("assessmentIntro.editBtn") || "Edit my details"}
           </Button>
         </div>
       </main>

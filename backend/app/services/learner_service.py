@@ -92,6 +92,8 @@ class LearnerService:
             profile.learning_goal = data["learning_goal"]
         if "learning_language" in data:
             profile.learning_language = data["learning_language"]
+        if "website_language" in data:
+            profile.website_language = data["website_language"]
         if "current_familiarity" in data:
             profile.current_familiarity = data["current_familiarity"]
         if "digital_comfort" in data:

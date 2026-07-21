@@ -8,7 +8,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.assessment import (
@@ -81,7 +81,9 @@ class AssessmentService:
         """Keep adaptive difficulty inside the supported range."""
         return max(1, min(5, difficulty))
 
-    def serialize_question_for_assessment(self, question: Question) -> dict:
+    def serialize_question_for_assessment(
+        self, question: Question, is_fallback: bool | None = None
+    ) -> dict:
         """Convert a Question ORM object into QuestionForAssessment shape."""
         return {
             "id": str(question.id),
@@ -93,6 +95,7 @@ class AssessmentService:
             "language": question.language,
             "question_content": self._from_json(question.question_content),
             "options": self._from_json(question.options),
+            "is_fallback": is_fallback,
         }
 
     async def _get_active_session(
@@ -188,7 +191,25 @@ class AssessmentService:
             if blueprint is None:
                 raise ValueError("Assessment blueprint not found")
         else:
-            blueprint = await self._get_or_create_default_blueprint()
+            # Generate a personalized blueprint automatically for the user!
+            try:
+                from app.schemas.assessment import AssessmentBlueprintCreate
+                blueprint = await self.generate_blueprint(
+                    AssessmentBlueprintCreate(
+                        learning_goal="Initial placement",
+                        question_count=DEFAULT_QUESTION_COUNT,
+                        min_difficulty=1,
+                        max_difficulty=5,
+                        estimated_duration_minutes=5,
+                        domains=["Reading", "Grammar", "Vocabulary", "Listening", "Speaking", "Writing"],
+                        skills=["reading", "grammar", "vocabulary", "listening", "speaking", "writing"],
+                        question_distribution={}
+                    ),
+                    user_id
+                )
+            except Exception:
+                # Fallback to the default placement blueprint if profile is missing / error
+                blueprint = await self._get_or_create_default_blueprint()
 
         starting_difficulty = await self._starting_difficulty(user_id, blueprint)
 
@@ -259,8 +280,31 @@ class AssessmentService:
         if len(previous_question_ids) >= question_count:
             raise ValueError("No more questions available")
 
-        # Target domains/skills specified by blueprint
-        base_query = select(Question).where(Question.is_active.is_(True))
+        # Determine target language from learner profile
+        profile = await LearnerService(self.db).get_learner_profile_by_user_id(session.learner_id)
+        target_language = (profile.learning_language or "en").strip().lower() if profile else "en"
+
+        # Check if questions exist for this target language
+        lang_count_result = await self.db.execute(
+            select(Question.id).where(
+                Question.is_active.is_(True),
+                Question.language == target_language
+            ).limit(1)
+        )
+        has_target_lang_content = lang_count_result.scalar() is not None
+
+        # Fallback to English if target language does not have questions seeded
+        is_fallback = False
+        query_language = target_language
+        if target_language != "en" and not has_target_lang_content:
+            query_language = "en"
+            is_fallback = True
+
+        # Target domains/skills and language specified by blueprint and profile fallback
+        base_query = select(Question).where(
+            Question.is_active.is_(True),
+            Question.language == query_language
+        )
         if blueprint:
             blueprint_domains = self._from_json(blueprint.domains) if blueprint.domains else []
             blueprint_skills = self._from_json(blueprint.skills) if blueprint.skills else []
@@ -279,12 +323,12 @@ class AssessmentService:
             if conditions:
                 base_query = base_query.where(or_(*conditions))
 
-        # Try to get question at current difficulty
+        # Try to get question at current difficulty, ordered randomly
         query = base_query.where(Question.difficulty == session.current_difficulty)
         if previous_question_ids:
             query = query.where(Question.id.notin_(previous_question_ids))
 
-        query = query.order_by(Question.created_at.asc()).limit(1)
+        query = query.order_by(func.random()).limit(1)
         result = await self.db.execute(query)
         question = result.scalar_one_or_none()
 
@@ -294,7 +338,7 @@ class AssessmentService:
                 query = base_query.where(Question.difficulty == diff)
                 if previous_question_ids:
                     query = query.where(Question.id.notin_(previous_question_ids))
-                query = query.order_by(Question.created_at.asc()).limit(1)
+                query = query.order_by(func.random()).limit(1)
                 result = await self.db.execute(query)
                 question = result.scalar_one_or_none()
                 if question:
@@ -306,7 +350,7 @@ class AssessmentService:
                 query = base_query.where(Question.difficulty == diff)
                 if previous_question_ids:
                     query = query.where(Question.id.notin_(previous_question_ids))
-                query = query.order_by(Question.created_at.asc()).limit(1)
+                query = query.order_by(func.random()).limit(1)
                 result = await self.db.execute(query)
                 question = result.scalar_one_or_none()
                 if question:
@@ -315,7 +359,7 @@ class AssessmentService:
         if question is None:
             raise ValueError("No more questions available")
 
-        return self.serialize_question_for_assessment(question)
+        return self.serialize_question_for_assessment(question, is_fallback=is_fallback)
 
     async def submit_response(
         self, session_id: str, response_data: QuestionResponseCreate, user_id: str | None = None

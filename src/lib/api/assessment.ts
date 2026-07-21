@@ -83,6 +83,7 @@ export interface Question {
   difficulty: number;
   prompt: string;
   options: QuestionOption[];
+  isFallback?: boolean;
 }
 
 export interface AssessmentSession {
@@ -127,6 +128,7 @@ interface BackendQuestion {
   language: string;
   question_content: { text?: string } | string;
   options: Array<{ id: string; text: string }> | string;
+  is_fallback?: boolean;
 }
 
 interface BackendSkillProficiency {
@@ -196,6 +198,7 @@ function mapQuestion(data: BackendQuestion): Question {
     difficulty: data.difficulty,
     prompt: content.text ?? "",
     options: options.map((o) => ({ id: o.id, text: o.text })),
+    isFallback: data.is_fallback,
   };
 }
 
