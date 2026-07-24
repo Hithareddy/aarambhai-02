@@ -13,6 +13,10 @@ from app.api.v1.endpoints import (
     questions,
     users,
     learning,
+    validation,
+    validation,
+    practice,
+    games,
 )
 
 api_router = APIRouter()
@@ -37,3 +41,12 @@ api_router.include_router(questions.router, prefix="/questions", tags=["question
 
 # Learning module endpoints
 api_router.include_router(learning.router, prefix="/learning", tags=["learning"])
+
+# Daily Practice & Spaced Repetition engine
+api_router.include_router(practice.router, prefix="/practice", tags=["practice"])
+
+# Developer Validation endpoints
+api_router.include_router(validation.router, prefix="/dev/validation", tags=["developer-validation"])
+
+# Games Endpoints
+api_router.include_router(games.router, prefix="/games", tags=["games"])

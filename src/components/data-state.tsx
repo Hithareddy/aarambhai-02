@@ -39,7 +39,10 @@ export function ErrorState({
   onRetry?: () => void;
   className?: string;
 }) {
-  const message = error instanceof Error ? error.message : "Something went wrong.";
+  let message = error instanceof Error ? error.message : "Something went wrong.";
+  if (message.includes("Failed to fetch") || message.includes("NetworkError")) {
+    message = "Cannot connect to the server right now. Please check your network connection.";
+  }
   return (
     <div
       role="alert"

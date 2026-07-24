@@ -25,6 +25,7 @@ import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicIndexRouteImport } from './routes/_public.index'
 import { Route as LessonLessonIdRouteImport } from './routes/lesson.$lessonId'
+import { Route as DevValidationRouteImport } from './routes/dev.validation'
 import { Route as PublicTermsRouteImport } from './routes/_public.terms'
 import { Route as PublicPrivacyRouteImport } from './routes/_public.privacy'
 import { Route as PublicHowItWorksRouteImport } from './routes/_public.how-it-works'
@@ -42,6 +43,7 @@ import { Route as AppNotificationsRouteImport } from './routes/_app.notification
 import { Route as AppLearningPathRouteImport } from './routes/_app.learning-path'
 import { Route as AppLearnRouteImport } from './routes/_app.learn'
 import { Route as AppHelpRouteImport } from './routes/_app.help'
+import { Route as AppGamesRouteImport } from './routes/_app.games'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppCommunityRouteImport } from './routes/_app.community'
 import { Route as AppAssessmentsRouteImport } from './routes/_app.assessments'
@@ -123,6 +125,11 @@ const PublicIndexRoute = PublicIndexRouteImport.update({
 const LessonLessonIdRoute = LessonLessonIdRouteImport.update({
   id: '/lesson/$lessonId',
   path: '/lesson/$lessonId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevValidationRoute = DevValidationRouteImport.update({
+  id: '/dev/validation',
+  path: '/dev/validation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PublicTermsRoute = PublicTermsRouteImport.update({
@@ -210,6 +217,11 @@ const AppHelpRoute = AppHelpRouteImport.update({
   path: '/help',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGamesRoute = AppGamesRouteImport.update({
+  id: '/games',
+  path: '/games',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -249,6 +261,7 @@ export interface FileRoutesByFullPath {
   '/assessments': typeof AppAssessmentsRoute
   '/community': typeof AppCommunityRoute
   '/dashboard': typeof AppDashboardRoute
+  '/games': typeof AppGamesRoute
   '/help': typeof AppHelpRoute
   '/learn': typeof AppLearnRoute
   '/learning-path': typeof AppLearningPathRoute
@@ -266,6 +279,7 @@ export interface FileRoutesByFullPath {
   '/how-it-works': typeof PublicHowItWorksRoute
   '/privacy': typeof PublicPrivacyRoute
   '/terms': typeof PublicTermsRoute
+  '/dev/validation': typeof DevValidationRoute
   '/lesson/$lessonId': typeof LessonLessonIdRoute
 }
 export interface FileRoutesByTo {
@@ -286,6 +300,7 @@ export interface FileRoutesByTo {
   '/assessments': typeof AppAssessmentsRoute
   '/community': typeof AppCommunityRoute
   '/dashboard': typeof AppDashboardRoute
+  '/games': typeof AppGamesRoute
   '/help': typeof AppHelpRoute
   '/learn': typeof AppLearnRoute
   '/learning-path': typeof AppLearningPathRoute
@@ -303,6 +318,7 @@ export interface FileRoutesByTo {
   '/how-it-works': typeof PublicHowItWorksRoute
   '/privacy': typeof PublicPrivacyRoute
   '/terms': typeof PublicTermsRoute
+  '/dev/validation': typeof DevValidationRoute
   '/lesson/$lessonId': typeof LessonLessonIdRoute
 }
 export interface FileRoutesById {
@@ -325,6 +341,7 @@ export interface FileRoutesById {
   '/_app/assessments': typeof AppAssessmentsRoute
   '/_app/community': typeof AppCommunityRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/games': typeof AppGamesRoute
   '/_app/help': typeof AppHelpRoute
   '/_app/learn': typeof AppLearnRoute
   '/_app/learning-path': typeof AppLearningPathRoute
@@ -342,6 +359,7 @@ export interface FileRoutesById {
   '/_public/how-it-works': typeof PublicHowItWorksRoute
   '/_public/privacy': typeof PublicPrivacyRoute
   '/_public/terms': typeof PublicTermsRoute
+  '/dev/validation': typeof DevValidationRoute
   '/lesson/$lessonId': typeof LessonLessonIdRoute
   '/_public/': typeof PublicIndexRoute
 }
@@ -365,6 +383,7 @@ export interface FileRouteTypes {
     | '/assessments'
     | '/community'
     | '/dashboard'
+    | '/games'
     | '/help'
     | '/learn'
     | '/learning-path'
@@ -382,6 +401,7 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/privacy'
     | '/terms'
+    | '/dev/validation'
     | '/lesson/$lessonId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -402,6 +422,7 @@ export interface FileRouteTypes {
     | '/assessments'
     | '/community'
     | '/dashboard'
+    | '/games'
     | '/help'
     | '/learn'
     | '/learning-path'
@@ -419,6 +440,7 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/privacy'
     | '/terms'
+    | '/dev/validation'
     | '/lesson/$lessonId'
   id:
     | '__root__'
@@ -440,6 +462,7 @@ export interface FileRouteTypes {
     | '/_app/assessments'
     | '/_app/community'
     | '/_app/dashboard'
+    | '/_app/games'
     | '/_app/help'
     | '/_app/learn'
     | '/_app/learning-path'
@@ -457,6 +480,7 @@ export interface FileRouteTypes {
     | '/_public/how-it-works'
     | '/_public/privacy'
     | '/_public/terms'
+    | '/dev/validation'
     | '/lesson/$lessonId'
     | '/_public/'
   fileRoutesById: FileRoutesById
@@ -476,6 +500,7 @@ export interface RootRouteChildren {
   RoleSelectionRoute: typeof RoleSelectionRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  DevValidationRoute: typeof DevValidationRoute
   LessonLessonIdRoute: typeof LessonLessonIdRoute
 }
 
@@ -591,6 +616,13 @@ declare module '@tanstack/react-router' {
       path: '/lesson/$lessonId'
       fullPath: '/lesson/$lessonId'
       preLoaderRoute: typeof LessonLessonIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dev/validation': {
+      id: '/dev/validation'
+      path: '/dev/validation'
+      fullPath: '/dev/validation'
+      preLoaderRoute: typeof DevValidationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_public/terms': {
@@ -712,6 +744,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppHelpRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/games': {
+      id: '/_app/games'
+      path: '/games'
+      fullPath: '/games'
+      preLoaderRoute: typeof AppGamesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -748,6 +787,7 @@ interface AppRouteChildren {
   AppAssessmentsRoute: typeof AppAssessmentsRoute
   AppCommunityRoute: typeof AppCommunityRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppGamesRoute: typeof AppGamesRoute
   AppHelpRoute: typeof AppHelpRoute
   AppLearnRoute: typeof AppLearnRoute
   AppLearningPathRoute: typeof AppLearningPathRoute
@@ -765,6 +805,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAssessmentsRoute: AppAssessmentsRoute,
   AppCommunityRoute: AppCommunityRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppGamesRoute: AppGamesRoute,
   AppHelpRoute: AppHelpRoute,
   AppLearnRoute: AppLearnRoute,
   AppLearningPathRoute: AppLearningPathRoute,
@@ -819,6 +860,7 @@ const rootRouteChildren: RootRouteChildren = {
   RoleSelectionRoute: RoleSelectionRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  DevValidationRoute: DevValidationRoute,
   LessonLessonIdRoute: LessonLessonIdRoute,
 }
 export const routeTree = rootRouteImport

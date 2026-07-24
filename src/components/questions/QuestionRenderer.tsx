@@ -12,7 +12,7 @@
  * No changes are required in assessment-quiz.tsx or anywhere else in the
  * assessment flow.
  */
-import { type ReactElement } from "react";
+import { type ReactElement, useState } from "react";
 import type { Question } from "@/lib/api/assessment";
 import { MCQQuestion } from "./MCQQuestion";
 import { TrueFalseQuestion } from "./TrueFalseQuestion";
@@ -26,8 +26,8 @@ import { AudioPlayerWidget } from "./AudioPlayerWidget";
 
 export interface QuestionRendererProps {
     question: Question;
-    selected: string | null;
-    onSelect: (id: string) => void;
+    selected: string | string[] | null;
+    onSelect: (id: string | string[]) => void;
     submitting?: boolean;
 }
 
@@ -38,8 +38,8 @@ export interface QuestionRendererProps {
 type RendererProps = {
     prompt: string;
     options: Question["options"];
-    selected: string | null;
-    onSelect: (id: string) => void;
+    selected: any; // We allow components to cast it back safely
+    onSelect: (id: any) => void;
     submitting: boolean;
 };
 
@@ -130,9 +130,21 @@ export function QuestionRenderer({
     submitting = false,
 }: QuestionRendererProps) {
     const renderer = RENDERERS[question.question_type] ?? RENDERERS["mcq"];
+    const [showTranscript, setShowTranscript] = useState(false);
+
+    // If it's a listening question and the user hasn't answered yet, obfuscate the target sentence.
+    // The target sentence is historically wrapped in single quotes in our seed data.
+    let displayPrompt = question.prompt;
+    if (question.audio_url && selected === null) {
+        if (question.question_type !== 'arrange') {
+            displayPrompt = displayPrompt.replace(/'.*?'/, '🔊 (Listen to audio)');
+        } else {
+            displayPrompt = "🎧 Listen carefully. Arrange the words in the order you heard.";
+        }
+    }
 
     const baseProps: RendererProps & { question: Question } = {
-        prompt: question.prompt,
+        prompt: displayPrompt,
         options: question.options,
         selected,
         onSelect,
@@ -142,7 +154,25 @@ export function QuestionRenderer({
 
     return (
         <div className="space-y-6">
-            {question.audio_url && <AudioPlayerWidget audioUrl={question.audio_url} />}
+            {(question.audio_url || question.audio_script) && (
+                <div className="flex flex-col gap-3">
+                    <AudioPlayerWidget audioUrl={question.audio_url} audioScript={question.audio_script} />
+                    {question.audio_script && selected !== null && (
+                        <button
+                            type="button"
+                            onClick={() => setShowTranscript(!showTranscript)}
+                            className="text-xs text-muted-foreground hover:text-primary transition self-start underline"
+                        >
+                            {showTranscript ? "Hide Transcript" : "Show Transcript"}
+                        </button>
+                    )}
+                    {showTranscript && selected !== null && (
+                        <div className="text-sm p-4 bg-muted/20 border border-muted/30 rounded-md whitespace-pre-wrap">
+                            {question.audio_script}
+                        </div>
+                    )}
+                </div>
+            )}
             {renderer(baseProps)}
         </div>
     );

@@ -36,3 +36,16 @@ export function useMarkAllNotificationsRead() {
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.dashboard }),
   });
 }
+
+// Sprint 11: Unified Learning Engine Hooks
+export const practiceQueryKeys = {
+  todaysLearning: ["practice", "todaysLearning"] as const,
+};
+
+export function useTodaysLearning() {
+  return useQuery({
+    queryKey: practiceQueryKeys.todaysLearning,
+    queryFn: () => getApiClient().getTodaysLearning(),
+    staleTime: 60_000,
+  });
+}

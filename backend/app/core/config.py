@@ -61,9 +61,8 @@ class Settings(BaseSettings):
             "http://localhost:8083",
         ]
     )
-    # Allow any localhost / 127.0.0.1 port during development so the Vite dev
-    # server works regardless of which port it binds to (8080, 8082, ...).
-    CORS_ORIGIN_REGEX: str = r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
+    # Allow any localhost / 127.0.0.1 port and local network 192.168.x.x during development.
+    CORS_ORIGIN_REGEX: str = r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?"
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: List[str] = Field(default=["*"])
     CORS_ALLOW_HEADERS: List[str] = Field(default=["*"])

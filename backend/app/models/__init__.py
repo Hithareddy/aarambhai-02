@@ -14,6 +14,28 @@ from app.models.learning import (
     Lesson,
     LessonProgress,
     ModuleProgress,
+    LearningActivity,
+    ActivitySession,
+    ActivityAnalytics,
+)
+from app.models.skill_profile import SkillProfile
+from app.models.gamification import GamificationProfile, Badge, UserBadge
+from app.models.games import (
+    GameCategory,
+    Game,
+    GameLevel,
+    GameContent,
+    GameAsset,
+    GameSession,
+    GameAttempt,
+    GameProgress,
+    GameReward,
+    Achievement,
+    FlashCard,
+    FlashCardTranslation,
+    GameStatistics,
+    DailyChallenge,
+    GameSettings
 )
 
 __all__ = [
@@ -29,4 +51,26 @@ __all__ = [
     "Lesson",
     "LessonProgress",
     "ModuleProgress",
+    "LearningActivity",
+    "ActivitySession",
+    "ActivityAnalytics",
+    "SkillProfile",
+    "GamificationProfile",
+    "Badge",
+    "UserBadge",
+    "GameCategory",
+    "Game",
+    "GameLevel",
+    "GameContent",
+    "GameAsset",
+    "GameSession",
+    "GameAttempt",
+    "GameProgress",
+    "GameReward",
+    "Achievement",
+    "FlashCard",
+    "FlashCardTranslation",
+    "GameStatistics",
+    "DailyChallenge",
+    "GameSettings"
 ]

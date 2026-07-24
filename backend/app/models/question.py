@@ -33,6 +33,11 @@ class Question(Base, TimestampMixin):
     domain: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     skill: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     difficulty: Mapped[int] = mapped_column(Integer, nullable=False, index=True)  # 1-5
+    proficiency_level: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    age_group: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    education_level: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    learner_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    topic_category: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     # Question Content
     question_type: Mapped[str] = mapped_column(String(50), nullable=False)  # mcq, true_false, etc.
@@ -45,6 +50,7 @@ class Question(Base, TimestampMixin):
 
     # Media references (optional)
     audio_url: Mapped[str | None] = mapped_column(Text, nullable=True)  # URL for listening audio
+    audio_script: Mapped[str | None] = mapped_column(Text, nullable=True)  # Text for TTS
     image_url: Mapped[str | None] = mapped_column(Text, nullable=True)  # URL for image_mcq
     
     # Speaking evaluation references

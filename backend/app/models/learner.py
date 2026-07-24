@@ -49,6 +49,8 @@ class LearnerProfile(Base, TimestampMixin):
     website_language: Mapped[str] = mapped_column(String(10), nullable=False, default="en", server_default="en")
     current_familiarity: Mapped[str] = mapped_column(String(50), nullable=False)
     digital_comfort: Mapped[str] = mapped_column(String(50), nullable=False)
+    voice_preference: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    speaking_speed: Mapped[str | None] = mapped_column(String(50), nullable=True, default="Normal")
 
     # Assessment Status
     assessment_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

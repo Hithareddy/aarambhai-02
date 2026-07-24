@@ -9,7 +9,7 @@
  *   mcq | true_false | fill_blank | match | arrange | comprehension | image_mcq
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+import { apiRequest, API_BASE } from "./http";
 
 /** Number of questions in the default placement blueprint (backend default). */
 export const TOTAL_QUESTIONS = 15;
@@ -99,6 +99,7 @@ export interface Question {
   options: QuestionOption[];
   isFallback?: boolean;
   audio_url?: string | null;
+  audio_script?: string | null;
   image_url?: string | null;
   reference_text?: string | null;
   max_duration_seconds?: number;
@@ -152,6 +153,7 @@ interface BackendQuestion {
   options: Array<{ id: string; text: string }> | string;
   is_fallback?: boolean;
   audio_url?: string | null;
+  audio_script?: string | null;
   image_url?: string | null;
   reference_text?: string | null;
   max_duration_seconds?: number;
@@ -177,32 +179,6 @@ interface BackendResult {
   created_at: string;
 }
 
-// --- HTTP helper -------------------------------------------------------------
-
-async function apiRequest<T>(
-  endpoint: string,
-  method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
-  body?: unknown,
-): Promise<T> {
-  const token = localStorage.getItem("access_token");
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: `API error: ${response.status}` }));
-    throw new Error(error.detail || `API error: ${response.status}`);
-  }
-
-  return response.json() as Promise<T>;
-}
 
 // --- Mappers -----------------------------------------------------------------
 
@@ -229,6 +205,7 @@ function mapQuestion(data: BackendQuestion): Question {
     options: options.map((o) => ({ id: o.id, text: o.text })),
     isFallback: data.is_fallback,
     audio_url: data.audio_url,
+    audio_script: data.audio_script,
     image_url: data.image_url,
     reference_text: data.reference_text,
     max_duration_seconds: data.max_duration_seconds,
@@ -294,10 +271,10 @@ export async function getNextQuestion(sessionId: string): Promise<Question | nul
 export async function submitAnswer(
   sessionId: string,
   questionId: string,
-  optionId: string,
+  optionId: string | string[],
   responseTimeSeconds: number,
-): Promise<void> {
-  await apiRequest(`/assessments/sessions/${sessionId}/responses`, "POST", {
+): Promise<{ is_correct: boolean; correct_answer?: any }> {
+  return await apiRequest(`/assessments/sessions/${sessionId}/responses`, "POST", {
     question_id: questionId,
     selected_answer: optionId,
     response_time_seconds: responseTimeSeconds,

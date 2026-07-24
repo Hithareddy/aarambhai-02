@@ -35,6 +35,27 @@ export interface LessonProgressUpdate {
     score?: number;
     time_spent_seconds?: number;
     completed_at?: string;
+    quiz_accuracy?: number;
+    pronunciation_score?: number;
+    hints_used?: number;
+}
+
+export interface RecommendationReason {
+    type: "resume" | "reinforcement" | "revision" | "next_in_sequence" | "fallback";
+    skill: string;
+    message: string;
+}
+
+export interface RecommendedLessonResponse {
+    lesson: Lesson;
+    reason: RecommendationReason;
+}
+
+export interface SkillProfile {
+    skill: string;
+    current_level: number;
+    mastery_percentage: number;
+    confidence_score: number;
 }
 
 /**
@@ -53,8 +74,12 @@ export async function getLesson(id: string): Promise<Lesson> {
     return apiRequest<Lesson>(`/learning/lessons/${id}`);
 }
 
-export async function getRecommendedLesson(): Promise<Lesson> {
-    return apiRequest<Lesson>("/learning/recommended");
+export async function getRecommendedLesson(): Promise<RecommendedLessonResponse> {
+    return apiRequest<RecommendedLessonResponse>("/learning/recommended");
+}
+
+export async function getSkillProfiles(): Promise<SkillProfile[]> {
+    return apiRequest<SkillProfile[]>("/learning/profiles");
 }
 
 export async function saveLessonProgress(lessonId: string, update: LessonProgressUpdate): Promise<void> {

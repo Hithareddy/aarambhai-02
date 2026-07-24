@@ -23,14 +23,19 @@ export interface ImageMCQQuestionProps {
     imageUrl?: string | null;
 }
 
+import { useState } from "react";
+
 function ImageArea({ imageUrl }: { imageUrl?: string | null }) {
-    if (imageUrl) {
+    const [hasError, setHasError] = useState(false);
+
+    if (imageUrl && !hasError) {
         return (
-            <div className="overflow-hidden rounded-lg border">
+            <div className="overflow-hidden rounded-lg border bg-muted/10">
                 <img
                     src={imageUrl}
                     alt="Question illustration"
                     className="w-full object-contain max-h-64"
+                    onError={() => setHasError(true)}
                 />
             </div>
         );
@@ -39,9 +44,9 @@ function ImageArea({ imageUrl }: { imageUrl?: string | null }) {
     return (
         <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 py-12 text-muted-foreground">
             <ImageOff size={32} className="opacity-50" />
-            <span className="text-sm font-medium">Image not available</span>
+            <span className="text-sm font-medium">Image unavailable</span>
             <span className="text-xs opacity-70">
-                This question will display an image when media is added.
+                Media failed to load or is not provided.
             </span>
         </div>
     );
@@ -71,14 +76,14 @@ export function ImageMCQQuestion({
                             disabled={submitting}
                             onClick={() => onSelect(option.id)}
                             className={`flex items-center gap-3 rounded-lg border p-4 text-left transition-colors ${isSelected
-                                    ? "border-primary bg-primary/10"
-                                    : "border-border hover:bg-muted/50"
+                                ? "border-primary bg-primary/10"
+                                : "border-border hover:bg-muted/50"
                                 }`}
                         >
                             <span
                                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${isSelected
-                                        ? "border-primary bg-primary text-primary-foreground"
-                                        : "border-border"
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : "border-border"
                                     }`}
                             >
                                 {option.id}

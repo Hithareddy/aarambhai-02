@@ -35,6 +35,12 @@ export const Route = createFileRoute("/assessment-quiz")({
   component: AssessmentQuizPage,
 });
 
+interface FeedbackData {
+  is_correct: boolean;
+  correct_answer?: any;
+  nextQuestion: Question | null;
+}
+
 function AssessmentQuizPage() {
   const navigate = useNavigate();
   const { s: searchSessionId } = Route.useSearch();
@@ -42,8 +48,9 @@ function AssessmentQuizPage() {
   const sessionId = session?.id ?? null;
   const [question, setQuestion] = useState<Question | null>(null);
   const [answeredCount, setAnsweredCount] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | string[] | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [feedbackData, setFeedbackData] = useState<FeedbackData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [confirmExit, setConfirmExit] = useState(false);
@@ -105,22 +112,35 @@ function AssessmentQuizPage() {
     setSubmitting(true);
     setError(null);
     try {
+      console.time("Assessment_API_Latency");
       const elapsed = Math.max(0, Math.round((Date.now() - questionStartedAt.current) / 1000));
-      await submitAnswer(sessionId, question.id, selected, elapsed);
+      const evalResult = await submitAnswer(sessionId, question.id, selected, elapsed);
       const next = await getNextQuestion(sessionId);
-      if (!next) {
-        goToAnalyzing(sessionId);
-        return;
-      }
-      setQuestion(next);
-      setSelected(null);
-      setAnsweredCount((count) => count + 1);
-      questionStartedAt.current = Date.now();
+      console.timeEnd("Assessment_API_Latency");
+
+      setFeedbackData({
+        is_correct: evalResult.is_correct,
+        correct_answer: evalResult.correct_answer,
+        nextQuestion: next
+      });
       setSubmitting(false);
+
     } catch (err) {
       setError((err as Error).message || "Failed to submit your answer.");
       setSubmitting(false);
     }
+  };
+
+  const handleContinue = () => {
+    if (!feedbackData?.nextQuestion) {
+      if (sessionId) goToAnalyzing(sessionId);
+      return;
+    }
+    setQuestion(feedbackData.nextQuestion);
+    setSelected(null);
+    setFeedbackData(null);
+    setAnsweredCount((count) => count + 1);
+    questionStartedAt.current = Date.now();
   };
 
   const doExit = () => {
@@ -191,12 +211,78 @@ function AssessmentQuizPage() {
           <div className="flex justify-end">
             <HelpWidget question={question} />
           </div>
-          <QuestionRenderer
-            question={question}
-            selected={selected}
-            onSelect={setSelected}
-            submitting={submitting}
-          />
+
+          {feedbackData ? (
+            <div className="border border-border/50 rounded-lg p-6 space-y-4 bg-muted/10 shadow-inner">
+              <h3 className={`text-xl font-bold flex items-center gap-2 ${feedbackData.is_correct ? 'text-green-600' : 'text-red-500'}`}>
+                {feedbackData.is_correct ? "✅ Correct!" : "❌ Needs Practice"}
+              </h3>
+
+              {/* Listening Question Transcript Reveal */}
+              {(question.audio_url || question.audio_script) && (
+                <div className="bg-primary/5 p-4 rounded-md border border-primary/20">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-primary/60 mb-2 block">
+                    Audio Transcript / Target
+                  </span>
+                  <p className="text-sm font-medium text-foreground">
+                    {question.audio_script || (Array.isArray(feedbackData.correct_answer) ? feedbackData.correct_answer.join(" ") : feedbackData.correct_answer) || "No transcript available."}
+                  </p>
+                </div>
+              )}
+
+              {/* Arrange Question Diff Highlights */}
+              {question.question_type === 'arrange' && Array.isArray(selected) && Array.isArray(feedbackData.correct_answer) && (
+                <div className="space-y-5 pt-3 border-t">
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-2">
+                      Your Sequence
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {selected.map((word, i) => {
+                        const isCorrectPosition = feedbackData.correct_answer[i] === word;
+                        const isCorrectButWrongPosition = !isCorrectPosition && feedbackData.correct_answer.includes(word);
+
+                        let classes = 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-200'; // Wrong position
+                        if (isCorrectPosition) classes = 'bg-green-100 text-green-900 border-green-300 dark:bg-green-900/30 dark:border-green-700 dark:text-green-200';
+                        if (!isCorrectPosition && !isCorrectButWrongPosition) classes = 'bg-red-100 text-red-900 border-red-300 dark:bg-red-900/30 dark:border-red-700 dark:text-red-200'; // Missing/Incorrect word entirely
+
+                        return (
+                          <span key={`l-${i}`} className={`px-2.5 py-1.5 rounded-md text-sm font-semibold border ${classes}`}>
+                            {word}
+                          </span>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-2">
+                      <span className="inline-block w-2.5 h-2.5 rounded-sm bg-green-400 mr-1" /> Correct
+                      <span className="inline-block w-2.5 h-2.5 rounded-sm bg-amber-400 mr-1 ml-3" /> Wrong Position
+                      <span className="inline-block w-2.5 h-2.5 rounded-sm bg-red-400 mr-1 ml-3" /> Incorrect Word
+                    </p>
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-green-600 dark:text-green-500 block mb-2">
+                      Correct Sequence
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {feedbackData.correct_answer.map((w: string, i: number) => (
+                        <span key={`c-${i}`} className="px-2.5 py-1.5 rounded-md text-sm font-semibold bg-green-100/50 text-green-900 border border-green-200/50 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300">
+                          {w}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <QuestionRenderer
+              question={question}
+              selected={selected}
+              onSelect={setSelected}
+              submitting={submitting}
+            />
+          )}
 
           {error && (
             <Alert variant="destructive">
@@ -206,13 +292,15 @@ function AssessmentQuizPage() {
           )}
 
           <div className="flex justify-end">
-            <Button size="lg" onClick={handleSubmit} disabled={selected === null || submitting}>
-              {submitting
-                ? (t("assessmentQuiz.saving") || "Saving...")
-                : answeredCount + 1 >= (session?.totalQuestions ?? 15)
-                  ? (t("assessmentQuiz.submitFinish") || "Submit & finish")
-                  : (t("assessmentQuiz.nextQuestion") || "Next question")}
-            </Button>
+            {feedbackData ? (
+              <Button size="lg" onClick={handleContinue}>
+                {feedbackData.nextQuestion ? (t("assessmentQuiz.nextQuestion") || "Next question") : (t("assessmentQuiz.submitFinish") || "Submit & finish")}
+              </Button>
+            ) : (
+              <Button size="lg" onClick={handleSubmit} disabled={selected === null || submitting}>
+                {submitting ? (t("assessmentQuiz.saving") || "Saving...") : (t("assessmentQuiz.submitAnswer") || "Check Answer")}
+              </Button>
+            )}
           </div>
         </Card>
       </main>

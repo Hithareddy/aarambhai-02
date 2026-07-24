@@ -143,7 +143,7 @@ class UserService:
             return None
 
         # Update last_login
-        user.last_login = datetime.now(timezone.utc)
+        user.last_login = datetime.now(timezone.utc).replace(tzinfo=None)
         await self.db.commit()
         await self.db.refresh(user)
 

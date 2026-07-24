@@ -13,7 +13,7 @@
 import { getAssessmentHistory, SKILL_LABEL, type AssessmentResult, type Skill } from "./assessment";
 import { getLearnerProfile } from "./learner";
 import { apiRequest } from "./http";
-import { getRecommendedLesson, getModule, getModules } from "./learning";
+import { getRecommendedLesson, getModule, getModules, getSkillProfiles } from "./learning";
 import type { DashboardSnapshot, NotificationItem, SkillMastery, TopicInsight } from "./types";
 
 interface BackendUser {
@@ -33,7 +33,16 @@ function skillLabel(skill: string): string {
   return SKILL_LABEL[skill as Skill] ?? skill;
 }
 
-function toSkillMastery(latest: AssessmentResult | undefined): SkillMastery[] {
+function toSkillMastery(latest: AssessmentResult | undefined, profiles: any[]): SkillMastery[] {
+  // If we have actual continuous SkillProfile data, trust that entirely.
+  if (profiles && profiles.length > 0) {
+    return profiles.map(p => ({
+      skill: skillLabel(p.skill),
+      percent: Math.round(p.mastery_percentage),
+      trend: "up" // Simplified trend for Sprint 10
+    }));
+  }
+
   if (!latest) return [];
   return latest.skillOutcomes.map((o) => ({
     skill: skillLabel(o.skill),
@@ -52,12 +61,14 @@ function toTopics(names: string[], latest: AssessmentResult | undefined): TopicI
 }
 
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
-  const [user, profile, history, recommendedLessonNode, allModules] = await Promise.all([
+  const [user, profile, history, recommendedLessonNode, allModules, skillProfiles, gamification] = await Promise.all([
     apiRequest<BackendUser>("/auth/me"),
     getLearnerProfile(),
     getAssessmentHistory().catch(() => [] as AssessmentResult[]),
     getRecommendedLesson().catch(() => null),
     getModules().catch(() => []),
+    getSkillProfiles().catch(() => []),
+    apiRequest<any>("/users/me/gamification").catch(() => null),
   ]);
 
   const name = profile?.name || user.full_name;
@@ -66,19 +77,21 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   let continueLesson = null;
 
   // Real active lesson progression overrides the static assessment map
-  if (recommendedLessonNode) {
-    const recommendedModule = await getModule(recommendedLessonNode.module_id).catch(() => null);
+  if (recommendedLessonNode && recommendedLessonNode.lesson) {
+    const lessonData = recommendedLessonNode.lesson;
+    const recommendedModule = await getModule(lessonData.module_id).catch(() => null);
 
     continueLesson = {
-      id: recommendedLessonNode.id,
-      courseId: recommendedLessonNode.module_id,
+      id: lessonData.id,
+      courseId: lessonData.module_id,
       courseTitle: recommendedModule?.title || "Active Module",
       chapter: `Core ${recommendedModule?.skill || "Focus"}`,
-      lessonTitle: recommendedLessonNode.title,
+      lessonTitle: lessonData.title,
       progress: 0,
       minutesLeft: recommendedModule?.estimated_duration || 15,
       gradientFrom: "hsl(var(--primary))",
-      gradientTo: "hsl(var(--accent))"
+      gradientTo: "hsl(var(--accent))",
+      reasonText: recommendedLessonNode.reason?.message
     };
   } else if (latest?.recommendedLearningPath && Array.isArray(latest.recommendedLearningPath) && latest.recommendedLearningPath.length > 0) {
     // Fallback safely only if it's genuinely an array (handling migrated JSON string states gracefully)
@@ -107,23 +120,23 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
       headline: profile?.learning_goal
         ? `Working towards: ${profile.learning_goal}`
         : "Let's continue your learning journey.",
-      level: 1,
-      xp: 0,
-      xpForNextLevel: 100,
+      level: gamification?.level || 1,
+      xp: gamification?.xp || 0,
+      xpForNextLevel: (gamification?.level || 1) * 100, // naive progression
       languages: profile?.learning_language ? [profile.learning_language] : [],
       joinedAt: user.created_at,
     },
     goal: {
       targetMinutes: 15,
       completedMinutes: 0,
-      streakDays: 0,
-      longestStreak: 0,
+      streakDays: gamification?.streak_days || 0,
+      longestStreak: gamification?.longest_streak || 0,
       consistencyPercent: 0,
       learningHoursThisWeek: 0,
     },
     weeklyActivity: [],
     monthlyActivity: [],
-    skills: toSkillMastery(latest),
+    skills: toSkillMastery(latest, skillProfiles),
     weakTopics: toTopics(latest?.improvements ?? [], latest),
     strongTopics: toTopics(latest?.strengths ?? [], latest),
     continueLesson: continueLesson,
@@ -145,12 +158,20 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     upcomingAssessments: [],
     achievements: [],
     notifications: [],
-    activityFeed: history.map((r) => ({
-      id: r.sessionId,
-      timestamp: r.completedAt,
-      kind: "assessment",
-      message: `Completed an adaptive assessment — level ${r.overallLevel}.`,
-    })),
+    activityFeed: [
+      ...(recommendedLessonNode && recommendedLessonNode.reason ? [{
+        id: `rec_${recommendedLessonNode.lesson.id}`,
+        timestamp: new Date().toISOString(),
+        kind: "lesson" as const,
+        message: `Adaptive Engine mapped '${recommendedLessonNode.lesson.title}': ${recommendedLessonNode.reason.message}`,
+      }] : []),
+      ...history.map((r) => ({
+        id: r.sessionId,
+        timestamp: r.completedAt,
+        kind: "assessment" as const,
+        message: `Completed an adaptive assessment — level ${r.overallLevel}.`,
+      }))
+    ],
     courseCompletionPercent: 0,
   };
 }

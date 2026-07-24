@@ -2,6 +2,7 @@ import asyncio
 import json
 import traceback
 import uuid
+import random
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -10,462 +11,419 @@ from app.core.config import settings
 
 # Q_DATA tuple format:
 #   (id, domain, skill, difficulty, q_type,
-#    en_prompt, en_opts (comma-sep), correct_answer,
-#    te_prompt, te_opts (comma-sep),
+#    en_prompt, en_opts, correct_answer,
+#    te_prompt, te_opts,
 #    audio_url, image_url)
 #
-# audio_url convention:
-#   "tts:<phrase>" → browser Web Speech API speaks <phrase>
-#   "https://..."  → <audio> element plays the file
-#   None           → no audio
-#
-# image_url convention:
-#   "https://..."  → <img> displays the file
-#   None           → no image
+# Note on arrange: en_opts is just the target sentence space-separated.
+# Note on speaking: en_opts can be blank, correct_answer can be blank.
 
 Q_DATA = [
-    # === LISTENING (12 existing + 3 difficulty-5) ===
+    # === LISTENING ===
     # Difficulty 1
     ("q-list-1-1", "Listening", "listening", 1, "mcq",
-     "Listen to: 'Good morning'. Choose the correct greeting.",
-     "Hello,Goodbye,Maybe,Never", "A",
-     "వినండి: 'Good morning'. సరైన పలకరింపు ఎంచుకోండి.",
-     "హలో (Hello),గుడ్ బై (Goodbye),బహుశా (Maybe),ఎన్నటికీ కాదు (Never)",
-     "tts:Good morning", None),
-
+     "Listen to: 'Apple'. Choose the correct picture.",
+     "Apple,Banana,Cat,Dog", "A",
+     "వినండి: 'Apple'. సరైన బొమ్మను ఎంచుకోండి.",
+     "ఆపిల్,అరటి,పిల్లి,కుక్క",
+     "tts:Apple", None),
     ("q-list-1-2", "Listening", "listening", 1, "true_false",
-     "Dialogue: 'Good night'. True or False: This phrase is said in the morning.",
+     "Audio: 'Dog'. True or False: This is a bird.",
      "True,False", "B",
-     "వ్యాఖ్యానం: 'Good night'. నిజమా అబద్ధమా: ఇది ఉదయం పూట చెప్తారు.",
-     "నిజం (True),అబద్ధం (False)",
-     "tts:Good night", None),
-
+     "వినండి: 'Dog'. ఇది పక్షి, అవునా కాదా?",
+     "అవును,కాదు",
+     "tts:Dog", None),
     ("q-list-1-3", "Listening", "listening", 1, "fill_blank",
-     "Audio: 'My name is Ram'. Complete: 'My name ___ Ram'",
-     "is,are,am,be", "A",
-     "వినండి: 'My name is Ram'. పూరించండి: 'My name ___ Ram'",
-     "is,are,am,be",
-     "tts:My name is Ram", None),
+     "Audio: 'One'. Complete: 'O ___ E'",
+     "N,M,P,R", "A",
+     "వినండి: 'One'. పూరించండి: 'O ___ E'",
+     "N,M,P,R",
+     "tts:One", None),
 
     # Difficulty 2
     ("q-list-2-1", "Listening", "listening", 2, "mcq",
-     "Audio: 'Where is the train station?'. What is the speaker asking for?",
-     "Food,Directions,Time,Price", "B",
-     "వినండి: 'Where is the train station?'. వక్త దేని గురించి అడుగుతున్నారు?",
-     "ఆహారం (Food),దిశలు (Directions),సమయం (Time),ధర (Price)",
-     "tts:Where is the train station?", None),
-
+     "Audio: 'Good morning'. When do we say this?",
+     "Night,Morning,Evening,Afternoon", "B",
+     "వినండి: 'Good morning'. ఇది ఎప్పుడు చెప్తాం?",
+     "రాత్రి,ఉదయం,సాయంత్రం,మధ్యాహ్నం",
+     "tts:Good morning", None),
     ("q-list-2-2", "Listening", "listening", 2, "fill_blank",
-     "Audio: 'She goes to school'. Complete: 'She ___ to school by bus'",
-     "go,goes,going,went", "B",
-     "వినండి: 'She goes to school'. పూరించండి: 'She ___ to school by bus'",
-     "go,goes,going,went",
-     "tts:She goes to school", None),
-
+     "Audio: 'I am a boy'. Complete: 'I ___ a boy'",
+     "is,are,am,be", "C",
+     "వినండి: 'I am a boy'. పూరించండి: 'I ___ a boy'",
+     "is,are,am,be",
+     "tts:I am a boy", None),
     ("q-list-2-3", "Listening", "listening", 2, "match",
      "Audio: 'Meow'. Match the sound to the correct animal.",
      "Dog,Cat,Cow,Bird", "B",
      "వినండి: 'Meow'. జంతువు శబ్దంతో జతపరచండి.",
-     "కుక్క (Dog),పిల్లి (Cat),ఆవు (Cow),పక్షి (Bird)",
+     "కుక్క,పిల్లి,ఆవు,పక్షి",
      "tts:Meow", None),
 
     # Difficulty 3
     ("q-list-3-1", "Listening", "listening", 3, "comprehension",
-     "Dialogue: 'I need to see Dr. Kumar on Monday at 10 AM.' When is the appointment?",
-     "Monday,Tuesday,Wednesday,Friday", "A",
-     "వ్యాఖ్యానం: 'నేను సోమవారం ఉదయం 10 గంటలకు డాక్టర్ కుమార్ ని కలవాలి.' అపాయింట్‌మెంట్ ఎప్పుడు?",
-     "సోమవారం (Monday),మంగళవారం (Tuesday),బుధవారం (Wednesday),శుక్రవారం (Friday)",
-     "tts:I need to see Dr. Kumar on Monday at 10 AM", None),
-
+     "Audio: 'Ravi is my friend.' Who is the friend?",
+     "Ravi,Sita,Dog,Apple", "A",
+     "వినండి: 'Ravi is my friend.' స్నేహితుడు ఎవరు?",
+     "రవి,సీత,కుక్క,ఆపిల్",
+     "tts:Ravi is my friend", None),
     ("q-list-3-2", "Listening", "listening", 3, "arrange",
-     "Audio: 'I eat an apple every day'. Arrange the words in the correct order.",
-     "apple/every/day/I/eat,I/eat/an/apple/every/day,every/day/apple/eat/I,I/apple/eat/every/day", "B",
-     "వినండి: 'I eat an apple every day'. పదాలను సరైన క్రమంలో అమర్చండి.",
-     "apple/every/day/I/eat,I/eat/an/apple/every/day,every/day/apple/eat/I,I/apple/eat/every/day",
-     "tts:I eat an apple every day", None),
-
+     "Listen and arrange the words.",
+     "I eat an apple", "ignored",
+     "వినండి మరియు పదాలను గీతలో అమర్చండి.",
+     "I eat an apple",
+     "tts:I eat an apple", None),
     ("q-list-3-3", "Listening", "listening", 3, "mcq",
-     "Audio: 'Fill out this form to open a bank account.' What action is described?",
-     "Shopping,Banking,Traveling,Dining", "B",
-     "వినండి: 'బ్యాంక్ ఖాతా తెరవడానికి ఈ ఫారాన్ని నింపండి.' ఈ పని దేనికి సంబంధించినది?",
-     "షాపింగ్ (Shopping),బ్యాంకింగ్ (Banking),ప్రయాణం (Traveling),భోజనం (Dining)",
-     "tts:Fill out this form to open a bank account", None),
+     "Audio: 'The sky is blue.' What color is the sky?",
+     "Red,Blue,Green,Black", "B",
+     "వినండి: 'The sky is blue.' ఆకాశం ఏ రంగులో ఉంటుంది?",
+     "ఎరుపు,నీలం,ఆకుపచ్చ,నలుపు",
+     "tts:The sky is blue", None),
 
     # Difficulty 4
     ("q-list-4-1", "Listening", "listening", 4, "comprehension",
-     "Audio: 'Keep your ATM PIN confidential.' What does the PIN protect the account from?",
-     "Family,Public,Unauthorized access,Loss", "C",
-     "వినండి: 'మీ ఏటీఎమ్ పిన్‌‌ను రహస్యంగా ఉంచండి.' పిన్ దేని నుండి ఖాతాను కాపాడుతుంది?",
-     "కుటుంబం (Family),ప్రజలు (Public),అనధికారిక యాక్సెస్ (Unauthorized access),నష్టం (Loss)",
-     "tts:Keep your ATM PIN confidential", None),
-
+     "Audio: 'We go to school on Monday.' Where do they go?",
+     "Home,Market,School,Park", "C",
+     "వినండి: 'We go to school on Monday.' వాళ్ళు ఎక్కడికి వెళ్తున్నారు?",
+     "ఇల్లు,సంతకి,బడికి,పార్క్",
+     "tts:We go to school on Monday", None),
     ("q-list-4-2", "Listening", "listening", 4, "mcq",
-     "Audio: 'Board bus 45 at platform 3.' Where should the speaker board?",
-     "Bus 40/Platform 5,Bus 45/Platform 3,Bus 35/Platform 4,Bus 45/Platform 2", "B",
-     "వినండి: 'ప్లాట్‌ఫారమ్ 3 లో బస్సు 45 ఎక్కండి.' వక్త ఎక్కడ ఎక్కాలి?",
-     "బస్సు 40/ప్లాట్‌ఫారమ్ 5,బస్సు 45/ప్లాట్‌ఫారమ్ 3,బస్సు 35/ప్లాట్‌ఫారమ్ 4,బస్సు 45/ప్లాట్‌ఫారమ్ 2",
-     "tts:Board bus 45 at platform 3", None),
+     "Audio: 'My mother is cooking food.' What is she making?",
+     "Food,Clothes,Books,Shoes", "A",
+     "వినండి: 'My mother is cooking food.' ఆమె ఏం చేస్తోంది?",
+     "భోజనం,బట్టలు,పుస్తకాలు,బూట్లు",
+     "tts:My mother is cooking food", None),
+    ("q-list-4-3", "Listening", "listening", 4, "arrange",
+     "Listen and arrange the sentence in order.",
+     "She has a red ball", "ignored",
+     "వినండి మరియు సరైన వాక్యం పేర్చండి.",
+     "She has a red ball",
+     "tts:She has a red ball", None),
 
-    ("q-list-4-3", "Listening", "listening", 4, "mcq",
-     "Audio: 'Trains are delayed due to heavy rain.' What is the reason for the delay?",
-     "Construction,Technical issue,Heavy rain,Festival", "C",
-     "వినండి: 'భారీ వర్షాల వల్ల రైళ్లు ఆలస్యమవుతున్నాయి.' ఆలస్యానికి కారణం ఏమిటి?",
-     "నిర్మాణం (Construction),సాంకేతిక సమస్య (Technical issue),భారీ వర్షం (Heavy rain),పండుగ (Festival)",
-     "tts:Trains are delayed due to heavy rain", None),
-
-    # Difficulty 5 — Listening
+    # Difficulty 5
     ("q-list-5-1", "Listening", "listening", 5, "comprehension",
-     "Dialogue: 'The conference has been rescheduled to next Thursday at 2 PM in Hall B. Please update your calendars.' What changed?",
-     "Venue changed,Time and day changed,Speaker changed,Conference cancelled", "B",
-     "సంభాషణ: 'సమావేశాన్ని వచ్చే గురువారం మధ్యాహ్నం 2 గంటలకు హాల్ B లో నిర్వహిస్తారు.' ఏమి మారింది?",
-     "ప్రదేశం మారింది,సమయం మరియు రోజు మారింది,వక్త మారారు,సమావేశం రద్దయింది",
-     "tts:The conference has been rescheduled to next Thursday at 2 PM in Hall B. Please update your calendars.", None),
-
+     "Audio: 'Sunday is a holiday. I play with my brothers.' When is the holiday?",
+     "Monday,Friday,Sunday,Tuesday", "C",
+     "వినండి: 'Sunday is a holiday. I play with my brothers.' సెలవు ఎప్పుడు?",
+     "సోమవారం,శుక్రవారం,ఆదివారం,మంగళవారం",
+     "tts:Sunday is a holiday. I play with my brothers.", None),
     ("q-list-5-2", "Listening", "listening", 5, "mcq",
-     "Audio: 'Despite the turbulence, the pilot managed to land safely.' What does turbulence refer to here?",
-     "Storm in the terminal,Rough air conditions during flight,Engine failure,Runway congestion", "B",
-     "వినండి: 'అల్లకల్లోలం ఉన్నప్పటికీ పైలట్ సురక్షితంగా దిగారు.' ఇక్కడ turbulence అంటే?",
-     "టర్మినల్‌లో తుఫాను,విమానంలో ఎగురుతున్నపుడు గాలి అల్లకల్లోలం,ఇంజన్ వైఫల్యం,రన్‌వే రద్దీ",
-     "tts:Despite the turbulence, the pilot managed to land safely.", None),
+     "Audio: 'My favourite fruit is banana. It is yellow.' What fruit is mentioned?",
+     "Apple,Mango,Banana,Orange", "C",
+     "వినండి: 'My favourite fruit is banana. It is yellow.' ఏ పండు పేరు చెప్పారు?",
+     "ఆపిల్,మామిడి,అరటిపండు,కమలా",
+     "tts:My favourite fruit is banana. It is yellow.", None),
+    ("q-list-5-3", "Listening", "listening", 5, "arrange",
+     "Listen and arrange the sentence.",
+     "I drink milk in the morning", "ignored",
+     "వినండి మరియు వాక్యం రాయండి.",
+     "I drink milk in the morning",
+     "tts:I drink milk in the morning", None),
 
-    ("q-list-5-3", "Listening", "listening", 5, "fill_blank",
-     "Audio: 'The committee will reconvene after the recess.' Complete: 'The committee will ___ after the recess.'",
-     "reconvene,reschedule,restructure,reconsider", "A",
-     "వినండి: 'కమిటీ విరామం తర్వాత తిరిగి సమావేశమవుతుంది.' పూరించండి.",
-     "reconvene,reschedule,restructure,reconsider",
-     "tts:The committee will reconvene after the recess.", None),
 
-    # === SPEAKING (12 existing + 3 difficulty-5) ===
+    # === SPEAKING ===
     # Difficulty 1
-    ("q-speak-1-1", "Speaking", "speaking", 1, "mcq",
-     "How do you welcome a guest at home?",
-     "Welcome,Goodbye,Please,Thank you", "A",
-     "ఇంటికి వచ్చిన అతిథిని ఎలా ఆహ్వానిస్తారు?",
-     "సాదర స్వాగతం (Welcome),వెళ్లొస్తాం (Goodbye),దయచేసి (Please),ధన్యవాదాలు (Thank you)",
+    ("q-speak-1-1", "Speaking", "speaking", 1, "speaking",
+     "Say your name.",
+     "", "ignored",
+     "మీ పేరు చెప్పండి.",
+     "",
      None, None),
-
-    ("q-speak-1-2", "Speaking", "speaking", 1, "true_false",
-     "Formal intro: 'Hello, my name is John.' Is it proper?",
-     "True,False", "A",
-     "పరిచయం: 'హలో, నా పేరు జాన్.' ఇది పద్ధతిగా ఉందా?",
-     "నిజం (True),అబద్ధం (False)",
+    ("q-speak-1-2", "Speaking", "speaking", 1, "speaking",
+     "Say 'Apple'.",
+     "", "ignored",
+     "'Apple' అని చెప్పండి.",
+     "",
      None, None),
-
-    ("q-speak-1-3", "Speaking", "speaking", 1, "mcq",
-     "Which greeting is correct for the morning?",
-     "Good morning,Good evening,Good night,Goodbye", "A",
-     "ఉదయం పూట చెప్పే పలకరింపు ఏది?",
-     "శుభోదయం (Good morning),శుభ సాయంత్రం (Good evening),శుభ రాత్రి (Good night),వెళ్లొస్తాం (Goodbye)",
+    ("q-speak-1-3", "Speaking", "speaking", 1, "speaking",
+     "Say the number 1.",
+     "", "ignored",
+     "1 నెంబర్ చెప్పండి.",
+     "",
      None, None),
 
     # Difficulty 2
-    ("q-speak-2-1", "Speaking", "speaking", 2, "mcq",
-     "Correct pronunciation of 'receive': where is the emphasis?",
-     "re-CEIVE,RE-ceive,re-ce-ive,receive", "A",
-     "'receive' అనే పదాన్ని పలికేటప్పుడు ఏ భాగాన్ని నొక్కి పలకాలి?",
-     "re-CEIVE,RE-ceive,re-ce-ive,receive",
+    ("q-speak-2-1", "Speaking", "speaking", 2, "speaking",
+     "Say 'Good morning'.",
+     "", "ignored",
+     "'Good morning' అని చెప్పండి.",
+     "",
      None, None),
-
-    ("q-speak-2-2", "Speaking", "speaking", 2, "fill_blank",
-     "Dialogue: 'Nice to ___ you.'",
-     "meet,meat,met,meeting", "A",
-     "సంభాషణ: 'Nice to ___ you.' ఖాళీని పూరించండి.",
-     "meet,meat,met,meeting",
+    ("q-speak-2-2", "Speaking", "speaking", 2, "speaking",
+     "Say 'Thank you'.",
+     "", "ignored",
+     "'Thank you' అని చెప్పండి.",
+     "",
      None, None),
-
-    ("q-speak-2-3", "Speaking", "speaking", 2, "mcq",
-     "How do you ask for water politely?",
-     "Give water,Can I have some water?,I want water,Water now", "B",
-     "మంచినీరు కావాలని మర్యాదగా ఎలా అడుగుతారు?",
-     "నీళ్లు ఇవ్వు,కొద్దిగా నీరు ఇవ్వగలరా?,నాకు నీళ్లు కావాలి,ఇప్పుడే నీళ్లు",
+    ("q-speak-2-3", "Speaking", "speaking", 2, "speaking",
+     "Name one fruit.",
+     "", "ignored",
+     "ఒక పండు పేరు చెప్పండి.",
+     "",
      None, None),
 
     # Difficulty 3
-    ("q-speak-3-1", "Speaking", "speaking", 3, "mcq",
-     "In public speaking, what is the main rule for tempo?",
-     "Speak super fast,Speak clearly with pauses,Scream loud,Mumble quietly", "B",
-     "సభలో మాట్లాడేటప్పుడు ప్రధాన నియమం ఏది?",
-     "చాలా వేగంగా మాట్లాడాలి,విరామాలతో స్పష్టంగా మాట్లాడాలి,గట్టిగా అరవాలి,నమలాలి",
+    ("q-speak-3-1", "Speaking", "speaking", 3, "speaking",
+     "Count from 1 to 5.",
+     "", "ignored",
+     "1 నుండి 5 వరకు లెక్కించండి.",
+     "",
      None, None),
-
-    ("q-speak-3-2", "Speaking", "speaking", 3, "arrange",
-     "Arrange into a polite question: 'help / how / I / can / you'",
-     "how help I can you,how I can help you,how can I help you,I can help you how", "C",
-     "మర్యాదగా అడిగే విధంగా అమర్చండి: 'help / how / I / can / you'",
-     "how help I can you,how I can help you,how can I help you,I can help you how",
+    ("q-speak-3-2", "Speaking", "speaking", 3, "speaking",
+     "Say 'I am a boy' or 'I am a girl'.",
+     "", "ignored",
+     "'I am a boy' ఏదా 'I am a girl' అని చెప్పండి.",
+     "",
      None, None),
-
-    ("q-speak-3-3", "Speaking", "speaking", 3, "mcq",
-     "What is the formal way to politely disagree?",
-     "You are wrong,I see your point but I disagree,Shut up,No way", "B",
-     "అభిప్రాయభేదాన్ని మర్యాదగా వ్యక్తపరిచే విధానం ఏది?",
-     "మీరు తప్పు చెప్తున్నారు,మీ పాయింట్ నాకు అర్థమైంది కానీ నా అభిప్రాయం వేరు,నోరు మూసుకోండి,అస్సలు ఒప్పుకోను",
+    ("q-speak-3-3", "Speaking", "speaking", 3, "speaking",
+     "Name three colours.",
+     "", "ignored",
+     "చామ్ మూడు రంగుల పేర్లు చెప్పండి.",
+     "",
      None, None),
 
     # Difficulty 4
-    ("q-speak-4-1", "Speaking", "speaking", 4, "mcq",
-     "During an interview, how do you describe your experience?",
-     "I worked for 3 years,None of your business,I hate jobs,I am rich", "A",
-     "ఇంటర్వ్యూలో మీ అనుభవాన్ని ఎలా వ్యక్తపరుస్తారు?",
-     "నేను 3 సంవత్సరాలు పనిచేశాను,మీకు అనవసరం,నాకు ఉద్యోగాలు నచ్చవు,నేను ధనవంతుడిని",
+    ("q-speak-4-1", "Speaking", "speaking", 4, "speaking",
+     "Say 'I am ten years old.'",
+     "", "ignored",
+     "'I am ten years old' అని చెప్పండి.",
+     "",
+     None, None),
+    ("q-speak-4-2", "Speaking", "speaking", 4, "speaking",
+     "Say 'My name is Ravi.'",
+     "", "ignored",
+     "'My name is Ravi' అని చెప్పండి.",
+     "",
+     None, None),
+    ("q-speak-4-3", "Speaking", "speaking", 4, "speaking",
+     "Name three animals.",
+     "", "ignored",
+     "మూడు జంతువుల పేర్లు చెప్పండి.",
+     "",
      None, None),
 
-    ("q-speak-4-2", "Speaking", "speaking", 4, "mcq",
-     "What is the proper response when accepting a job offer?",
-     "I accept with gratitude,Whatever,Give me money now,Okay I guess", "A",
-     "ఉద్యోగ ప్రతిపాదనకు సరైన స్పందన ఏది?",
-     "నేను కృతజ్ఞతలతో అంగీకరిస్తున్నాను,ఏదో ఒకటిలే,ఇప్పుడే డబ్బులు ఇవ్వు,సరే చూద్దాం",
+    # Difficulty 5
+    ("q-speak-5-1", "Speaking", "speaking", 5, "speaking",
+     "What is your favourite fruit?",
+     "", "ignored",
+     "మీకు ఇష్టమైన పండు ఏది?",
+     "",
+     None, None),
+    ("q-speak-5-2", "Speaking", "speaking", 5, "speaking",
+     "Describe this picture in one sentence.",
+     "", "ignored",
+     "ఈ బొమ్మని గురించి ఒక చిన్న ఆంగ్ల వాక్యం చెప్పండి.",
+     "",
+     None, "/assets/images/school.svg"), # Uses local project-managed school SVG
+    ("q-speak-5-3", "Speaking", "speaking", 5, "speaking",
+     "What do you do in the morning?",
+     "", "ignored",
+     "ఉదయాన్నే మీరు ఏమి చేస్తారు?",
+     "",
      None, None),
 
-    ("q-speak-4-3", "Speaking", "speaking", 4, "mcq",
-     "Presenting a report: 'Let me summarize the key findings.' What does this mean?",
-     "I will read everything,I will list the main points,I am starting now,I am leaving", "B",
-     "'కీలక ఫలితాలను సంగ్రహంగా వివరిస్తాను' అంటే అర్థం ఏమిటి?",
-     "నేను అంతా చదువుతాను,ప్రధానాంశాలను మాత్రమే పేర్కొంటాను,నేను ప్రారంభిస్తున్నాను,నేను వెళ్తున్నాను",
-     None, None),
 
-    # Difficulty 5 — Speaking
-    ("q-speak-5-1", "Speaking", "speaking", 5, "mcq",
-     "In a formal negotiation, your counterpart says: 'We cannot budge on the delivery timeline.' Which response de-escalates while keeping your position?",
-     "Fine, forget the deal,I understand your constraints. Could we explore phased delivery as a middle ground?,That is unacceptable,You are being unreasonable", "B",
-     "ఒక అధికారిక చర్చలో 'మేము డెలివరీ గడువు మార్చలేం' అని చెప్పారు. మీ స్థితి కాపాడుకుంటూ ఉద్రిక్తతను తగ్గించే సమాధానం ఏది?",
-     "సరే, వదిలేయండి,మీ పరిమితులు అర్థమయ్యాయి. దశల వారీ డెలివరీ పరిశీలిద్దామా?,అది అంగీకారయోగ్యం కాదు,మీరు అసమంజసంగా ఉన్నారు",
-     None, None),
-
-    ("q-speak-5-2", "Speaking", "speaking", 5, "arrange",
-     "Arrange into a formal apology: 'sincerely / I / apologize / inconvenience / for / the'",
-     "I apologize for the sincerely inconvenience,I sincerely apologize for the inconvenience,sincerely I for the apologize inconvenience,for the inconvenience I sincerely apologize", "B",
-     "అధికారిక క్షమాపణను సరైన క్రమంలో అమర్చండి.",
-     "I apologize for the sincerely inconvenience,I sincerely apologize for the inconvenience,sincerely I for the apologize inconvenience,for the inconvenience I sincerely apologize",
-     None, None),
-
-    ("q-speak-5-3", "Speaking", "speaking", 5, "fill_blank",
-     "Complete the formal recommendation: 'I would like to ___ Mr. Ravi for the senior engineer position.'",
-     "nominate,command,perform,indicate", "A",
-     "అధికారిక సిఫారసు పూరించండి: 'I would like to ___ Mr. Ravi for the senior engineer position.'",
-     "nominate,command,perform,indicate",
-     None, None),
-
-    # === READING (12 existing + 3 difficulty-5) ===
+    # === READING ===
     # Difficulty 1
     ("q-read-1-1", "Reading", "reading", 1, "mcq",
-     "Identify the first letter of the word 'Apple'.",
-     "A,B,P,L", "A",
-     "'Apple' అనే పదం ఏ అక్షరంతో మొదలవుతుంది?",
-     "A,B,P,L",
+     "Which letter is 'A'?",
+     "A,B,C,D", "A",
+     "'A' అనే అక్షరం ఏది?",
+     "A,B,C,D",
      None, None),
-
-    ("q-read-1-2", "Reading", "reading", 1, "true_false",
-     "Read: 'Cat'. Does 'Cat' have three letters?",
+    ("q-read-1-2", "Reading", "reading", 1, "image_mcq",
+     "Look at the picture. Which animal is it?",
+     "Dog,Cat,Cow,Bird", "A",
+     "బొమ్మ చూడండి. ఇది ఏ జంతువు?",
+     "కుక్క,పిల్లి,ఆవు,పక్షి",
+     None, "/assets/images/dog.svg"),
+    ("q-read-1-3", "Reading", "reading", 1, "true_false",
+     "Read: '1, 2, 3'. Is 3 a number?",
      "True,False", "A",
-     "చదవండి: 'Cat'. 'Cat' లో మూడు అక్షరాలు ఉన్నాయా?",
-     "నిజం,అబద్ధం",
-     None, None),
-
-    ("q-read-1-3", "Reading", "reading", 1, "fill_blank",
-     "Read and complete the sequence: 'A, B, C, ___'",
-     "D,E,F,G", "A",
-     "చదవండి మరియు పూరించండి: 'A, B, C, ___'",
-     "D,E,F,G",
+     "చదవండి: '1, 2, 3'. 3 అనేది నెంబరా?",
+     "అవును,కాదు",
      None, None),
 
     # Difficulty 2
-    ("q-read-2-1", "Reading", "reading", 2, "mcq",
-     "Read: 'Open from 9 AM to 5 PM.' How long is it open?",
-     "5 hours,8 hours,12 hours,24 hours", "B",
-     "చదవండి: 'ఉదయం 9 నుండి సాయంత్రం 5 వరకు తెరిచి ఉంటుంది.' ఎన్ని గంటలు తెరిచి ఉంటుంది?",
-     "5 గంటలు,8 గంటలు,12 గంటలు,24 గంటలు",
+    ("q-read-2-1", "Reading", "reading", 2, "fill_blank",
+     "Read: 'B_Y'. Fill the missing letter for BOY.",
+     "O,A,E,I", "A",
+     "చదవండి: 'B_Y'. BOY కోసం పదాన్ని పూరించండి.",
+     "O,A,E,I",
      None, None),
-
-    ("q-read-2-2", "Reading", "reading", 2, "image_mcq",
-     "Which sign means 'No Parking'?",
-     "P with red slash,P with green circle,Toll sign,Stop sign", "A",
-     "వీటిలో 'నో పార్కింగ్' సూచించేది ఏది?",
-     "ఎరుపు గీత ఉన్న P గుర్తు,ఆకుపచ్చ సర్కిల్ ఉన్న P గుర్తు,టోల్ చిహ్నం,స్టాప్ గుర్తు",
-     None, "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/No_Parking_Sign.svg/200px-No_Parking_Sign.svg.png"),
-
-    ("q-read-2-3", "Reading", "reading", 2, "mcq",
-     "Read: 'Keep medicine out of reach of children.' Why?",
-     "Children will sell it,Safe storage,It is dangerous for children,It is expensive", "C",
-     "చదవండి: 'మందులను పిల్లలకు దూరంగా ఉంచండి.' ఎందుకు?",
-     "పిల్లలు అమ్మేస్తారు,సురక్షిత నిల్వ కోసం,పిల్లల ఆరోగ్యానికి ప్రమాదకరం,ఇది ఖరీదైనది",
+    ("q-read-2-2", "Reading", "reading", 2, "mcq",
+     "Read: 'Red'. What colour is it?",
+     "Red,Blue,Yellow,Green", "A",
+     "చదవండి: 'Red'. అది ఏ రంగు?",
+     "ఎరుపు,నీలం,పసుపు,ఆకుపచ్చ",
+     None, None),
+    ("q-read-2-3", "Reading", "reading", 2, "true_false",
+     "Read: 'Hello'. This is a greeting.",
+     "True,False", "A",
+     "చదవండి: 'Hello'. ఇది పలకరింపు.",
+     "అవును,కాదు",
      None, None),
 
     # Difficulty 3
     ("q-read-3-1", "Reading", "reading", 3, "comprehension",
-     "Story: 'Latha went to market. She bought mangoes, bananas, and a bag. Then she went home.' What fruit did she buy?",
-     "Apples,Mangoes,Grapes,Oranges", "B",
-     "కథ: 'లత మార్కెట్‌కు వెళ్లింది. మామిడిపండ్లు, అరటిపండ్లు తెచ్చుకుంది. ఆపై ఇంటికి వెళ్లింది.' ఆమె ఏ పండు కొన్నది?",
-     "ఆపిల్స్,మామిడిపండ్లు,ద్రాక్ష,నారింజ",
+     "Passage: 'This is a cat. The cat is small.' Is the cat big or small?",
+     "Small,Big,Fat,Red", "A",
+     "చదవండి: 'This is a cat. The cat is small.' పిల్లి పెద్దగా ఉందా, చిన్నగా ఉందా?",
+     "చిన్నగా,పెద్దగా,లావుగా,ఎరుపు",
      None, None),
-
     ("q-read-3-2", "Reading", "reading", 3, "arrange",
-     "Arrange the sign words in the correct order: 'BAGGAGE / CLAIM / AREA'",
-     "AREA CLAIM BAGGAGE,BAGGAGE CLAIM AREA,CLAIM AREA BAGGAGE,CLAIM BAGGAGE AREA", "B",
-     "బోర్డు పదాలను అమర్చండి: 'BAGGAGE / CLAIM / AREA'",
-     "AREA CLAIM BAGGAGE,BAGGAGE CLAIM AREA,CLAIM AREA BAGGAGE,CLAIM BAGGAGE AREA",
+     "Arrange to make a sentence.",
+     "This is a cat", "ignored",
+     "వాక్యంగా అమర్చండి.",
+     "This is a cat",
      None, None),
-
     ("q-read-3-3", "Reading", "reading", 3, "fill_blank",
-     "Complete the sign: 'Wet Floor: Proceed with ___'",
-     "Speed,Caution,Anger,Laughter", "B",
-     "'తడి నేల: ___ తో నడవండి' బోర్డు నియమం?",
-     "వేగం,జాగ్రత్త (Caution),కోపం,నవ్వు",
+     "Complete: 'I have ___ nose.'",
+     "one,two,three,four", "A",
+     "పూరించండి: 'I have ___ nose.'",
+     "one,two,three,four",
      None, None),
 
     # Difficulty 4
     ("q-read-4-1", "Reading", "reading", 4, "comprehension",
-     "Article: 'Solar energy is clean and renewable. It uses sun's rays to generate electricity, reducing carbon footprint.' What generates solar energy?",
-     "Coal,Sun rays,Wind,Water", "B",
-     "వ్యాసం: 'సౌర శక్తి స్వచ్ఛమైనది. విద్యుత్తును ఉత్పత్తి చేయడానికి సూర్యకిరణాలను వాడుతుంది.' ఈ శక్తికి మూలం ఏది?",
-     "బొగ్గు,సూర్యకిరణాలు (Sun rays),గాలి,నీరు",
+     "Passage: 'Ravi has a red ball. He plays in the park.' What colour is the ball?",
+     "Blue,Red,Green,Yellow", "B",
+     "చదవండి: 'Ravi has a red ball. He plays in the park.' బంతి రంగు ఏమిటి?",
+     "నీలం,ఎరుపు,ఆకుపచ్చ,పసుపు",
      None, None),
-
     ("q-read-4-2", "Reading", "reading", 4, "mcq",
-     "Manual instruction: 'Disconnect power before servicing the device.' What is the first step?",
-     "Open device,Disconnect power,Clean device,Call expert", "B",
-     "సూచన: 'పరికరం రిపేర్ చేయడానికి ముందు విద్యుత్ సరఫరా నిలిపివేయండి.' మొదటి దశ ఏది?",
-     "పరికరం తెరవడం,విద్యుత్ సరఫరా నిలిపివేయడం,పరికరం శుభ్రం చేయడం,నిపుణుడిని పిలవడం",
+     "Read: 'Water is very important.' What is important?",
+     "Water,Fire,Sky,Road", "A",
+     "చదవండి: 'Water is very important.' ఏది ముఖ్యం?",
+     "నీరు,మంట,ఆకాశం,రోడ్డు",
+     None, None),
+    ("q-read-4-3", "Reading", "reading", 4, "arrange",
+     "Arrange into a sentence.",
+     "I eat banana every day", "ignored",
+     "వాక్యంగా మార్చండి.",
+     "I eat banana every day",
      None, None),
 
-    ("q-read-4-3", "Reading", "reading", 4, "mcq",
-     "Paragraph: 'Organic farming avoids chemical pesticides, which protects soil health and ecosystems.' What is the benefit?",
-     "Soil health,Pesticide sales,Chemical speed,Machine usage", "A",
-     "వ్యాసం: 'సేంద్రీయ వ్యవసాయం రసాయన పురుగుమందులను నివారిస్తూ నేల ఆరోగ్యాన్ని కాపాడుతుంది.' దీని వల్ల ప్రయోజనమెంటి?",
-     "నేల ఆరోగ్యం (Soil health),పురుగుమందుల అమ్మకాలు,రసాయన వేగం,యంత్రాల వినియోగం",
-     None, None),
-
-    # Difficulty 5 — Reading
+    # Difficulty 5
     ("q-read-5-1", "Reading", "reading", 5, "comprehension",
-     "Article: 'Neuroplasticity refers to the brain's ability to reorganize itself by forming new neural connections. This process is most active in childhood but continues throughout life, making deliberate practice a powerful tool for adult learning.' According to the article, why is deliberate practice important for adults?",
-     "It reverses aging,It leverages the brain's continued ability to form new connections,It replaces childhood learning,Neuroplasticity stops at adulthood", "B",
-     "వ్యాసం: 'న్యూరోప్లాస్టిసిటీ' అనగా మెదడు కొత్త నరవ్యవస్థ అనుసంధానాలు ఏర్పరచుకోగలిగే సామర్థ్యం. పెద్దలలో ఇది ఎందుకు ముఖ్యం?",
-     "వృద్ధాప్యాన్ని తిప్పికొట్టడం,మెదడు కొత్త అనుసంధానాలు ఏర్పరచుకోగల సామర్థ్యాన్ని ఉపయోగించడం,బాల్య అభ్యాసాన్ని భర్తీ చేయడం,న్యూరోప్లాస్టిసిటీ పెద్దవయసులో ఆగిపోతుంది",
+     "Story: 'Sita wakes up at 7 o'clock. She drinks milk. She goes to school at 8 o'clock.' What time does Sita go to school?",
+     "7,8,6,9", "B",
+     "కథ: 'Sita wakes up at 7 o'clock. She drinks milk. She goes to school at 8 o'clock.' సీత ఎప్పుడు బడికి వెళ్తుంది?",
+     "7,8,6,9",
+     None, None),
+    ("q-read-5-2", "Reading", "reading", 5, "fill_blank",
+     "Fill in the blank: 'Sita likes to ___ milk.'",
+     "drink,eat,play,run", "A",
+     "ఖాళీని పూరించండి: 'Sita likes to ___ milk.'",
+     "drink,eat,play,run",
+     None, None),
+    ("q-read-5-3", "Reading", "reading", 5, "arrange",
+     "Arrange into a correct sentence.",
+     "She goes to school to study", "ignored",
+     "సరైన వాక్యంలో పేర్చండి.",
+     "She goes to school to study",
      None, None),
 
-    ("q-read-5-2", "Reading", "reading", 5, "mcq",
-     "Legal clause: 'The licensor grants the licensee a non-exclusive, non-transferable, revocable license.' Which right does the licensee NOT have?",
-     "Using the product,Transferring the license,Accessing for personal use,Reading the documentation", "B",
-     "చట్టపరమైన నిబంధన: 'లైసెన్సర్ లైసెన్సీకి ప్రత్యేకత లేని, బదిలీ చేయలేని లైసెన్స్ ఇస్తున్నారు.' లైసెన్సీకి ఏ హక్కు లేదు?",
-     "ఉత్పత్తి వాడటం,లైసెన్స్ బదిలీ చేయడం,వ్యక్తిగత వినియోగం కోసం యాక్సెస్,డాక్యుమెంటేషన్ చదవడం",
-     None, None),
 
-    ("q-read-5-3", "Reading", "reading", 5, "fill_blank",
-     "Corporate memo: 'All employees are required to ___ the updated data-handling policy by Friday.' Choose the correct formal word.",
-     "acknowledge,feel,ignore,guess", "A",
-     "కార్పొరేట్ మెమో: 'అన్ని ఉద్యోగులు శుక్రవారం కల్లా నవీకరించిన డేటా పాలసీని ___ చేయాలి.' సరైన అధికారిక పదం ఎంచుకోండి.",
-     "acknowledge,feel,ignore,guess",
-     None, None),
-
-    # === WRITING (12 existing + 3 difficulty-5) ===
+    # === WRITING ===
     # Difficulty 1
     ("q-write-1-1", "Writing", "writing", 1, "mcq",
-     "Which is the lowercase letter for 'G'?",
-     "g,q,p,d", "A",
-     "'G' అక్షరానికి చిన్న అక్షరం (lowercase) ఏది?",
-     "g,q,p,d",
+     "Which character is the letter B?",
+     "B,3,D,V", "A",
+     "B అక్షరం ఏది?",
+     "B,3,D,V",
      None, None),
-
-    ("q-write-1-2", "Writing", "writing", 1, "fill_blank",
-     "Complete the word: 'C_T' (the meowing animal)",
-     "A,E,I,O", "A",
-     "పదాన్ని పూరించండి: 'C_T' (మ్యావ్ అనే జంతువు)",
-     "A,E,I,O",
+    ("q-write-1-2", "Writing", "writing", 1, "true_false",
+     "'Apple' is spelled with A.",
+     "True,False", "A",
+     "'Apple' స్పెల్లింగ్ A తో మొదలవుతుంది.",
+     "అవును,కాదు",
      None, None),
-
     ("q-write-1-3", "Writing", "writing", 1, "mcq",
-     "Which character ends a sentence?",
-     "Comma,Period,Colon,Dash", "B",
-     "వాక్యం చివర ఏ గుర్తు వస్తుంది?",
-     "కామా (Comma),ఫుల్‌స్టాప్ (Period),కోలన్ (Colon),డాష్ (Dash)",
+     "Which one is a word?",
+     "Dog,123,***,Xyqz", "A",
+     "వీటిలో పదం ఏది?",
+     "Dog,123,***,Xyqz",
      None, None),
 
     # Difficulty 2
     ("q-write-2-1", "Writing", "writing", 2, "mcq",
-     "Write the plural form of 'Book'.",
-     "Books,Bookes,Bookies,Book", "A",
-     "'Book' యొక్క బహువచనం ఏది?",
-     "Books,Bookes,Bookies,Book",
+     "Write the plural form of 'Cat'.",
+     "Cats,Cates,Catties,Caties", "A",
+     "'Cat' కి బహువచనం (Plural) ఏది?",
+     "Cats,Cates,Catties,Caties",
      None, None),
-
     ("q-write-2-2", "Writing", "writing", 2, "arrange",
-     "Arrange the words in the correct order: 'like / I / apples'",
-     "apples like I,I like apples,like apples I,I apples like", "B",
-     "పదాలను సరైన క్రమంలో అమర్చండి: 'like / I / apples'",
-     "apples like I,I like apples,like apples I,I apples like",
+     "Arrange to form a sentence.",
+     "My name is Ravi", "ignored",
+     "వాక్యాన్ని కరెక్ట్ గా అమర్చండి.",
+     "My name is Ravi",
      None, None),
-
     ("q-write-2-3", "Writing", "writing", 2, "fill_blank",
-     "Complete the sentence: 'He ___ playing football.'",
-     "is,are,am,be", "A",
-     "వాక్యాన్ని పూరించండి: 'He ___ playing football.'",
+     "Complete: 'I ___ a student.'",
+     "is,are,am,be", "C",
+     "పూర్తి చేయండి: 'I ___ a student.'",
      "is,are,am,be",
      None, None),
 
     # Difficulty 3
     ("q-write-3-1", "Writing", "writing", 3, "mcq",
-     "Select the sentence with correct punctuation.",
-     "where are you going,Where are you going?,Where are you going.,where are you going!", "B",
-     "సరైన విరామ చిహ్నాలు గల వాక్యాన్ని ఎంచుకోండి.",
-     "where are you going,Where are you going?,Where are you going.,where are you going!",
+     "Select the sentence with a full stop (period).",
+     "Hello?,I am here.,Wow!,what", "B",
+     "ఫుల్ స్టాప్ ఉన్న వాక్యాన్ని ఎంచుకోండి.",
+     "Hello?,I am here.,Wow!,what",
      None, None),
-
     ("q-write-3-2", "Writing", "writing", 3, "arrange",
-     "Arrange the words into a sentence: 'market / to / went / Latha / yesterday'",
-     "yesterday Latha went market to,Latha went to market yesterday,market to Latha went yesterday,Latha yesterday market went to", "B",
-     "వాక్యాన్ని అమర్చండి: 'market / to / went / Latha / yesterday'",
-     "yesterday Latha went market to,Latha went to market yesterday,market to Latha went yesterday,Latha yesterday market went to",
+     "Arrange words.",
+     "This is my family", "ignored",
+     "పదాలను వాక్యంగా అమర్చండి.",
+     "This is my family",
      None, None),
-
     ("q-write-3-3", "Writing", "writing", 3, "fill_blank",
-     "Fill in the preposition: 'She is sitting ___ the chair.'",
-     "on,in,at,to", "A",
-     "విభక్తి (preposition) పూరించండి: 'She is sitting ___ the chair.'",
-     "on,in,at,to",
+     "Fill inside: 'The book is ___ the table.'",
+     "on,in,under,to", "A",
+     "ఖాళీని పూరించండి: 'The book is ___ the table.'",
+     "on,in,under,to",
      None, None),
 
     # Difficulty 4
     ("q-write-4-1", "Writing", "writing", 4, "mcq",
-     "Identify the sentence with the grammatically correct tense.",
-     "She has wrote a letter,She writes a letter yesterday,She wrote a letter yesterday,She write a letter", "C",
-     "వ్యాకరణపరంగా సరైన వాక్యాన్ని ఎంచుకోండి.",
-     "She has wrote a letter,She writes a letter yesterday,She wrote a letter yesterday,She write a letter",
+     "Choose the correct spelling.",
+     "Water,Woter,Watir,Watar", "A",
+     "సరైన స్పెల్లింగ్ ఎంచుకోండి.",
+     "Water,Woter,Watir,Watar",
      None, None),
-
     ("q-write-4-2", "Writing", "writing", 4, "fill_blank",
-     "Fill in the conjunction: 'He is poor ___ he is honest.'",
-     "but,or,so,because", "A",
-     "ఖాళీని పూరించండి: 'He is poor ___ he is honest.'",
-     "but,or,so,because",
+     "Fill missing: 'She ___ apples.'",
+     "like,likes,liking,likely", "B",
+     "ఖాళీని పూరించండి: 'She ___ apples.'",
+     "like,likes,liking,likely",
+     None, None),
+    ("q-write-4-3", "Writing", "writing", 4, "arrange",
+     "Arrange it correctly.",
+     "He plays with his friends", "ignored",
+     "వాక్యాన్ని అమర్చండి.",
+     "He plays with his friends",
      None, None),
 
-    ("q-write-4-3", "Writing", "writing", 4, "mcq",
-     "Select the passive voice of: 'Rama killed Ravana.'",
-     "Ravana killed Rama,Ravana was killed by Rama,Rama was killed by Ravana,Ravana kills Rama", "B",
-     "సరైన కర్మణి ప్రయోగం (passive voice) ఎంచుకోండి: 'Rama killed Ravana.'",
-     "Ravana killed Rama,Ravana was killed by Rama,Rama was killed by Ravana,Ravana kills Rama",
-     None, None),
-
-    # Difficulty 5 — Writing
+    # Difficulty 5
     ("q-write-5-1", "Writing", "writing", 5, "mcq",
-     "Choose the sentence that correctly uses the subjunctive mood.",
-     "If I was rich, I would travel.,If I were rich, I would travel.,If I am rich, I will travel.,If I be rich, I travel.", "B",
-     "Subjunctive mood ని సరిగా ఉపయోగించే వాక్యాన్ని ఎంచుకోండి.",
-     "If I was rich, I would travel.,If I were rich, I would travel.,If I am rich, I will travel.,If I be rich, I travel.",
+     "What is the correct English word for నమస్కారం?",
+     "Hello,Goodbye,Maybe,Sorry", "A",
+     "నమస్కారం అనేదానికి కరెక్ట్ ఆంగ్ల పదం ఏది?",
+     "Hello,Goodbye,Maybe,Sorry",
      None, None),
-
     ("q-write-5-2", "Writing", "writing", 5, "fill_blank",
-     "Complete the formal letter closing: 'Thank you for your consideration. I look forward to ___ from you.'",
-     "hearing,hear,heard,to hear", "A",
-     "అధికారిక లేఖ ముగింపు పూరించండి: 'Thank you for your consideration. I look forward to ___ from you.'",
-     "hearing,hear,heard,to hear",
+     "Write the missing word: 'The sky is ___.'",
+     "blue,red,green,purple", "A",
+     "తప్పిపోయిన పదాన్ని రాయండి: 'The sky is ___.'",
+     "blue,red,green,purple",
      None, None),
-
     ("q-write-5-3", "Writing", "writing", 5, "arrange",
-     "Arrange into a correct complex sentence with a relative clause: 'won / the / who / the / student / award / studied / hardest'",
-     "the student who studied hardest won the award,who the student studied hardest won award the,award the won student who hardest studied,the who student award hardest won studied", "A",
-     "సరైన relative clause వాక్యంలో అమర్చండి.",
-     "the student who studied hardest won the award,who the student studied hardest won award the,award the won student who hardest studied,the who student award hardest won studied",
+     "Arrange the sentence correctly.",
+     "Tomorrow is my birthday", "ignored",
+     "సరిగ్గా అమర్చండి.",
+     "Tomorrow is my birthday",
      None, None),
 ]
 
@@ -473,7 +431,7 @@ Q_DATA = [
 async def main():
     try:
         print(f"DATABASE_URL: {settings.DATABASE_URL}")
-        engine = create_async_engine(settings.DATABASE_URL, connect_args={"statement_cache_size": 0})
+        engine = create_async_engine(settings.DATABASE_URL)
         async with engine.connect() as conn:
             # Clear old question seeds if they exist
             await conn.execute(text("DELETE FROM questions WHERE id LIKE 'q-%'"))
@@ -488,20 +446,56 @@ async def main():
                  te_prompt, te_opts,
                  audio_url, image_url) = row
 
-                en_options_list = [{"id": chr(65 + i), "text": opt} for i, opt in enumerate(en_opts.split(","))]
-                te_options_list = [{"id": chr(65 + i), "text": opt} for i, opt in enumerate(te_opts.split(","))]
+                # Dynamic Duration specific to new Aarambh simplifications
+                max_duration = 30
+                if skill == "speaking":
+                    if diff == 1: max_duration = 5
+                    elif diff == 2: max_duration = 10
+                    elif diff == 3 or diff == 4: max_duration = 15
+                    else: max_duration = 20
+
+                if q_type == "arrange":
+                    # For arrange, we space split the target string directly.
+                    words = [w.strip() for w in en_opts.split(" ") if w.strip()]
+                    shuffled = list(words)
+                    random.seed(42) # Deterministic shuffle for seeds
+                    random.shuffle(shuffled)
+                    
+                    en_options_list = [{"id": f"w{i}", "text": w} for i, w in enumerate(shuffled)]
+                    correct_to_store = words 
+                    
+                    if te_opts:
+                        te_words = [w.strip() for w in te_opts.split(" ") if w.strip()]
+                        te_shuffled = list(te_words)
+                        random.shuffle(te_shuffled)
+                        te_options_list = [{"id": f"w{i}", "text": w} for i, w in enumerate(te_shuffled)]
+                        te_correct_to_store = te_words
+                    else:
+                        te_options_list = en_options_list
+                        te_correct_to_store = correct_to_store
+                elif q_type == "speaking":
+                    # Speaking requires no multiple choice options, just dummy fallbacks
+                    en_options_list = []
+                    te_options_list = []
+                    correct_to_store = []
+                    te_correct_to_store = []
+                else:
+                    en_options_list = [{"id": chr(65 + i), "text": opt} for i, opt in enumerate(en_opts.split(","))]
+                    te_options_list = [{"id": chr(65 + i), "text": opt} for i, opt in enumerate(te_opts.split(","))]
+                    correct_to_store = correct
+                    te_correct_to_store = correct
 
                 # Insert logical English question with media fields
                 await conn.execute(
                     text("""
                         INSERT INTO questions (
-                            id, learning_goal, domain, skill, difficulty, question_type,
+                            id, learning_goal, domain, skill, difficulty, proficiency_level, question_type,
                             language, question_content, options, correct_answer, is_active,
-                            audio_url, image_url
+                            audio_url, image_url, max_duration_seconds
                         ) VALUES (
-                            :id, :lg, :domain, :skill, :diff, :q_type,
+                            :id, :lg, :domain, :skill, :diff, :prof_level, :q_type,
                             'en', :q_content, :options, :correct, True,
-                            :audio_url, :image_url
+                            :audio_url, :image_url, :max_dur
                         )
                     """),
                     {
@@ -511,9 +505,11 @@ async def main():
                         "skill": skill,
                         "diff": diff,
                         "q_type": q_type,
+                        "max_dur": max_duration,
+                        "prof_level": ["Beginner", "Elementary", "Intermediate", "Advanced", "Advanced"][min(4, diff - 1)],
                         "q_content": json.dumps({"text": en_prompt}),
                         "options": json.dumps(en_options_list),
-                        "correct": json.dumps(correct),
+                        "correct": json.dumps(correct_to_store),
                         "audio_url": audio_url,
                         "image_url": image_url,
                     }
@@ -526,7 +522,7 @@ async def main():
                     "option_b": te_options_list[1]["text"] if len(te_options_list) > 1 else "",
                     "option_c": te_options_list[2]["text"] if len(te_options_list) > 2 else "",
                     "option_d": te_options_list[3]["text"] if len(te_options_list) > 3 else "",
-                    "correct_answer": correct
+                    "correct_answer": te_correct_to_store
                 }
                 await conn.execute(
                     text("""
@@ -545,7 +541,7 @@ async def main():
                 seeded += 1
 
             await conn.commit()
-            print(f"Successfully seeded {seeded} questions and translations.")
+            print(f"Successfully seeded {seeded} Grade 1-5 level questions and translations.")
             diff_counts = {}
             skill_counts = {}
             for row in Q_DATA:
@@ -554,10 +550,15 @@ async def main():
                 skill_counts[s] = skill_counts.get(s, 0) + 1
             print(f"By difficulty: {dict(sorted(diff_counts.items()))}")
             print(f"By skill:      {dict(sorted(skill_counts.items()))}")
+        
+        await engine.dispose()
 
     except Exception as e:
         traceback.print_exc()
 
 
 if __name__ == "__main__":
+    import sys
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(main())

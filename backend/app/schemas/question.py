@@ -16,6 +16,11 @@ class QuestionBase(BaseModel):
     domain: str = Field(..., max_length=100)
     skill: str = Field(..., max_length=100)
     difficulty: int = Field(..., ge=1, le=5)
+    proficiency_level: str | None = Field(None, max_length=50)
+    age_group: str | None = Field(None, max_length=50)
+    education_level: str | None = Field(None, max_length=100)
+    learner_type: str | None = Field(None, max_length=100)
+    topic_category: str | None = Field(None, max_length=100)
     question_type: str = Field(..., max_length=50)
     language: str = Field(default="en", max_length=10)
 
@@ -61,6 +66,7 @@ class QuestionForAssessment(QuestionBase):
     options: list[dict[str, Any]]
     is_fallback: bool | None = None
     audio_url: str | None = None
+    audio_script: str | None = None
     image_url: str | None = None
     reference_text: str | None = None
     max_duration_seconds: int = 30

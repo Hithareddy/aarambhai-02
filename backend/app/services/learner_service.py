@@ -195,44 +195,50 @@ class LearnerService:
         else:  # working professional
             role_factor = 1.0
 
-        # Goal complexity mapping (Weight 10%)
-        # Options: ["Basic reading & writing", "Everyday English", "Digital skills", "General knowledge", "Career skills"]
+        # 2. Determine Priority Skills and Boundaries based on Profile Combinations
+        role = profile.current_role.lower().strip()
         goal = profile.learning_goal.lower().strip()
-        if "reading" in goal:
-            goal_factor = 0.3
-            priority_domains = ["Reading", "Writing", "Vocabulary"]
-            priority_skills = ["reading", "writing", "vocabulary"]
+        edu = profile.educational_background.lower().strip()
+        
+        goal_factor = 0.5
+        
+        # Default Baseline
+        priority_domains = ["Reading", "Writing", "Listening", "Speaking"]
+        priority_skills = ["reading", "writing", "listening", "speaking"]
+        min_diff, max_diff = 1, 3
+        est_duration = 15
+        q_count = 15
+
+        # Scenario 1: Senior Citizen / Beginner / Everyday Communication
+        if "senior" in role or "first" in dig or "never" in edu:
+            priority_domains = ["Listening", "Speaking", "Vocabulary"]
+            priority_skills = ["listening", "speaking", "vocabulary"]
             min_diff, max_diff = 1, 3
-            est_duration = 15
-            q_count = 15
-        elif "english" in goal:
-            goal_factor = 0.8
-            priority_domains = ["Reading", "Grammar", "Listening", "Speaking", "Vocabulary"]
-            priority_skills = ["reading", "grammar", "listening", "speaking", "vocabulary"]
-            min_diff, max_diff = 1, 5
-            est_duration = 20
-            q_count = 15
-        elif "digital" in goal:
-            goal_factor = 0.6
-            priority_domains = ["Digital Literacy"]
-            priority_skills = ["smartphone_basics", "internet_navigation", "mobile_applications"]
-            min_diff, max_diff = 1, 4
-            est_duration = 20
-            q_count = 15
-        elif "knowledge" in goal:
-            goal_factor = 0.6
-            priority_domains = ["General Knowledge"]
-            priority_skills = ["geography", "history", "polity", "current_affairs"]
-            min_diff, max_diff = 1, 4
-            est_duration = 15
-            q_count = 15
-        else:  # career skills
-            goal_factor = 1.0
-            priority_domains = ["Professional Skills"]
-            priority_skills = ["resume_writing", "job_search", "interview_skills", "workplace_communication"]
+            est_duration = 20 # Slower pace
+            q_count = 12
+
+        # Scenario 2: Student / Formal Learning
+        elif "student" in role or "college" in edu:
+            priority_domains = ["Reading", "Writing", "Grammar", "Vocabulary"]
+            priority_skills = ["reading", "writing", "grammar", "vocabulary"]
             min_diff, max_diff = 2, 5
-            est_duration = 25
+            est_duration = 15
             q_count = 15
+
+        # Scenario 3: Career Skills / Professional
+        elif "career" in goal or "professional" in role:
+            priority_domains = ["Professional Skills", "Grammar", "Conversations"]
+            priority_skills = ["workplace_communication", "grammar", "conversations"]
+            min_diff, max_diff = 3, 5
+            est_duration = 20
+            q_count = 15
+            
+        # Refine by specific explicit goal if not heavily overwritten
+        if "reading" in goal and "reading" not in priority_skills:
+            priority_skills.append("reading")
+        if "knowledge" in goal:
+            priority_domains.append("General Knowledge")
+            priority_skills.extend(["history", "geography"])
 
         complexity_score = (
             (age_factor * 10) +

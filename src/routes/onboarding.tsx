@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,7 +25,7 @@ interface Step {
   subtitle: string;
   field: "input" | "options";
   placeholder?: string;
-  options?: string[];
+  options?: string[] | ((lang: string) => string[]);
 }
 
 const steps: Step[] = [
@@ -101,7 +101,7 @@ const steps: Step[] = [
     subtitle: "This will be the target language for lessons and assessments.",
     field: "options",
     options: LANGUAGES.map(l => l.native),
-  },
+  }
 ];
 
 const getStepTranslationKeys = (key: StepKey) => {
@@ -111,9 +111,9 @@ const getStepTranslationKeys = (key: StepKey) => {
     case "background": return { title: "onboarding.qBgTitle", sub: "onboarding.qBgSub" };
     case "context": return { title: "onboarding.qRoleTitle", sub: "onboarding.qRoleSub" };
     case "goal": return { title: "onboarding.qGoalTitle", sub: "onboarding.qGoalSub" };
-    case "familiarity": return { title: "onboarding.qFamTitle", sub: "onboarding.qFamSub" };
     case "digital": return { title: "onboarding.qDigTitle", sub: "onboarding.qDigSub" };
     case "target_language": return { title: "onboarding.qTgtLangTitle", sub: "onboarding.qTgtLangSub" };
+    default: return { title: "", sub: "" };
   }
 };
 
@@ -147,6 +147,13 @@ function OnboardingPage() {
   const stepTitle = t(translationKeys.title) || step.title;
   const stepSubtitle = t(translationKeys.sub) || step.subtitle;
 
+  const currentOptions = useMemo(() => {
+    if (typeof step.options === 'function') {
+      return step.options(answers.target_language || "English");
+    }
+    return step.options;
+  }, [step, answers.target_language]);
+
   async function next() {
     if (i < steps.length - 1) {
       setI(i + 1);
@@ -172,7 +179,7 @@ function OnboardingPage() {
         website_language: websiteLanguage,
         current_familiarity: answers.familiarity ?? "",
         digital_comfort: answers.digital ?? "",
-      });
+      } as any);
       setDone(true);
     } catch (err) {
       setError((err as Error).message || "Could not save your profile. Please try again.");
@@ -256,10 +263,14 @@ function OnboardingPage() {
                 setAnswers((a) => {
                   return { ...a, [step.key]: v };
                 });
+                // Auto-advance if not the last step
+                if (i < steps.length - 1) {
+                  setTimeout(() => setI(i + 1), 300);
+                }
               }}
               className="grid gap-2"
             >
-              {step.options!.map((opt) => (
+              {currentOptions!.map((opt) => (
                 <label
                   key={opt}
                   className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${value === opt
@@ -294,11 +305,7 @@ function OnboardingPage() {
           </p>
         )}
       </main>
-      <footer className="p-6 text-center">
-        <Link to="/dashboard" className="text-xs text-muted-foreground hover:text-foreground">
-          Skip for now
-        </Link>
-      </footer>
     </div>
   );
 }
+

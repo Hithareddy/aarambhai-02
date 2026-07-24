@@ -15,6 +15,7 @@ import {
   LifeBuoy,
   LogOut,
   LayoutDashboard,
+  Gamepad2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,6 +37,7 @@ const learnItems = [
   { title: "Learn", url: "/learn", icon: BookOpen },
   { title: "Learning Path", url: "/learning-path", icon: Compass },
   { title: "Practice", url: "/practice", icon: Dumbbell },
+  { title: "Games", url: "/games", icon: Gamepad2 },
   { title: "Assessments", url: "/assessments", icon: ClipboardCheck },
 ] as const;
 

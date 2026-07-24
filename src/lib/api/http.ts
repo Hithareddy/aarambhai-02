@@ -36,6 +36,13 @@ export async function apiRequest<T>(
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      // Token is invalid/expired. Clear it and force re-auth safely.
+      localStorage.removeItem("access_token");
+      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
     const error = await response.json().catch(() => ({ detail: `API error: ${response.status}` }));
     throw new ApiError(error.detail || `API error: ${response.status}`, response.status);
   }

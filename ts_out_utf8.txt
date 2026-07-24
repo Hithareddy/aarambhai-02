@@ -1,0 +1,4 @@
+﻿src/components/learning/ModuleRunner.tsx(142,29): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Question'.
+src/components/learning/ModuleRunner.tsx(149,36): error TS7006: Parameter 'score' implicitly has an 'any' type.
+src/components/learning/ModuleRunner.tsx(149,43): error TS7006: Parameter 'data' implicitly has an 'any' type.
+src/lib/api/offlineQueue.ts(1,10): error TS2724: '"./client"' has no exported member named 'apiClient'. Did you mean 'ApiClient'?

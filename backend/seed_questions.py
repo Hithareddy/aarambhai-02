@@ -2,7 +2,7 @@
 Seed sample questions for assessment testing.
 
 This script populates the database with sample questions across
-different skills, domains, and difficulty levels.
+different skills, domains, and difficulty levels, with deep contextual tags.
 """
 import asyncio
 import json
@@ -12,303 +12,334 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.core.config import settings
 from app.models.question import Question
 
-# Use the same async driver the application is configured with (psycopg v3).
 DATABASE_URL = settings.DATABASE_URL
-
-# Create async engine
 engine = create_async_engine(DATABASE_URL, echo=False)
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
-# Sample questions data
+# Context-aware sample questions
 SAMPLE_QUESTIONS = [
+    # ── SPEAKING ──
     {
-        "id": "q-speaking-greetings-001",
+        "id": "q-speak-greet-child-beg",
         "learning_goal": "Basic Speaking",
         "domain": "Speaking",
         "skill": "speaking",
         "difficulty": 1,
+        "proficiency_level": "Beginner",
+        "age_group": "Under 12",
+        "education_level": "Never went to school",
+        "learner_type": "Student",
+        "topic_category": "Greetings",
         "question_type": "mcq",
         "language": "en",
-        "question_content": {"text": "How do you greet someone in English?"},
+        "question_content": {"text": "How do you say hello to your teacher?"},
         "options": [
-            {"id": "A", "text": "Hello"},
-            {"id": "B", "text": "Goodbye"},
-            {"id": "C", "text": "Maybe"},
-            {"id": "D", "text": "Never"}
+            {"id": "A", "text": "Good morning!"},
+            {"id": "B", "text": "Goodbye!"},
+            {"id": "C", "text": "Money"},
+            {"id": "D", "text": "No"}
         ],
         "correct_answer": "A",
-        "tags": ["greetings", "basic"]
+        "tags": ["greetings", "child"]
     },
     {
-        "id": "q-speaking-introduction-001",
+        "id": "q-speak-intro-adult-int",
         "learning_goal": "Basic Speaking",
         "domain": "Speaking",
         "skill": "speaking",
-        "difficulty": 2,
+        "difficulty": 3,
+        "proficiency_level": "Intermediate",
+        "age_group": "26 – 45",
+        "education_level": "College",
+        "learner_type": "Working professional",
+        "topic_category": "Work",
         "question_type": "mcq",
         "language": "en",
-        "question_content": {"text": "How do you introduce yourself formally?"},
+        "question_content": {"text": "How do you introduce yourself at a job interview?"},
         "options": [
-            {"id": "A", "text": "Hey, I'm..."},
-            {"id": "B", "text": "My name is..."},
-            {"id": "C", "text": "Yo..."},
-            {"id": "D", "text": "What's up..."}
+            {"id": "A", "text": "Hey, what's up"},
+            {"id": "B", "text": "My name is John, I have 5 years of experience."},
+            {"id": "C", "text": "I am a boy"},
+            {"id": "D", "text": "Goodbye"}
         ],
         "correct_answer": "B",
-        "tags": ["introduction", "formal"]
+        "tags": ["introduction", "formal", "work"]
     },
+
+    # ── LISTENING ──
     {
-        "id": "q-reading-alphabet-001",
-        "learning_goal": "Basic Reading",
-        "domain": "Reading",
-        "skill": "reading",
-        "difficulty": 1,
-        "question_type": "mcq",
-        "language": "en",
-        "question_content": {"text": "What is the first letter of the English alphabet?"},
-        "options": [
-            {"id": "A", "text": "A"},
-            {"id": "B", "text": "B"},
-            {"id": "C", "text": "C"},
-            {"id": "D", "text": "D"}
-        ],
-        "correct_answer": "A",
-        "tags": ["alphabet", "basic"]
-    },
-    {
-        "id": "q-reading-words-001",
-        "learning_goal": "Basic Reading",
-        "domain": "Reading",
-        "skill": "reading",
-        "difficulty": 2,
-        "question_type": "mcq",
-        "language": "en",
-        "question_content": {"text": "Which word means 'happy'?"},
-        "options": [
-            {"id": "A", "text": "Sad"},
-            {"id": "B", "text": "Joyful"},
-            {"id": "C", "text": "Angry"},
-            {"id": "D", "text": "Tired"}
-        ],
-        "correct_answer": "B",
-        "tags": ["vocabulary", "emotions"]
-    },
-    {
-        "id": "q-writing-letters-001",
-        "learning_goal": "Basic Writing",
-        "domain": "Writing",
-        "skill": "writing",
-        "difficulty": 1,
-        "question_type": "mcq",
-        "language": "en",
-        "question_content": {"text": "Which letter is a vowel?"},
-        "options": [
-            {"id": "A", "text": "B"},
-            {"id": "B", "text": "C"},
-            {"id": "C", "text": "A"},
-            {"id": "D", "text": "D"}
-        ],
-        "correct_answer": "C",
-        "tags": ["letters", "vowels"]
-    },
-    {
-        "id": "q-writing-sentences-001",
-        "learning_goal": "Basic Writing",
-        "domain": "Writing",
-        "skill": "writing",
-        "difficulty": 2,
-        "question_type": "mcq",
-        "language": "en",
-        "question_content": {"text": "Which is a complete sentence?"},
-        "options": [
-            {"id": "A", "text": "The cat"},
-            {"id": "B", "text": "The cat sat"},
-            {"id": "C", "text": "Sat on mat"},
-            {"id": "D", "text": "Cat the"}
-        ],
-        "correct_answer": "B",
-        "tags": ["sentences", "grammar"]
-    },
-    {
-        "id": "q-listening-sounds-001",
+        "id": "q-listen-sounds-child-beg",
         "learning_goal": "Basic Listening",
         "domain": "Listening",
         "skill": "listening",
         "difficulty": 1,
+        "proficiency_level": "Beginner",
+        "age_group": "Under 12",
+        "education_level": "Primary school",
+        "learner_type": "Student",
+        "topic_category": "Animals",
         "question_type": "mcq",
         "language": "en",
-        "question_content": {"text": "What sound does a dog make?"},
+        "audio_script": "The dog says woof woof.",
+        "question_content": {"text": "What did you hear about the animal?"},
         "options": [
-            {"id": "A", "text": "Meow"},
-            {"id": "B", "text": "Bark"},
-            {"id": "C", "text": "Moo"},
-            {"id": "D", "text": "Tweet"}
+            {"id": "A", "text": "Cat"},
+            {"id": "B", "text": "Dog"},
+            {"id": "C", "text": "Cow"},
+            {"id": "D", "text": "Bird"}
         ],
         "correct_answer": "B",
         "tags": ["sounds", "animals"]
     },
     {
-        "id": "q-listening-comprehension-001",
+        "id": "q-listen-directions-adult-beg",
         "learning_goal": "Basic Listening",
         "domain": "Listening",
         "skill": "listening",
         "difficulty": 2,
+        "proficiency_level": "Beginner",
+        "age_group": "46 – 60",
+        "education_level": "Secondary school",
+        "learner_type": "Senior citizen",
+        "topic_category": "Travel",
         "question_type": "mcq",
         "language": "en",
-        "question_content": {"text": "If someone says 'I'm fine', how are they feeling?"},
+        "audio_script": "Go straight and turn left at the hospital.",
+        "question_content": {"text": "To reach the hospital, where should you turn?"},
         "options": [
-            {"id": "A", "text": "Very sick"},
-            {"id": "B", "text": "Okay"},
-            {"id": "C", "text": "Terrible"},
-            {"id": "D", "text": "Angry"}
+            {"id": "A", "text": "Turn right"},
+            {"id": "B", "text": "Turn left"},
+            {"id": "C", "text": "Go back"},
+            {"id": "D", "text": "Stop"}
         ],
         "correct_answer": "B",
-        "tags": ["comprehension", "feelings"]
+        "tags": ["directions", "travel"]
     },
+
+    # ── READING (PROGRESSION) ──
+    # Word
     {
-        "id": "q-vocabulary-family-001",
-        "learning_goal": "Vocabulary",
-        "domain": "Vocabulary",
-        "skill": "vocabulary",
+        "id": "q-read-word-child-beg",
+        "learning_goal": "Reading Words",
+        "domain": "Reading",
+        "skill": "reading",
         "difficulty": 1,
+        "proficiency_level": "Beginner",
+        "age_group": "Under 12",
+        "education_level": "Never went to school",
+        "learner_type": "Student",
+        "topic_category": "Colors",
         "question_type": "mcq",
         "language": "en",
-        "question_content": {"text": "Who is your mother's mother?"},
+        "question_content": {"text": "Read this word: RED. What color is it?"},
         "options": [
-            {"id": "A", "text": "Aunt"},
-            {"id": "B", "text": "Grandmother"},
-            {"id": "C", "text": "Sister"},
-            {"id": "D", "text": "Cousin"}
+            {"id": "A", "text": "Red"},
+            {"id": "B", "text": "Blue"},
+            {"id": "C", "text": "Green"},
+            {"id": "D", "text": "Yellow"}
+        ],
+        "correct_answer": "A",
+        "tags": ["reading", "colors", "word"]
+    },
+    # Sentence
+    {
+        "id": "q-read-sentence-adult-elm",
+        "learning_goal": "Reading Sentences",
+        "domain": "Reading",
+        "skill": "reading",
+        "difficulty": 2,
+        "proficiency_level": "Elementary",
+        "age_group": "26 – 45",
+        "education_level": "Secondary school",
+        "learner_type": "Homemaker",
+        "topic_category": "Daily Life",
+        "question_type": "mcq",
+        "language": "en",
+        "question_content": {"text": "Read: 'She goes to the market every morning.' Where does she go?"},
+        "options": [
+            {"id": "A", "text": "The hospital"},
+            {"id": "B", "text": "The market"},
+            {"id": "C", "text": "The school"},
+            {"id": "D", "text": "The bank"}
         ],
         "correct_answer": "B",
-        "tags": ["family", "relationships"]
+        "tags": ["reading", "sentence"]
     },
+    # Paragraph
     {
-        "id": "q-vocabulary-food-001",
-        "learning_goal": "Vocabulary",
-        "domain": "Vocabulary",
-        "skill": "vocabulary",
-        "difficulty": 2,
+        "id": "q-read-paragraph-adult-int",
+        "learning_goal": "Reading Paragraphs",
+        "domain": "Reading",
+        "skill": "reading",
+        "difficulty": 3,
+        "proficiency_level": "Intermediate",
+        "age_group": "18 – 25",
+        "education_level": "College",
+        "learner_type": "Student",
+        "topic_category": "General",
         "question_type": "mcq",
         "language": "en",
-        "question_content": {"text": "Which is a fruit?"},
+        "question_content": {"text": "Read the paragraph: 'Water is essential for life. Humans need to drink about eight glasses a day. Plants also need water to grow tall and strong.' Who needs to drink eight glasses?"},
         "options": [
-            {"id": "A", "text": "Carrot"},
-            {"id": "B", "text": "Potato"},
-            {"id": "C", "text": "Apple"},
-            {"id": "D", "text": "Onion"}
+            {"id": "A", "text": "Plants"},
+            {"id": "B", "text": "Animals"},
+            {"id": "C", "text": "Humans"},
+            {"id": "D", "text": "No one"}
         ],
         "correct_answer": "C",
-        "tags": ["food", "classification"]
+        "tags": ["reading", "paragraph"]
     },
+    # Story
     {
-        "id": "q-grammar-articles-001",
-        "learning_goal": "Grammar",
-        "domain": "Grammar",
-        "skill": "grammar",
-        "difficulty": 1,
+        "id": "q-read-story-adult-adv",
+        "learning_goal": "Reading Stories",
+        "domain": "Reading",
+        "skill": "reading",
+        "difficulty": 4,
+        "proficiency_level": "Advanced",
+        "age_group": "18 – 25",
+        "education_level": "College",
+        "learner_type": "Student",
+        "topic_category": "Literature",
         "question_type": "mcq",
         "language": "en",
-        "question_content": {"text": "Which article goes with 'apple'?"},
+        "question_content": {"text": "Read the story segment: 'The old man walked down the narrow street. It was raining heavily, but he forgot his umbrella. He sought shelter under the awning of a closed bakery.' Where did the man seek shelter?"},
         "options": [
-            {"id": "A", "text": "a"},
-            {"id": "B", "text": "an"},
-            {"id": "C", "text": "the"},
-            {"id": "D", "text": "no article"}
+            {"id": "A", "text": "A hospital"},
+            {"id": "B", "text": "A closed bakery"},
+            {"id": "C", "text": "His house"},
+            {"id": "D", "text": "A bus stop"}
         ],
         "correct_answer": "B",
-        "tags": ["articles", "grammar"]
+        "tags": ["reading", "story"]
     },
+    
+    # ── WRITING ──
     {
-        "id": "q-grammar-tenses-001",
-        "learning_goal": "Grammar",
-        "domain": "Grammar",
-        "skill": "grammar",
-        "difficulty": 2,
+        "id": "q-write-letters-adult-beg",
+        "learning_goal": "Basic Writing",
+        "domain": "Writing",
+        "skill": "writing",
+        "difficulty": 1,
+        "proficiency_level": "Beginner",
+        "age_group": "60+",
+        "education_level": "Never went to school",
+        "learner_type": "Senior citizen",
+        "topic_category": "Basics",
         "question_type": "mcq",
         "language": "en",
-        "question_content": {"text": "Which is past tense?"},
+        "question_content": {"text": "Which letter comes after 'A'?"},
         "options": [
-            {"id": "A", "text": "Run"},
-            {"id": "B", "text": "Running"},
-            {"id": "C", "text": "Ran"},
-            {"id": "D", "text": "Will run"}
+            {"id": "A", "text": "B"},
+            {"id": "B", "text": "C"},
+            {"id": "C", "text": "D"},
+            {"id": "D", "text": "E"}
+        ],
+        "correct_answer": "A",
+        "tags": ["letters", "writing"]
+    },
+
+    # ── IMAGE QUESTIONS ──
+    # Beginner: Fruits, Animals, Colors, Numbers, Family, School Objects, Body Parts, Food (one of these)
+    {
+        "id": "q-img-fruit-child-beg",
+        "learning_goal": "Vocabulary",
+        "domain": "Vocabulary",
+        "skill": "reading",
+        "difficulty": 1,
+        "proficiency_level": "Beginner",
+        "age_group": "Under 12",
+        "education_level": "Never went to school",
+        "learner_type": "Student",
+        "topic_category": "Fruits",
+        "question_type": "image_mcq",
+        "language": "en",
+        "image_url": "https://images.unsplash.com/photo-1560806887-1e4cd0b6caa6?w=400&q=80",
+        "question_content": {"text": "What is this?"},
+        "options": [
+            {"id": "A", "text": "Apple"},
+            {"id": "B", "text": "Banana"},
+            {"id": "C", "text": "Orange"},
+            {"id": "D", "text": "Grapes"}
+        ],
+        "correct_answer": "A",
+        "tags": ["image", "fruits"]
+    },
+    # Elementary: Places, Shopping, Classroom, Transportation
+    {
+        "id": "q-img-shopping-adult-elm",
+        "learning_goal": "Vocabulary",
+        "domain": "Vocabulary",
+        "skill": "reading",
+        "difficulty": 2,
+        "proficiency_level": "Elementary",
+        "age_group": "26 – 45",
+        "education_level": "Secondary school",
+        "learner_type": "Homemaker",
+        "topic_category": "Shopping",
+        "question_type": "image_mcq",
+        "language": "en",
+        "image_url": "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=400&q=80",
+        "question_content": {"text": "Where is this person standing?"},
+        "options": [
+            {"id": "A", "text": "Supermarket"},
+            {"id": "B", "text": "Library"},
+            {"id": "C", "text": "Hospital"},
+            {"id": "D", "text": "Bus Stop"}
+        ],
+        "correct_answer": "A",
+        "tags": ["image", "shopping"]
+    },
+    # Intermediate: Daily activities, Conversations, Public signs, Maps
+    {
+        "id": "q-img-maps-adult-int",
+        "learning_goal": "Comprehension",
+        "domain": "Reading",
+        "skill": "reading",
+        "difficulty": 3,
+        "proficiency_level": "Intermediate",
+        "age_group": "18 – 25",
+        "education_level": "College",
+        "learner_type": "Student",
+        "topic_category": "Maps",
+        "question_type": "image_mcq",
+        "language": "en",
+        "image_url": "https://images.unsplash.com/photo-1524661135-423995f22d0b?w=400&q=80",
+        "question_content": {"text": "Looking at this map, what is next to the park?"},
+        "options": [
+            {"id": "A", "text": "School"},
+            {"id": "B", "text": "Hospital"},
+            {"id": "C", "text": "Library"},
+            {"id": "D", "text": "Post Office"}
         ],
         "correct_answer": "C",
-        "tags": ["tenses", "grammar"]
+        "tags": ["image", "maps"]
     },
+    # Advanced: Infographics, News images, Documents, Real-world scenarios
     {
-        "id": "q-pronunciation-sounds-001",
-        "learning_goal": "Pronunciation",
-        "domain": "Pronunciation",
-        "skill": "pronunciation",
-        "difficulty": 1,
-        "question_type": "mcq",
+        "id": "q-img-news-adult-adv",
+        "learning_goal": "Comprehension",
+        "domain": "Reading",
+        "skill": "reading",
+        "difficulty": 5,
+        "proficiency_level": "Advanced",
+        "age_group": "26 – 45",
+        "education_level": "College",
+        "learner_type": "Working professional",
+        "topic_category": "News images",
+        "question_type": "image_mcq",
         "language": "en",
-        "question_content": {"text": "Which word has a long 'a' sound?"},
+        "image_url": "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&q=80",
+        "question_content": {"text": "Looking at this newspaper headline image, what is the main topic?"},
         "options": [
-            {"id": "A", "text": "Cat"},
-            {"id": "B", "text": "Cake"},
-            {"id": "C", "text": "Car"},
-            {"id": "D", "text": "Cap"}
+            {"id": "A", "text": "Sports"},
+            {"id": "B", "text": "Global Economy"},
+            {"id": "C", "text": "Cooking"},
+            {"id": "D", "text": "Weather"}
         ],
         "correct_answer": "B",
-        "tags": ["sounds", "pronunciation"]
-    },
-    {
-        "id": "q-pronunciation-stress-001",
-        "learning_goal": "Pronunciation",
-        "domain": "Pronunciation",
-        "skill": "pronunciation",
-        "difficulty": 2,
-        "question_type": "mcq",
-        "language": "en",
-        "question_content": {"text": "Which syllable is stressed in 'banana'?"},
-        "options": [
-            {"id": "A", "text": "First"},
-            {"id": "B", "text": "Second"},
-            {"id": "C", "text": "Third"},
-            {"id": "D", "text": "None"}
-        ],
-        "correct_answer": "B",
-        "tags": ["stress", "pronunciation"]
-    },
-    {
-        "id": "q-conversations-shopping-001",
-        "learning_goal": "Conversations",
-        "domain": "Conversations",
-        "skill": "conversations",
-        "difficulty": 1,
-        "question_type": "mcq",
-        "language": "en",
-        "question_content": {"text": "What do you say when buying something?"},
-        "options": [
-            {"id": "A", "text": "Goodbye"},
-            {"id": "B", "text": "How much?"},
-            {"id": "C", "text": "Hello"},
-            {"id": "D", "text": "Thank you"}
-        ],
-        "correct_answer": "B",
-        "tags": ["shopping", "conversations"]
-    },
-    {
-        "id": "q-conversations-help-001",
-        "learning_goal": "Conversations",
-        "domain": "Conversations",
-        "skill": "conversations",
-        "difficulty": 2,
-        "question_type": "mcq",
-        "language": "en",
-        "question_content": {"text": "How do you politely ask for help?"},
-        "options": [
-            {"id": "A", "text": "Help me now!"},
-            {"id": "B", "text": "Could you help me, please?"},
-            {"id": "C", "text": "Give me help"},
-            {"id": "D", "text": "I need help"}
-        ],
-        "correct_answer": "B",
-        "tags": ["help", "politeness"]
+        "tags": ["image", "news"]
     }
 ]
 
@@ -317,14 +348,6 @@ async def seed_questions():
     """Seed the database with sample questions."""
     async with AsyncSessionLocal() as session:
         try:
-            # Check if questions already exist
-            from sqlalchemy import select
-            existing = await session.execute(select(Question).limit(1))
-            if existing.scalar_one_or_none():
-                print("Questions already exist in database. Skipping seed.")
-                return
-
-            # Add sample questions
             for q_data in SAMPLE_QUESTIONS:
                 question = Question(
                     id=q_data["id"],
@@ -332,16 +355,23 @@ async def seed_questions():
                     domain=q_data["domain"],
                     skill=q_data["skill"],
                     difficulty=q_data["difficulty"],
+                    proficiency_level=q_data.get("proficiency_level"),
+                    age_group=q_data.get("age_group"),
+                    education_level=q_data.get("education_level"),
+                    learner_type=q_data.get("learner_type"),
+                    topic_category=q_data.get("topic_category"),
                     question_type=q_data["question_type"],
                     language=q_data["language"],
                     question_content=json.dumps(q_data["question_content"]),
                     options=json.dumps(q_data["options"]),
                     correct_answer=json.dumps(q_data["correct_answer"]),
                     is_active=True,
+                    audio_script=q_data.get("audio_script"),
+                    image_url=q_data.get("image_url"),
                     tags=json.dumps(q_data["tags"])
                 )
-                session.add(question)
-                print(f"Added question: {q_data['id']}")
+                await session.merge(question)
+                print(f"Upserted question: {q_data['id']}")
 
             await session.commit()
             print(f"Successfully seeded {len(SAMPLE_QUESTIONS)} questions!")

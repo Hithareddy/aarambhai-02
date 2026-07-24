@@ -54,6 +54,7 @@ export interface ContinueLesson {
   minutesLeft: number;
   gradientFrom: string; // css color
   gradientTo: string;
+  reasonText?: string; // Sprint 10.1
 }
 
 export interface RecommendedLesson {

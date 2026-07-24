@@ -187,6 +187,8 @@ async def evaluate_speech(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Speech evaluation failed: {str(exc)}"
         )
+
+@router.post("/sessions/{session_id}/complete", response_model=AssessmentResultResponse)
 async def complete_assessment(
     session_id: str,
     current_user=Depends(get_current_active_user),

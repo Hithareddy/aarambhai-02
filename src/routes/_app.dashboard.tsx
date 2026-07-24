@@ -39,7 +39,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 
 import { QueryState } from "@/components/data-state";
-import { useDashboard, useMarkAllNotificationsRead } from "@/lib/api/hooks";
+import { useDashboard, useMarkAllNotificationsRead, useTodaysLearning } from "@/lib/api/hooks";
 import { useLanguage } from "@/hooks/use-language";
 import type {
   AchievementBadge,
@@ -146,7 +146,7 @@ function DashboardContent({ data }: { data: DashboardSnapshot }) {
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-6">
-          {continueLesson && <ContinueLessonCard lesson={continueLesson} />}
+          <TodaysLearningWidget />
           <WeeklyActivityCard data={weeklyActivity} />
           <MonthlyActivityCard data={monthlyActivity} />
           <AIRecommendationsCard items={recommendations} />
@@ -298,42 +298,70 @@ function StatCard({
   );
 }
 
-function ContinueLessonCard({ lesson }: { lesson: ContinueLesson }) {
+function TodaysLearningWidget() {
   const { t } = useLanguage();
+  const query = useTodaysLearning();
+
+  if (query.isLoading) {
+    return <Skeleton className="h-48 w-full rounded-2xl" />;
+  }
+
+  if (!query.data || query.isError) {
+    return (
+      <Card className="p-6 text-center text-muted-foreground">
+        Couldn't fetch your daily learning plan.
+      </Card>
+    );
+  }
+
+  const { activities, module_context, estimated_time } = query.data;
+
   return (
-    <Card className="overflow-hidden p-0">
-      <div
-        className="p-6 text-primary-foreground"
-        style={{
-          backgroundImage: `linear-gradient(135deg, ${lesson.gradientFrom}, ${lesson.gradientTo})`,
-        }}
-      >
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] opacity-80">
-          {t("dashboard.continueTitle") || "Continue where you left off"}
-        </p>
-        <h2 className="mt-1 font-display text-xl font-semibold sm:text-2xl">
-          {lesson.lessonTitle}
-        </h2>
-        <p className="mt-1 text-sm opacity-90">
-          {lesson.courseTitle} · {lesson.chapter}
-        </p>
+    <Card className="overflow-hidden p-0 border border-primary/20">
+      <div className="p-6 text-primary-foreground bg-gradient-to-br from-primary to-accent relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/10 mix-blend-overlay"></div>
+        <div className="relative z-10">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] opacity-80 mb-1">
+            {t("dashboard.todays_learning") || "Today's Learning"}
+          </p>
+          <h2 className="font-display text-xl font-semibold sm:text-2xl">
+            {module_context || "Personalized Sequence"}
+          </h2>
+          <p className="mt-1 flex items-center gap-1.5 text-sm opacity-90">
+            <Sparkles className="h-4 w-4" />
+            {activities.length} activities • {estimated_time || "10 mins"}
+          </p>
+        </div>
       </div>
-      <div className="p-5">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{lesson.progress}% {t("dashboard.complete") || "complete"}</span>
-          <span>{lesson.minutesLeft} {t("dashboard.minLeft") || "min left"}</span>
-        </div>
-        <Progress value={lesson.progress} className="mt-2 h-2" />
-        <div className="mt-4 flex flex-wrap justify-end gap-2">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/learning-path">{t("dashboard.viewChapter") || "View chapter"}</Link>
-          </Button>
-          <Button asChild size="sm" className="gap-1">
-            <Link to="/learn">
-              {t("dashboard.resume") || "Resume"} <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-        </div>
+      <div className="p-0 border-t border-border">
+        <ul className="divide-y divide-border/50">
+          {activities.slice(0, 3).map((act: any, i: number) => (
+            <li key={act.id} className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors">
+              <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0">
+                {i + 1}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm text-foreground truncate">{act.title}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">{act.activity_type}</p>
+              </div>
+              <div className="shrink-0 text-xs text-amber-500 font-semibold flex items-center gap-1">
+                <Flame className="w-3 h-3" /> {act.rewards?.xp || 10} XP
+              </div>
+            </li>
+          ))}
+          {activities.length > 3 && (
+            <li className="p-3 text-center text-xs text-muted-foreground italic">
+              + {activities.length - 3} more activities
+            </li>
+          )}
+        </ul>
+      </div>
+      <div className="p-4 bg-muted/20 border-t border-border/50">
+        <Button asChild className="w-full shadow-sm hover:translate-y-[-1px] transition-transform">
+          <Link to="/practice">
+            {t("dashboard.start_learning") || "Start Learning"} <ArrowRight className="h-4 w-4 ml-2" />
+          </Link>
+        </Button>
       </div>
     </Card>
   );
@@ -597,16 +625,24 @@ function SkillOverviewCard({ skills }: { skills: SkillMastery[] }) {
   return (
     <Card className="p-6">
       <h2 className="font-display text-lg font-semibold">{t("dashboard.skillOverview") || "Skill overview"}</h2>
-      <div className="mt-4 space-y-3">
-        {skills.map((s) => (
-          <div key={s.skill}>
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-medium">{s.skill}</span>
-              <span className="tabular-nums text-muted-foreground">{s.percent}%</span>
+      <div className="mt-4 space-y-4">
+        {skills.map((s) => {
+          // Sprint 10.1 5-star confidence calculation
+          const activeStars = Math.min(5, Math.max(1, Math.round(s.percent / 20)));
+          return (
+            <div key={s.skill} className="flex items-center justify-between">
+              <span className="text-sm font-medium">{s.skill}</span>
+              <div className="flex gap-0.5" title={`${s.percent}% Mastery`}>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`h-4 w-4 ${i < activeStars ? "fill-primary text-primary" : "fill-muted text-muted"}`}
+                  />
+                ))}
+              </div>
             </div>
-            <Progress value={s.percent} className="mt-1.5 h-2" />
-          </div>
-        ))}
+          );
+        })}
       </div>
     </Card>
   );

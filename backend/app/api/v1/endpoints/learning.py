@@ -14,7 +14,9 @@ from app.schemas.learning import (
     LearningModuleWithLessons, 
     LessonInDB,
     LessonProgressUpdate,
-    LessonProgressInDB
+    LessonProgressInDB,
+    RecommendedLessonResponse,
+    SkillProfileOut
 )
 
 router = APIRouter()
@@ -52,42 +54,13 @@ async def get_lesson(
     current_user: User = Depends(get_current_active_user),
 ):
     """Get a specific lesson fully populated with content blocks."""
-    
-    # ---------------------------------------------------------
-    # HARDCODED SPRINT 8 BLOCK SHOWCASE OVERRIDE
-    # ---------------------------------------------------------
-    if lesson_id == "interactive_mock":
-        return LessonInDB(
-            id="interactive_mock",
-            module_id="core_vocabulary",
-            title="Interactive Learning Showcase",
-            lesson_type="learning",
-            schema_version="v1",
-            order=1,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
-            content_blocks=[
-                {"id": "b1-t", "type": "text", "content": {"heading": "Welcome to Interactive Lessons!", "body": "This lesson demonstrates all 10 block varieties inside the Aarambh AI engine."}},
-                {"id": "b1-img", "type": "image", "content": {"url": "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=800", "caption": "A dynamic learning environment.", "alt": "Learning"}},
-                {"id": "b1-voc", "type": "vocabulary", "content": {"word": "Interactive", "pronunciation": "in-ter-AK-tiv", "definition": "Influencing or having an effect on each other.", "example": "The learning platform is highly interactive.", "audio": ""}},
-                {"id": "b1-aud", "type": "audio", "content": {"title": "Listen to this phrase", "url": "https://webaudioapi.com/samples/audio-tag/chrono.mp3", "transcript": "Time flies when you are having fun."}},
-                {"id": "b1-flsh", "type": "flashcard", "content": {"front": "What is the capital of India?", "back": "New Delhi"}},
-                {"id": "b1-qz", "type": "quiz", "content": {"question": "Did you flip the flashcard?", "options": [{"id": "a", "text": "Yes, I did!"}, {"id": "b", "text": "No, I did not."}], "correctAnswer": "a", "explanation": "Awesome! Activity completed."}},
-                {"id": "b1-conv", "type": "conversation", "content": {"dialogue": [{"speaker": "ai", "text": "Are you enjoying the new lesson?"}, {"speaker": "learner", "text": "Yes, it is very interactive!"}, {"speaker": "ai", "text": "Great to hear!"}]}},
-                {"id": "b1-pron", "type": "pronunciation", "content": {"text": "I am learning English."}},
-                {"id": "b1-sent", "type": "sentence_builder", "content": {"target_sentence": "This is a great lesson."}},
-                {"id": "b1-rcp", "type": "recap", "content": {"title": "Showcase Completed", "points": ["You interacted with a vocabulary card.", "You took a practice quiz.", "You practiced speaking and dialogue."]}},
-            ],
-            completion_criteria={"type": "interactive"}
-        )
-
     service = LearningService(db)
     lesson = await service.get_lesson(lesson_id)
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
     return lesson
 
-@router.get("/recommended", response_model=LessonInDB)
+@router.get("/recommended", response_model=RecommendedLessonResponse)
 async def get_recommended_lesson(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
@@ -128,3 +101,88 @@ async def save_lesson_progress(
         return progress
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.get("/profiles", response_model=List[SkillProfileOut])
+async def get_skill_profiles(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Fetch the list of SkillProfiles summarizing learner mastery metrics
+    """
+    from sqlalchemy import select
+    from app.models.skill_profile import SkillProfile
+    result = await db.execute(
+        select(SkillProfile).where(SkillProfile.user_id == str(current_user.id))
+    )
+    profiles = result.scalars().all()
+    return profiles
+
+@router.get("/activities/{activity_id}")
+async def get_activity(
+    activity_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Unified Activity Resolution Engine
+    Fetches a single LearningActivity by ID, converting it into the standardized ModuleRunner payload.
+    """
+    from sqlalchemy import select
+    from app.models.learning import LearningActivity
+    result = await db.execute(
+        select(LearningActivity).where(LearningActivity.id == activity_id)
+    )
+    act = result.scalars().first()
+    if not act:
+        raise HTTPException(status_code=404, detail="Learning Activity not found")
+        
+    from app.schemas.practice import UnifiedActivityResponse
+    return UnifiedActivityResponse(
+        id=str(act.id),
+        activity_type=str(act.activity_type),
+        title=str(act.title),
+        module_id=str(act.module_id),
+        lesson_id=str(act.lesson_id) if act.lesson_id else None,
+        metadata=act.metadata_fields if isinstance(act.metadata_fields, dict) else {},
+        content=act.content if isinstance(act.content, dict) else {},
+        adaptive_settings=act.adaptive_settings if isinstance(act.adaptive_settings, dict) else {},
+        rewards=act.rewards if isinstance(act.rewards, dict) else {"xp": 10},
+        version=str(act.version),
+        status=str(act.status)
+    )
+
+@router.post("/activities/{activity_id}/session", status_code=status.HTTP_201_CREATED)
+async def create_activity_session(
+    activity_id: str,
+    payload: dict, # Using dict to bypass circular imports or just mapping directly
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Saves an ActivitySession verifying progress logic.
+    Provides offline sync queue compatibility for the frontend.
+    """
+    from app.models.learning import ActivitySession, LearningActivity, ActivityAnalytics
+    from sqlalchemy import select
+    from datetime import datetime, timezone
+    
+    # Valdiate activity
+    act_res = await db.execute(select(LearningActivity).where(LearningActivity.id == activity_id))
+    act = act_res.scalars().first()
+    if not act:
+        raise HTTPException(status_code=404, detail="Learning Activity not found")
+        
+    session = ActivitySession(
+        user_id=str(current_user.id),
+        activity_id=activity_id,
+        duration_seconds=payload.get("duration_seconds", 0),
+        completed=payload.get("completed", True),
+        accuracy=payload.get("accuracy", 0.0),
+        completed_at=datetime.now(timezone.utc)
+    )
+    db.add(session)
+    await db.commit()
+    
+    return {"status": "success", "session_id": str(session.id)}
+

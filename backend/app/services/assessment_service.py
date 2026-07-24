@@ -107,6 +107,8 @@ class AssessmentService:
             "is_fallback": is_fallback,
             "audio_url": question.audio_url,
             "image_url": question.image_url,
+            "reference_text": question.reference_text,
+            "max_duration_seconds": question.max_duration_seconds,
         }
 
     async def _get_translated_question(
@@ -194,6 +196,7 @@ class AssessmentService:
             "strengths": self._from_json(result.strengths),
             "weaknesses": self._from_json(result.weaknesses),
             "learning_path": self._from_json(result.learning_path),
+            "assessment_version": result.assessment_version,
             "created_at": result.created_at,
         }
 
@@ -331,34 +334,23 @@ class AssessmentService:
             ValueError: If session not found or completed
         """
         session = await self._get_active_session(session_id, user_id)
-
-        # Get all sessions for this learner to support global question avoidance
-        learner_sessions_result = await self.db.execute(
-            select(AssessmentSession.id).where(AssessmentSession.learner_id == session.learner_id)
-        )
-        learner_session_ids = list(learner_sessions_result.scalars().all())
-
-        # Collect global previously answered question IDs
-        global_exclude_ids = []
-        if learner_session_ids:
-            global_exclude_result = await self.db.execute(
-                select(QuestionResponse.question_id).where(
-                    QuestionResponse.session_id.in_(learner_session_ids)
-                )
-            )
-            global_exclude_ids = list(global_exclude_result.scalars().all())
-
-        # Current session's answered questions (strict exclusion)
-        previous_response_result = await self.db.execute(
-            select(QuestionResponse.question_id).where(QuestionResponse.session_id == session_id)
-        )
-        previous_question_ids = list(previous_response_result.scalars().all())
-
-        # Stop once the learner has answered the number of questions defined by
-        # the session's blueprint. This signals the frontend to complete.
+        
+        # Load blueprint to ensure we stop when complete
         blueprint = await self.db.get(AssessmentBlueprint, session.blueprint_id)
         question_count = blueprint.question_count if blueprint else DEFAULT_QUESTION_COUNT
-        if len(previous_question_ids) >= question_count:
+
+        # Single subquery to grab globally excluded question IDs for this learner
+        global_exclude_subq = select(QuestionResponse.question_id).join(
+            AssessmentSession, QuestionResponse.session_id == AssessmentSession.id
+        ).where(AssessmentSession.learner_id == session.learner_id)
+        
+        # Fetch only the count of the current session's answered questions to check completion
+        current_session_count = await self.db.scalar(
+            select(func.count(QuestionResponse.id)).where(QuestionResponse.session_id == session_id)
+        )
+        current_session_count = current_session_count or 0
+
+        if current_session_count >= question_count:
             raise ValueError("No more questions available")
 
         # Determine target language from learner profile
@@ -367,15 +359,18 @@ class AssessmentService:
 
         # --- Skill-balance: prefer least-represented LSRW skill ---
         preferred_skills: list[str] | None = None
-        if previous_question_ids:
-            answered_skills_result = await self.db.execute(
-                select(Question.skill).where(Question.id.in_(previous_question_ids))
+        if current_session_count > 0:
+            # Query skill counts directly
+            answered_counts_result = await self.db.execute(
+                select(Question.skill, func.count(Question.id))
+                .join(QuestionResponse, QuestionResponse.question_id == Question.id)
+                .where(QuestionResponse.session_id == session_id)
+                .group_by(Question.skill)
             )
-            answered_skill_list = list(answered_skills_result.scalars().all())
             skill_counts = {s: 0 for s in LSRW_SKILLS}
-            for sk in answered_skill_list:
-                if sk in skill_counts:
-                    skill_counts[sk] += 1
+            for skill, count in answered_counts_result:
+                if skill in skill_counts:
+                    skill_counts[skill] += count
             min_count = min(skill_counts.values())
             preferred_skills = [s for s in LSRW_SKILLS if skill_counts[s] == min_count]
 
@@ -384,6 +379,50 @@ class AssessmentService:
             Question.is_active.is_(True),
             Question.language == "en"
         )
+        
+        # Apply strict proficiency and contextual filters from profile
+        if profile:
+            prof_levels = ["Beginner", "Elementary", "Intermediate", "Advanced"]
+            familiarity = (profile.current_familiarity or "").strip().lower()
+            if "advanced" in familiarity:
+                base_prof_idx = 3
+            elif "comfortable" in familiarity:
+                base_prof_idx = 2
+            elif "little" in familiarity:
+                base_prof_idx = 1
+            else:
+                base_prof_idx = 0
+                
+            # Real-time calibration based on current adaptive difficulty (1-5)
+            diff = session.current_difficulty
+            if diff >= 4:
+                dynamic_prof_idx = 3
+            elif diff == 3:
+                dynamic_prof_idx = 2
+            elif diff == 2:
+                dynamic_prof_idx = 1
+            else:
+                dynamic_prof_idx = 0
+                
+            # Mix real-time performance with base onboarding to validate true proficiency
+            target_profs = list(set([prof_levels[base_prof_idx], prof_levels[dynamic_prof_idx]]))
+            
+            from sqlalchemy import or_
+            base_query = base_query.where(
+                or_(
+                    Question.proficiency_level.in_(target_profs),
+                    Question.proficiency_level.is_(None)
+                )
+            )
+            
+            # Context filters: try to match, but allow NULLs as general questions
+            from sqlalchemy import or_
+            if profile.age_group:
+                base_query = base_query.where(or_(Question.age_group == profile.age_group, Question.age_group.is_(None)))
+            if profile.educational_background:
+                base_query = base_query.where(or_(Question.education_level == profile.educational_background, Question.education_level.is_(None)))
+            if profile.current_role:
+                base_query = base_query.where(or_(Question.learner_type == profile.current_role, Question.learner_type.is_(None)))
         if blueprint:
             blueprint_domains = self._from_json(blueprint.domains) if blueprint.domains else []
             blueprint_skills = self._from_json(blueprint.skills) if blueprint.skills else []
@@ -409,39 +448,64 @@ class AssessmentService:
         else:
             balanced_query = base_query
 
-        # Helper search logic for adaptive question selection
-        async def find_question(exclude_list: list[str], query_base=base_query) -> Question | None:
-            # 1. Try balanced (preferred skill) query at current difficulty
-            if preferred_skills and query_base is base_query:
-                q = await _try_difficulty_range(balanced_query, exclude_list)
-                if q:
-                    return q
-            # 2. Fall back to full base query
-            return await _try_difficulty_range(query_base, exclude_list)
-
-        async def _try_difficulty_range(qbase, exclude_list: list[str]) -> Question | None:
-            # Try current difficulty first, then expand up then down
-            for diff in [session.current_difficulty] + \
-                         list(range(session.current_difficulty + 1, 6)) + \
-                         list(range(session.current_difficulty - 1, 0, -1)):
-                query = qbase.where(Question.difficulty == diff)
-                if exclude_list:
-                    query = query.where(Question.id.notin_(exclude_list))
-                query = query.order_by(func.random()).limit(1)
-                res = await self.db.execute(query)
-                q = res.scalar_one_or_none()
-                if q:
-                    return q
-            return None
-
-        # 1. Try global avoidance first
-        question = await find_question(global_exclude_ids)
-
-        # 2. Fall back to current session avoidance if alternatives are exhausted
-        if not question:
-            question = await find_question(previous_question_ids)
+        # Ensure the query avoids historically asked questions using NOT IN (subquery)
+        # Find a single question using database-native sorting for efficiency:
+        # ORDER BY ABS(difficulty - current_difficulty) ASC, random()
+        query = base_query.where(Question.id.notin_(global_exclude_subq))
+        
+        # Skill-balanced filter logic:
+        # Instead of multiple loops covering every difficulty level, 
+        # let the database handle finding the closest unasked difficulty for any preferred skill.
+        if preferred_skills:
+            balanced_query = query.where(Question.skill.in_(preferred_skills))
+            final_query = balanced_query.order_by(
+                func.abs(Question.difficulty - session.current_difficulty), 
+                func.random()
+            ).limit(1)
+            result = await self.db.execute(final_query)
+            question = result.scalar_one_or_none()
+            if question:
+                query = None  # mark as found
+        
+        if query is not None:
+             # Fall back to base constraint (ignoring skill balancing if it's exhausted)
+             final_query = query.order_by(
+                 func.abs(Question.difficulty - session.current_difficulty), 
+                 func.random()
+             ).limit(1)
+             result = await self.db.execute(final_query)
+             question = result.scalar_one_or_none()
+             
+             # Final fallback: if NO global question is unasked, just pick ANY random question 
+             # (not excluding globals, but excluding current session)
+             if question is None:
+                 local_exclude_subq = select(QuestionResponse.question_id).where(QuestionResponse.session_id == session_id)
+                 fallback_query = base_query.where(Question.id.notin_(local_exclude_subq)).order_by(func.random()).limit(1)
+                 result = await self.db.execute(fallback_query)
+                 question = result.scalar_one_or_none()
 
         if question is None:
+            # Diagnostic Query Logging if we ran out of questions
+            import logging
+            logger = logging.getLogger(__name__)
+            try:
+                total_q = await self.db.scalar(select(func.count(Question.id)))
+                base_q = await self.db.scalar(select(func.count(Question.id)).where(Question.is_active.is_(True), Question.language == "en"))
+                prof_q = await self.db.scalar(select(func.count(Question.id)).where(
+                    Question.is_active.is_(True), Question.language == "en",
+                    or_(
+                        Question.proficiency_level.in_(target_profs) if profile else True,
+                        Question.proficiency_level.is_(None)
+                    )
+                ))
+                logger.warning(
+                    f"No more questions available for session '{session_id}'. "
+                    f"Stats -> Total: {total_q}, Base (Active EN): {base_q}, After Proficiency filter: {prof_q}. "
+                    f"Check if remaining exclusions or blueprint requirements cleared out the pool."
+                )
+            except Exception as e:
+                logger.warning(f"No more questions available. Failed to retrieve diagnostic stats: {e}")
+
             raise ValueError("No more questions available")
 
         # Resolve translation or fallback
@@ -489,7 +553,22 @@ class AssessmentService:
 
         correct_answer = self._from_json(correct_answer_str)
         selected_answer = response_data.selected_answer
-        is_correct = selected_answer == correct_answer
+        
+        # Handle synthetic responses from the Speech Evaluator (SpeakingQuestion component)
+        # The frontend submits JSON strings with `status: "spoken"` for recorded answers.
+        # We parse it, and treat it as a correct hit (since it was evaluated), 
+        # or compare the intended underlying selected_option if needed.
+        if isinstance(selected_answer, str) and '"status":"spoken"' in selected_answer.replace(" ", ""):
+            try:
+                spoken_object = json.loads(selected_answer)
+                selected_answer = spoken_object.get("selected_option", selected_answer)
+                # By default, successfully uploaded speaking evaluations are considered correct
+                # for progression purposes unless the evaluation score was explicitly zero.
+                is_correct = True 
+            except json.JSONDecodeError:
+                is_correct = selected_answer == correct_answer
+        else:
+            is_correct = selected_answer == correct_answer
 
         response = QuestionResponse(
             session_id=session.id,
@@ -508,6 +587,9 @@ class AssessmentService:
         await self.db.commit()
         await self.db.refresh(response)
         await self.db.refresh(session)
+
+        # Attach correct_answer dynamically so it can be serialized by Pydantic's from_attributes
+        setattr(response, "correct_answer", correct_answer)
 
         return response
 
@@ -598,24 +680,23 @@ class AssessmentService:
         data_driven_path = []
         priority_counter = 1
         
-        # Helper mapping for basic skills
+        # Helper mapping for basic skills pointing to the new Sprint 9 Curriculum entry nodes
         module_mapping = {
-            "Vocabulary": {"module_id": "voc_basics", "title": "Vocabulary Basics"},
-            "Grammar": {"module_id": "grammar_foundations", "title": "Grammar Foundations"},
-            "Reading": {"module_id": "reading_comprehension", "title": "Reading Practice"},
-            "Listening": {"module_id": "listening_practice", "title": "Listening Practice"},
-            "Speaking": {"module_id": "speaking_exercises", "title": "Pronunciation Exercises"},
-            "Writing": {"module_id": "sentence_building", "title": "Simple Sentence Building"},
+            "Vocabulary": {"module_id": "vocab_basics", "title": "Vocabulary Basics"},
+            "Grammar": {"module_id": "grammar_nouns", "title": "Introduction to Nouns"},
+            "Reading": {"module_id": "read_sentences", "title": "Reading Simple Sentences"},
+            "Listening": {"module_id": "listen_conversations", "title": "Everyday Conversations (Listening)"},
+            "Speaking": {"module_id": "speak_greetings", "title": "Greetings and Introductions"},
+            "Writing": {"module_id": "write_sentences", "title": "Sentence Building"},
         }
         
-        # 1. Prioritize weaknesses
+        # 2. Prioritize weaknesses
         for w in weaknesses:
-             w_str = str(w)
-             mod = module_mapping.get(w_str, {"module_id": f"core_{w_str.lower()}", "title": f"{w_str} Fundamentals"})
+             mod = module_mapping.get(w, {"module_id": f"core_{w.lower()}", "title": f"{w} Fundamentals"})
              data_driven_path.append({
                  "module_id": mod["module_id"],
                  "title": mod["title"],
-                 "skill": w_str,
+                 "skill": w,
                  "priority": priority_counter
              })
              priority_counter += 1

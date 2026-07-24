@@ -5,16 +5,14 @@
  *   "tts:<phrase>"  → browser Web Speech API (development / TTS fallback)
  *   "https://..."   → native <audio> element (production hosted files)
  *   null / undefined → renders nothing
- *
- * UPGRADE PATH: replace any "tts:<phrase>" value in the database with a real
- * hosted audio URL — this component automatically uses <audio> with no code
- * changes required.
  */
 import { useState, useEffect, useRef } from "react";
 import { Volume2, VolumeX, Play, Square } from "lucide-react";
+import { resolveBrowserVoice } from "@/lib/audio-utils";
 
 export interface AudioPlayerWidgetProps {
-    audioUrl: string | null | undefined;
+    audioUrl?: string | null;
+    audioScript?: string | null;
 }
 
 // ── TTS Player ────────────────────────────────────────────────────────────────
@@ -26,7 +24,6 @@ function TTSPlayer({ phrase }: { phrase: string }) {
     useEffect(() => {
         setSupported("speechSynthesis" in window);
         return () => {
-            // Stop speech when question changes
             if ("speechSynthesis" in window) window.speechSynthesis.cancel();
         };
     }, []);
@@ -34,12 +31,35 @@ function TTSPlayer({ phrase }: { phrase: string }) {
     const speak = () => {
         if (!("speechSynthesis" in window)) return;
         window.speechSynthesis.cancel();
+
         const utter = new SpeechSynthesisUtterance(phrase);
-        utter.lang = "en-IN";
-        utter.rate = 0.9;
+        const voicePref = localStorage.getItem("voice_preference") || "";
+        const speed = parseFloat(localStorage.getItem("playback_speed") || "0.9");
+
+        utter.rate = speed;
+
+        const { voice, exactMatch } = resolveBrowserVoice(voicePref, "en-IN");
+
+        console.table({
+            "Component": "AudioPlayerWidget (TTS)",
+            "Selected Voice": voicePref,
+            "Resolved Browser Voice": voice ? voice.name : "None",
+            "Exact Match": exactMatch,
+            "Playback Speed": utter.rate,
+            "Using Recorded Audio": false,
+            "Using TTS": true,
+            "Target Phrase snippet": phrase.substring(0, 15)
+        });
+
+        if (voice) {
+            utter.voice = voice;
+            utter.lang = voice.lang;
+        }
+
         utter.onstart = () => setSpeaking(true);
         utter.onend = () => setSpeaking(false);
         utter.onerror = () => setSpeaking(false);
+
         window.speechSynthesis.speak(utter);
     };
 
@@ -94,6 +114,21 @@ function TTSPlayer({ phrase }: { phrase: string }) {
 function HostedAudioPlayer({ url }: { url: string }) {
     const audioRef = useRef<HTMLAudioElement>(null);
 
+    useEffect(() => {
+        if (audioRef.current) {
+            const speed = parseFloat(localStorage.getItem("playback_speed") || "1");
+            audioRef.current.playbackRate = speed;
+
+            console.table({
+                "Component": "AudioPlayerWidget (Hosted)",
+                "Playback Speed": speed,
+                "Using Recorded Audio": true,
+                "Using TTS": false,
+                "Audio URL": url
+            });
+        }
+    }, [url]);
+
     return (
         <div className="flex flex-col gap-1 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
             <span className="text-xs font-medium text-muted-foreground mb-1">
@@ -119,18 +154,23 @@ function HostedAudioPlayer({ url }: { url: string }) {
 
 // ── Main Export ───────────────────────────────────────────────────────────────
 
-export function AudioPlayerWidget({ audioUrl }: AudioPlayerWidgetProps) {
-    if (!audioUrl) return null;
+export function AudioPlayerWidget({ audioUrl, audioScript }: AudioPlayerWidgetProps) {
+    if (!audioUrl && !audioScript) return null;
 
-    if (audioUrl.startsWith("tts:")) {
-        const phrase = audioUrl.slice(4).trim();
-        return <TTSPlayer phrase={phrase} />;
+    if (audioUrl) {
+        if (audioUrl.startsWith("tts:")) {
+            const phrase = audioUrl.slice(4).trim();
+            return <TTSPlayer phrase={phrase} />;
+        }
+
+        if (audioUrl.startsWith("http://") || audioUrl.startsWith("https://") || audioUrl.startsWith("/")) {
+            return <HostedAudioPlayer url={audioUrl} />;
+        }
     }
 
-    if (audioUrl.startsWith("http://") || audioUrl.startsWith("https://")) {
-        return <HostedAudioPlayer url={audioUrl} />;
+    if (audioScript) {
+        return <TTSPlayer phrase={audioScript} />;
     }
 
-    // Unknown format — show as plain TTS text
-    return <TTSPlayer phrase={audioUrl} />;
+    return null;
 }

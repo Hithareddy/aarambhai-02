@@ -84,3 +84,34 @@ async def update_current_user_profile(
         is_verified=updated_user.is_verified,
         created_at=updated_user.created_at,
     )
+
+@router.get("/me/gamification")
+async def get_my_gamification(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Fetch the user's gamification profile containing XP, Level, and Streaks.
+    """
+    from sqlalchemy import select
+    from app.models.gamification import GamificationProfile
+    
+    res = await db.execute(select(GamificationProfile).where(GamificationProfile.user_id == str(current_user.id)))
+    record = res.scalars().first()
+    
+    if not record:
+        # Return fallback zeroed state if no seed/gamification profile generated yet
+        return {
+            "xp": 0,
+            "level": 1,
+            "streak_days": 0,
+            "longest_streak": 0
+        }
+        
+    return {
+        "xp": record.xp,
+        "level": record.level,
+        "streak_days": record.daily_streak_count,
+        "longest_streak": record.daily_streak_count
+    }
+
