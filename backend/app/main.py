@@ -4,6 +4,17 @@ FastAPI application entry point.
 Configures and initializes the FastAPI application with all routes,
 middleware, and dependencies.
 """
+import asyncio
+import sys
+
+# ── Windows event-loop fix for psycopg async ──────────────────────────
+# psycopg (v3) cannot run in async mode on Windows' default
+# ProactorEventLoop.  Switch to SelectorEventLoop BEFORE any async
+# engine / connection is created.  This is harmless on Linux / macOS
+# (where SelectorEventLoop is already the default).
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI

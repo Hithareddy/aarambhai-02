@@ -3,25 +3,45 @@ Database session management.
 
 Configures async SQLAlchemy session factory with connection pooling.
 """
+import re as _re
+
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 
-# Create async engine with connection pooling
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    pool_size=settings.DATABASE_POOL_SIZE,
-    max_overflow=settings.DATABASE_MAX_OVERFLOW,
-    pool_timeout=settings.DATABASE_POOL_TIMEOUT,
+# Detect PgBouncer mode from the DATABASE_URL query string.
+_using_pgbouncer = "pgbouncer=true" in settings.DATABASE_URL
+
+# Strip the non-standard "pgbouncer=true" query-string parameter before
+# handing the URL to SQLAlchemy/psycopg.  It is a Supabase/Prisma convention
+# and is NOT a valid libpq connection option — psycopg rejects it.
+_db_url = _re.sub(r"[?&]pgbouncer=true", "", settings.DATABASE_URL)
+
+# Build engine kwargs.
+_engine_kwargs: dict = dict(
     echo=settings.APP_DEBUG,
-    connect_args={
-        "statement_cache_size": 0,
-    },
 )
+
+if _using_pgbouncer:
+    # PgBouncer in transaction-pooling mode:
+    #   - NullPool: let PgBouncer manage pooling, not SQLAlchemy.
+    #   - prepare_threshold=0: disable psycopg prepared-statement caching
+    #     because PgBouncer does not support prepared statements.
+    #     This is passed through to psycopg.AsyncConnection.connect().
+    _engine_kwargs["poolclass"] = NullPool
+    _engine_kwargs["connect_args"] = {"prepare_threshold": None}
+else:
+    _engine_kwargs["pool_size"] = settings.DATABASE_POOL_SIZE
+    _engine_kwargs["max_overflow"] = settings.DATABASE_MAX_OVERFLOW
+    _engine_kwargs["pool_timeout"] = settings.DATABASE_POOL_TIMEOUT
+
+# Create async engine
+engine = create_async_engine(_db_url, **_engine_kwargs)
 
 # Create async session factory
 async_session_factory = async_sessionmaker(
