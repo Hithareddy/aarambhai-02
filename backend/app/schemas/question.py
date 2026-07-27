@@ -70,6 +70,7 @@ class QuestionForAssessment(QuestionBase):
     image_url: str | None = None
     reference_text: str | None = None
     max_duration_seconds: int = 30
+    language_code: str | None = None
 
     class Config:
         from_attributes = True

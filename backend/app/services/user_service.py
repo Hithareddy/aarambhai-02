@@ -52,11 +52,17 @@ class UserService:
             is_superuser=False,
         )
 
-        self.db.add(new_user)
-        await self.db.commit()
-        await self.db.refresh(new_user)
+        try:
+            self.db.add(new_user)
+            await self.db.commit()
+            await self.db.refresh(new_user)
+            return new_user
 
-        return new_user
+        except Exception:
+            await self.db.rollback()
+            import traceback
+            traceback.print_exc()
+            raise
 
     async def get_user_by_id(self, user_id: str) -> User | None:
         """

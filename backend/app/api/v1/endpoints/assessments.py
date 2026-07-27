@@ -73,18 +73,30 @@ async def start_assessment_session(
     Creates a new assessment session based on a blueprint.
     This initializes the adaptive assessment process.
 
-    TODO: Implement session creation
-    - Validate blueprint exists
-    - Create session record
-    - Initialize first question
-    - Return session details
-
     Returns:
         AssessmentSessionResponse: Created session
     """
     service = AssessmentService(db)
     try:
-        return await service.create_session(session, current_user.id)
+        created_session = await service.create_session(session, current_user.id)
+        return await service.serialize_session(created_session)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+
+@router.get("/sessions/{session_id}", response_model=AssessmentSessionResponse)
+async def get_assessment_session(
+    session_id: str,
+    current_user=Depends(get_current_active_user),
+    db=Depends(get_db),
+):
+    """Return persisted session state so a refreshed assessment can resume."""
+    service = AssessmentService(db)
+    try:
+        return await service.get_session(session_id, current_user.id)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -161,15 +173,16 @@ async def evaluate_speech(
     db=Depends(get_db),
 ):
     """
-    Evaluate recorded speech via STT and pronunciation heuristics.
-    Returns transcript to the frontend while persisting full scores.
+    Validate that a speaking recording belongs to the active assessment.
     """
     service = AssessmentService(db)
     stt_service = SpeakingEvaluationService()
     
     try:
-        # Load the question to get the reference text
+        await service._get_active_session(session_id, current_user.id)
         question = await service._get_active_question(question_id)
+        if question.question_type != "speaking":
+            raise ValueError("Question is not a speaking task")
         audio_bytes = await audio_file.read()
         
         evaluation = await stt_service.evaluate(
@@ -178,10 +191,9 @@ async def evaluate_speech(
             language_code=language_code
         )
 
-        return {
-            "transcript": evaluation["transcript"],
-            "scores": evaluation["scores"]
-        }
+        return evaluation
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -312,7 +312,7 @@ export async function evaluateSpeech(
   sessionId: string,
   questionId: string,
   audioBlob: Blob,
-): Promise<{ transcript: string; scores: object }> {
+): Promise<{ accepted: boolean }> {
   const token = localStorage.getItem("access_token");
   const headers: Record<string, string> = {};
   if (token) {

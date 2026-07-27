@@ -106,9 +106,11 @@ class AssessmentService:
             "options": self._from_json(question.options),
             "is_fallback": is_fallback,
             "audio_url": question.audio_url,
+            "audio_script": question.audio_script,
             "image_url": question.image_url,
             "reference_text": question.reference_text,
             "max_duration_seconds": question.max_duration_seconds,
+            "language_code": question.language_code,
         }
 
     async def _get_translated_question(
@@ -148,16 +150,15 @@ class AssessmentService:
                 else:
                     serialized["question_content"] = q_content
                     
-            if "option_a" in fields:
+            if "options" in fields:
+                serialized["options"] = fields["options"]
+            elif "option_a" in fields:
                 serialized["options"] = [
                     {"id": "A", "text": fields["option_a"]},
                     {"id": "B", "text": fields["option_b"]},
                     {"id": "C", "text": fields["option_c"]},
                     {"id": "D", "text": fields["option_d"]}
                 ]
-            elif "options" in fields:
-                serialized["options"] = fields["options"]
-                
             serialized["language"] = target_code
             return serialized, False
         else:
@@ -195,9 +196,26 @@ class AssessmentService:
             "skill_proficiencies": self._from_json(result.skill_proficiencies),
             "strengths": self._from_json(result.strengths),
             "weaknesses": self._from_json(result.weaknesses),
+            "learning_summary": result.learning_summary,
             "learning_path": self._from_json(result.learning_path),
             "assessment_version": result.assessment_version,
             "created_at": result.created_at,
+        }
+
+    async def serialize_session(self, session: AssessmentSession) -> dict[str, Any]:
+        """Return client-safe session state with the blueprint's actual length."""
+        blueprint = await self.db.get(AssessmentBlueprint, session.blueprint_id)
+        return {
+            "id": str(session.id),
+            "learner_id": str(session.learner_id),
+            "blueprint_id": str(session.blueprint_id),
+            "status": session.status,
+            "current_question_index": session.current_question_index,
+            "current_difficulty": session.current_difficulty,
+            "total_questions": blueprint.question_count if blueprint else DEFAULT_QUESTION_COUNT,
+            "start_time": session.start_time,
+            "end_time": session.end_time,
+            "created_at": session.created_at,
         }
 
     async def _get_active_question(self, question_id: str) -> Question:
@@ -292,6 +310,17 @@ class AssessmentService:
         await self.db.commit()
         await self.db.refresh(session)
         return session
+
+    async def get_session(self, session_id: str, user_id: str | None = None) -> dict[str, Any]:
+        """Return a persisted session owned by the requesting learner."""
+        query = select(AssessmentSession).where(AssessmentSession.id == session_id)
+        if user_id is not None:
+            query = query.where(AssessmentSession.learner_id == user_id)
+        result = await self.db.execute(query)
+        session = result.scalar_one_or_none()
+        if session is None:
+            raise ValueError("Assessment session not found")
+        return await self.serialize_session(session)
 
     async def _starting_difficulty(
         self, user_id: str, blueprint: AssessmentBlueprint
@@ -531,6 +560,25 @@ class AssessmentService:
         session = await self._get_active_session(session_id, user_id)
         question = await self._get_active_question(response_data.question_id)
 
+        existing_response = await self.db.scalar(
+            select(func.count(QuestionResponse.id)).where(
+                QuestionResponse.session_id == session.id,
+                QuestionResponse.question_id == question.id,
+            )
+        )
+        if existing_response:
+            raise ValueError("This question has already been answered in this session")
+
+        blueprint = await self.db.get(AssessmentBlueprint, session.blueprint_id)
+        question_count = blueprint.question_count if blueprint else DEFAULT_QUESTION_COUNT
+        response_count = await self.db.scalar(
+            select(func.count(QuestionResponse.id)).where(
+                QuestionResponse.session_id == session.id
+            )
+        )
+        if (response_count or 0) >= question_count:
+            raise ValueError("Assessment already has all required responses")
+
         # Determine target language from learner profile to support translated correct answer overrides
         profile = await LearnerService(self.db).get_learner_profile_by_user_id(session.learner_id)
         target_language = (profile.learning_language or "en").strip().lower() if profile else "en"
@@ -554,17 +602,14 @@ class AssessmentService:
         correct_answer = self._from_json(correct_answer_str)
         selected_answer = response_data.selected_answer
         
-        # Handle synthetic responses from the Speech Evaluator (SpeakingQuestion component)
-        # The frontend submits JSON strings with `status: "spoken"` for recorded answers.
-        # We parse it, and treat it as a correct hit (since it was evaluated), 
-        # or compare the intended underlying selected_option if needed.
+        # Speaking attempts are sent only after the server accepts their audio
+        # upload. Until a real speech scorer is configured, record completion
+        # without manufacturing a transcript or pronunciation score.
         if isinstance(selected_answer, str) and '"status":"spoken"' in selected_answer.replace(" ", ""):
             try:
                 spoken_object = json.loads(selected_answer)
                 selected_answer = spoken_object.get("selected_option", selected_answer)
-                # By default, successfully uploaded speaking evaluations are considered correct
-                # for progression purposes unless the evaluation score was explicitly zero.
-                is_correct = True 
+                is_correct = question.question_type == "speaking"
             except json.JSONDecodeError:
                 is_correct = selected_answer == correct_answer
         else:
@@ -587,9 +632,6 @@ class AssessmentService:
         await self.db.commit()
         await self.db.refresh(response)
         await self.db.refresh(session)
-
-        # Attach correct_answer dynamically so it can be serialized by Pydantic's from_attributes
-        setattr(response, "correct_answer", correct_answer)
 
         return response
 
@@ -622,11 +664,19 @@ class AssessmentService:
             if existing is not None:
                 return existing
 
+        blueprint = await self.db.get(AssessmentBlueprint, session.blueprint_id)
+        expected_response_count = blueprint.question_count if blueprint else DEFAULT_QUESTION_COUNT
+
         # Get all responses for this session
         responses_result = await self.db.execute(
             select(QuestionResponse).where(QuestionResponse.session_id == session_id)
         )
         responses = responses_result.scalars().all()
+
+        if len(responses) < expected_response_count:
+            raise ValueError(
+                f"Assessment is incomplete: {len(responses)} of {expected_response_count} responses recorded"
+            )
 
         # Calculate statistics
         total_questions = len(responses)
@@ -682,17 +732,17 @@ class AssessmentService:
         
         # Helper mapping for basic skills pointing to the new Sprint 9 Curriculum entry nodes
         module_mapping = {
-            "Vocabulary": {"module_id": "vocab_basics", "title": "Vocabulary Basics"},
-            "Grammar": {"module_id": "grammar_nouns", "title": "Introduction to Nouns"},
-            "Reading": {"module_id": "read_sentences", "title": "Reading Simple Sentences"},
-            "Listening": {"module_id": "listen_conversations", "title": "Everyday Conversations (Listening)"},
-            "Speaking": {"module_id": "speak_greetings", "title": "Greetings and Introductions"},
-            "Writing": {"module_id": "write_sentences", "title": "Sentence Building"},
+            "vocabulary": {"module_id": "vocab_basics", "title": "Vocabulary Basics"},
+            "grammar": {"module_id": "grammar_nouns", "title": "Introduction to Nouns"},
+            "reading": {"module_id": "read_sentences", "title": "Reading Simple Sentences"},
+            "listening": {"module_id": "listen_conversations", "title": "Everyday Conversations (Listening)"},
+            "speaking": {"module_id": "speak_greetings", "title": "Greetings and Introductions"},
+            "writing": {"module_id": "write_sentences", "title": "Sentence Building"},
         }
         
         # 2. Prioritize weaknesses
         for w in weaknesses:
-             mod = module_mapping.get(w, {"module_id": f"core_{w.lower()}", "title": f"{w} Fundamentals"})
+             mod = module_mapping.get(w.lower(), {"module_id": f"core_{w.lower()}", "title": f"{w.title()} Fundamentals"})
              data_driven_path.append({
                  "module_id": mod["module_id"],
                  "title": mod["title"],
@@ -704,7 +754,7 @@ class AssessmentService:
         # 2. Add remaining skills as follow-ups
         for s in [score["skill"] for score in skill_proficiencies if score["skill"] not in weaknesses]:
              s_str = str(s)
-             mod = module_mapping.get(s_str, {"module_id": f"core_{s_str.lower()}", "title": f"{s_str} Fundamentals"})
+             mod = module_mapping.get(s_str.lower(), {"module_id": f"core_{s_str.lower()}", "title": f"{s_str.title()} Fundamentals"})
              data_driven_path.append({
                  "module_id": mod["module_id"],
                  "title": mod["title"],

@@ -87,11 +87,9 @@ class QuestionResponseResponse(BaseModel):
     id: str
     session_id: str
     question_id: str
-    is_correct: bool
     response_time_seconds: int
     difficulty_at_response: int
     created_at: datetime
-    correct_answer: str | list[str] | dict | None = None
 
     class Config:
         from_attributes = True

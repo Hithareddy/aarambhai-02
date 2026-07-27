@@ -24,9 +24,9 @@ export function SpeakingQuestion({
 }: SpeakingQuestionProps) {
     const { t } = useLanguage();
 
-    // Local state to track the uploaded/evaluated transcript before 
-    // deciding to hit 'onSelect' (which finishes the question for the Assessment flow).
-    const [transcript, setTranscript] = useState<string | null>(null);
+    // A completed recording is sufficient for the MVP placement flow. The
+    // backend deliberately does not fabricate speech scores or transcripts.
+    const [recordingAccepted, setRecordingAccepted] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -49,22 +49,20 @@ export function SpeakingQuestion({
             // Upload to the backend
             const result = await evaluateSpeech(sessionId, question.id, blob);
 
-            // Set the transcript in UI
-            setTranscript(result.transcript);
+            if (!result.accepted) {
+                throw new Error("The recording could not be saved. Please try again.");
+            }
+            setRecordingAccepted(true);
 
             // Dispatch to parent `onSelect` with a synthetic JSON string representing our speaking answer
             const dummySubmitValue = JSON.stringify({
                 status: "spoken",
-                transcript: result.transcript,
-                scores: result.scores,
                 selected_option: options[0]?.id || "speaking-completed"
             });
 
-            // We'll wrap in a timeout so the user sees the 'Transcript generated' briefly before moving on,
-            // or we could just wait for them to click "Next". Let's automate "Next" after 3 seconds for fluidity.
             setTimeout(() => {
                 onSelect(dummySubmitValue);
-            }, 3000);
+            }, 750);
 
         } catch (err: any) {
             console.error("Audio upload failed:", err);
@@ -92,12 +90,11 @@ export function SpeakingQuestion({
                 </Alert>
             )}
 
-            {transcript ? (
+            {recordingAccepted ? (
                 <Alert className="bg-primary/5 border-primary/20">
                     <CheckCircle2 className="h-4 w-4 text-primary" />
                     <AlertDescription className="text-sm">
-                        <div className="font-semibold mb-2">{t("assessmentQuiz.recordingSaved") || "Recording analyzed successfully!"}</div>
-                        <div className="italic text-muted-foreground">"{transcript}"</div>
+                        <div className="font-semibold mb-2">{t("assessmentQuiz.recordingSaved") || "Recording saved successfully."}</div>
                         <div className="text-xs text-muted-foreground mt-2 animate-pulse">Continuing automatically...</div>
                     </AlertDescription>
                 </Alert>
