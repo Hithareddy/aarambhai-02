@@ -17,10 +17,17 @@ from app.core.config import settings
 # Detect PgBouncer mode from the DATABASE_URL query string.
 _using_pgbouncer = "pgbouncer=true" in settings.DATABASE_URL
 
+# Normalize scheme to postgresql+psycopg:// for SQLAlchemy async driver
+_raw_url = settings.DATABASE_URL
+if _raw_url.startswith("postgres://"):
+    _raw_url = _raw_url.replace("postgres://", "postgresql+psycopg://", 1)
+elif _raw_url.startswith("postgresql://") and not _raw_url.startswith("postgresql+"):
+    _raw_url = _raw_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
 # Strip the non-standard "pgbouncer=true" query-string parameter before
 # handing the URL to SQLAlchemy/psycopg.  It is a Supabase/Prisma convention
 # and is NOT a valid libpq connection option — psycopg rejects it.
-_db_url = _re.sub(r"[?&]pgbouncer=true", "", settings.DATABASE_URL)
+_db_url = _re.sub(r"[?&]pgbouncer=true", "", _raw_url)
 
 # Build engine kwargs.
 _engine_kwargs: dict = dict(

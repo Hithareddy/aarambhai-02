@@ -18,6 +18,7 @@ if sys.platform == "win32":
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
@@ -93,6 +94,16 @@ def create_application() -> FastAPI:
 
     # Include API routers
     app.include_router(api_router, prefix="/api/v1")
+
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request, exc):
+        import traceback
+        print(f"UNHANDLED EXCEPTION on {request.method} {request.url}: {exc}")
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Internal Server Error: {str(exc)}"}
+        )
 
     # Root endpoint
     @app.get("/")
