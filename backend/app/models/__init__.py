@@ -38,9 +38,20 @@ from app.models.games import (
     GameSettings
 )
 
+from app.models.activity import LearnerDailyActivity
+from app.models.vocabulary import VocabularyWord, LearnerDailyWord
+from app.models.tutor import TutorConversation, TutorMessage
+from app.models.announcement import Announcement
+
 __all__ = [
     "User",
     "LearnerProfile",
+    "Announcement",
+    "LearnerDailyActivity",
+    "VocabularyWord",
+    "LearnerDailyWord",
+    "TutorConversation",
+    "TutorMessage",
     "AssessmentBlueprint",
     "AssessmentSession",
     "QuestionResponse",

@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { useAdminGuard } from "@/hooks/use-admin-guard";
 
 const searchSchema = z.object({ s: z.string().optional() });
 
@@ -27,10 +28,13 @@ export const Route = createFileRoute("/assessment-analyzing")({
 });
 
 function AnalyzingPage() {
+  const { checking } = useAdminGuard();
   const navigate = useNavigate();
   const { s } = Route.useSearch();
   const [currentStep, setCurrentStep] = useState(0);
   const [errorState, setErrorState] = useState<string | null>(null);
+
+  if (checking) return null;
 
   useEffect(() => {
     const sessionId = s || localStorage.getItem("assessment_session_id");

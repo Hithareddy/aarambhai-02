@@ -61,6 +61,8 @@ function SignupPage() {
           <Label htmlFor="name">{t("signup.fullName") || "Full name"}</Label>
           <Input
             id="name"
+            name="name"
+            autoComplete="name"
             required
             placeholder={t("signup.fullNamePlaceholder") || "Your name"}
             value={name}
@@ -71,7 +73,9 @@ function SignupPage() {
           <Label htmlFor="email">{t("signup.email") || "Email"}</Label>
           <Input
             id="email"
+            name="email"
             type="email"
+            autoComplete="username"
             required
             placeholder="you@example.com"
             value={email}
@@ -83,7 +87,9 @@ function SignupPage() {
           <div className="relative">
             <Input
               id="password"
+              name="password"
               type={show ? "text" : "password"}
+              autoComplete="new-password"
               required
               minLength={8}
               value={password}

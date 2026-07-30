@@ -1,6 +1,7 @@
 {
     "nav": {
         "dashboard": "Dashboard",
+        "aiTutor": "AI Tutor",
         "learn": "Learn",
         "learningPath": "Learning Path",
         "practice": "Practice",
@@ -145,6 +146,40 @@
         "notificationsMarkedError": "Couldn't update notifications",
         "markAll": "Mark all"
     },
+    "streak": {
+        "title": "Learning Streak",
+        "longest": "Longest: {days}d",
+        "startToday": "Start your streak today",
+        "startDesc": "Complete your daily goal to begin.",
+        "currentStreak": "{count} Day Streak",
+        "completeGoalToMake": "Complete today's goal to make it {next}!",
+        "goalCompletedKeepGoing": "Goal completed! Keep going!"
+    },
+    "vocabulary": {
+        "title": "Word of the Day",
+        "myWordsBtn": "My Words 📖",
+        "meaningLabel": "Meaning:",
+        "exampleLabel": "Example:",
+        "tryLabel": "Now you try: Use \"{word}\" in your own simple sentence.",
+        "inputPlaceholder": "Write a sentence with \"{word}\"...",
+        "checkBtn": "Check",
+        "wordLearnedToday": "🌱 Word learned today!",
+        "yourSentence": "Your sentence:",
+        "myWordsTitle": "My Words 📖",
+        "learnedBadge": "{count} Learned",
+        "noWordsYet": "No learned words yet.",
+        "noWordsSub": "Complete your daily Word of the Day to build your collection!"
+    },
+    "dailyGoal": {
+        "title": "Today's Learning Goal",
+        "editBtn": "Edit",
+        "targetMinutes": "{minutes} min",
+        "progressText": "{current} of {target} min completed",
+        "completedBadge": "Goal completed!",
+        "editTitle": "Edit Daily Goal",
+        "customMinutes": "Custom minutes",
+        "saveBtn": "Save Goal"
+    },
     "assessmentIntro": {
         "title": "A gentle first check-in",
         "description": "This is not a test. There is no pass or fail. Just a few friendly questions to help us understand where to begin your journey.",
@@ -237,5 +272,26 @@
         "dialogCancel": "Go Back to Quiz",
         "dialogDiscard": "Discard Session",
         "fallbackMessage": "Questions are temporarily shown in English while content for the selected language is being prepared."
+    },
+    "companions": {
+        "phrases": [
+            "Keep going! 🚀",
+            "Ace today! ✨",
+            "You've got this! 💪",
+            "One step closer 🌱",
+            "Great progress! ⭐",
+            "Keep that streak! 🔥",
+            "Learn something new! 💡",
+            "Small steps matter 💙"
+        ]
+    },
+    "pwa": {
+        "offlineMessage": "You are currently offline. Safe cached content remains available.",
+        "onlineMessage": "Internet connection restored.",
+        "updateAvailable": "A new version of Aarambh AI is available.",
+        "updateNow": "Update",
+        "installTitle": "Install Aarambh AI App",
+        "installDesc": "Install for faster access & offline support",
+        "installButton": "Install"
     }
 }

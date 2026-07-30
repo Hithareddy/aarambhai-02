@@ -21,6 +21,15 @@ async def e2e_test():
     student_id = str(uuid.uuid4())
 
     async with async_session_factory() as db:
+        from app.services.user_service import UserService
+        from app.schemas.user import UserCreate
+        user_service = UserService(db)
+        
+        senior_user = await user_service.create_user(UserCreate(email=f"senior_{senior_id[:8]}@test.com", password="Password123!", full_name="Senior Tester"))
+        student_user = await user_service.create_user(UserCreate(email=f"student_{student_id[:8]}@test.com", password="Password123!", full_name="Student Tester"))
+        senior_id = senior_user.id
+        student_id = student_user.id
+
         learner_service = LearnerService(db)
         assess_service = AssessmentService(db)
         
@@ -53,7 +62,16 @@ async def e2e_test():
 
         # 2. Generate Blueprints and Start Sessions (Time tracking)
         t0 = time.time()
-        senior_blueprint = await assess_service.generate_blueprint(AssessmentBlueprintCreate(learning_goal="Everyday English"), senior_id)
+        senior_blueprint = await assess_service.generate_blueprint(AssessmentBlueprintCreate(
+            learning_goal="Everyday English",
+            question_count=15,
+            min_difficulty=1,
+            max_difficulty=5,
+            estimated_duration_minutes=15,
+            domains=["Listening", "Speaking", "Vocabulary"],
+            skills=["listening", "speaking", "vocabulary"],
+            question_distribution={}
+        ), senior_id)
         senior_session = await assess_service.create_session(AssessmentSessionCreate(), senior_id)
         t1 = time.time()
         
@@ -67,17 +85,26 @@ async def e2e_test():
             t_fetch_start = time.time()
             q = await assess_service.get_next_question(senior_session.id, senior_id)
             t_fetch_end = time.time()
-            print(f"   Q{i+1}: {(t_fetch_end - t_fetch_start)*1000:.2f}ms | Skill: {q.skill} | Diff: {q.difficulty}")
+            print(f"   Q{i+1}: {(t_fetch_end - t_fetch_start)*1000:.2f}ms | Skill: {q['skill']} | Diff: {q['difficulty']}")
             # Mock answering to progress adaptive logic
             from app.schemas.assessment import QuestionResponseCreate
-            await assess_service.submit_response(senior_session.id, senior_id, QuestionResponseCreate(
-                question_id=str(q.id),
+            await assess_service.submit_response(senior_session.id, QuestionResponseCreate(
+                question_id=str(q["id"]),
                 selected_answer="A",
                 response_time_seconds=10
-            ))
+            ), senior_id)
 
         t0 = time.time()
-        student_blueprint = await assess_service.generate_blueprint(AssessmentBlueprintCreate(learning_goal="Career skills"), student_id)
+        student_blueprint = await assess_service.generate_blueprint(AssessmentBlueprintCreate(
+            learning_goal="Career skills",
+            question_count=15,
+            min_difficulty=2,
+            max_difficulty=5,
+            estimated_duration_minutes=15,
+            domains=["Reading", "Writing", "Grammar"],
+            skills=["reading", "writing", "grammar"],
+            question_distribution={}
+        ), student_id)
         student_session = await assess_service.create_session(AssessmentSessionCreate(), student_id)
         t1 = time.time()
 
@@ -91,14 +118,17 @@ async def e2e_test():
             t_fetch_start = time.time()
             q = await assess_service.get_next_question(student_session.id, student_id)
             t_fetch_end = time.time()
-            print(f"   Q{i+1}: {(t_fetch_end - t_fetch_start)*1000:.2f}ms | Skill: {q.skill} | Diff: {q.difficulty}")
+            print(f"   Q{i+1}: {(t_fetch_end - t_fetch_start)*1000:.2f}ms | Skill: {q['skill']} | Diff: {q['difficulty']}")
             from app.schemas.assessment import QuestionResponseCreate
-            await assess_service.submit_response(student_session.id, student_id, QuestionResponseCreate(
-                question_id=str(q.id),
+            await assess_service.submit_response(student_session.id, QuestionResponseCreate(
+                question_id=str(q["id"]),
                 selected_answer="A",
                 response_time_seconds=10
-            ))
+            ), student_id)
 
 
 if __name__ == "__main__":
+    import sys
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(e2e_test())

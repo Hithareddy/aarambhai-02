@@ -23,6 +23,7 @@ import { Route as AssessmentIntroRouteImport } from './routes/assessment-intro'
 import { Route as AssessmentAnalyzingRouteImport } from './routes/assessment-analyzing'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as PublicIndexRouteImport } from './routes/_public.index'
 import { Route as LessonLessonIdRouteImport } from './routes/lesson.$lessonId'
 import { Route as DevValidationRouteImport } from './routes/dev.validation'
@@ -47,7 +48,35 @@ import { Route as AppGamesRouteImport } from './routes/_app.games'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppCommunityRouteImport } from './routes/_app.community'
 import { Route as AppAssessmentsRouteImport } from './routes/_app.assessments'
+import { Route as AppAiTutorRouteImport } from './routes/_app.ai-tutor'
 import { Route as AppAchievementsRouteImport } from './routes/_app.achievements'
+import { Route as AppGamesIndexRouteImport } from './routes/_app.games.index'
+import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index'
+import { Route as AppGamesWordSearchRouteImport } from './routes/_app.games.word-search'
+import { Route as AppGamesWordMatchRouteImport } from './routes/_app.games.word-match'
+import { Route as AppGamesSynonymMatchRouteImport } from './routes/_app.games.synonym-match'
+import { Route as AppGamesSpellingChallengeRouteImport } from './routes/_app.games.spelling-challenge'
+import { Route as AppGamesSentenceBuilderRouteImport } from './routes/_app.games.sentence-builder'
+import { Route as AppGamesPictureMatchRouteImport } from './routes/_app.games.picture-match'
+import { Route as AppGamesOppositeMatchRouteImport } from './routes/_app.games.opposite-match'
+import { Route as AppGamesMemoryMatchRouteImport } from './routes/_app.games.memory-match'
+import { Route as AppGamesListenChooseRouteImport } from './routes/_app.games.listen-choose'
+import { Route as AppGamesFourPicsOneWordRouteImport } from './routes/_app.games.four-pics-one-word'
+import { Route as AppGamesFlashcardsRouteImport } from './routes/_app.games.flashcards'
+import { Route as AppGamesDailyChallengeRouteImport } from './routes/_app.games.daily-challenge'
+import { Route as AppGamesCategorySortRouteImport } from './routes/_app.games.category-sort'
+import { Route as AdminAdminSettingsRouteImport } from './routes/_admin.admin.settings'
+import { Route as AdminAdminResultsRouteImport } from './routes/_admin.admin.results'
+import { Route as AdminAdminReportsRouteImport } from './routes/_admin.admin.reports'
+import { Route as AdminAdminQuestionsRouteImport } from './routes/_admin.admin.questions'
+import { Route as AdminAdminModulesRouteImport } from './routes/_admin.admin.modules'
+import { Route as AdminAdminLearningPathsRouteImport } from './routes/_admin.admin.learning-paths'
+import { Route as AdminAdminLearnersRouteImport } from './routes/_admin.admin.learners'
+import { Route as AdminAdminLanguagesRouteImport } from './routes/_admin.admin.languages'
+import { Route as AdminAdminGamesRouteImport } from './routes/_admin.admin.games'
+import { Route as AdminAdminAssessmentsRouteImport } from './routes/_admin.admin.assessments'
+import { Route as AdminAdminAnnouncementsRouteImport } from './routes/_admin.admin.announcements'
+import { Route as AdminAdminLearnersIdRouteImport } from './routes/_admin.admin.learners.$id'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -115,6 +144,10 @@ const PublicRoute = PublicRouteImport.update({
 } as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/_admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PublicIndexRoute = PublicIndexRouteImport.update({
@@ -237,10 +270,151 @@ const AppAssessmentsRoute = AppAssessmentsRouteImport.update({
   path: '/assessments',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAiTutorRoute = AppAiTutorRouteImport.update({
+  id: '/ai-tutor',
+  path: '/ai-tutor',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAchievementsRoute = AppAchievementsRouteImport.update({
   id: '/achievements',
   path: '/achievements',
   getParentRoute: () => AppRoute,
+} as any)
+const AppGamesIndexRoute = AppGamesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppGamesRoute,
+} as any)
+const AdminAdminIndexRoute = AdminAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AppGamesWordSearchRoute = AppGamesWordSearchRouteImport.update({
+  id: '/word-search',
+  path: '/word-search',
+  getParentRoute: () => AppGamesRoute,
+} as any)
+const AppGamesWordMatchRoute = AppGamesWordMatchRouteImport.update({
+  id: '/word-match',
+  path: '/word-match',
+  getParentRoute: () => AppGamesRoute,
+} as any)
+const AppGamesSynonymMatchRoute = AppGamesSynonymMatchRouteImport.update({
+  id: '/synonym-match',
+  path: '/synonym-match',
+  getParentRoute: () => AppGamesRoute,
+} as any)
+const AppGamesSpellingChallengeRoute =
+  AppGamesSpellingChallengeRouteImport.update({
+    id: '/spelling-challenge',
+    path: '/spelling-challenge',
+    getParentRoute: () => AppGamesRoute,
+  } as any)
+const AppGamesSentenceBuilderRoute = AppGamesSentenceBuilderRouteImport.update({
+  id: '/sentence-builder',
+  path: '/sentence-builder',
+  getParentRoute: () => AppGamesRoute,
+} as any)
+const AppGamesPictureMatchRoute = AppGamesPictureMatchRouteImport.update({
+  id: '/picture-match',
+  path: '/picture-match',
+  getParentRoute: () => AppGamesRoute,
+} as any)
+const AppGamesOppositeMatchRoute = AppGamesOppositeMatchRouteImport.update({
+  id: '/opposite-match',
+  path: '/opposite-match',
+  getParentRoute: () => AppGamesRoute,
+} as any)
+const AppGamesMemoryMatchRoute = AppGamesMemoryMatchRouteImport.update({
+  id: '/memory-match',
+  path: '/memory-match',
+  getParentRoute: () => AppGamesRoute,
+} as any)
+const AppGamesListenChooseRoute = AppGamesListenChooseRouteImport.update({
+  id: '/listen-choose',
+  path: '/listen-choose',
+  getParentRoute: () => AppGamesRoute,
+} as any)
+const AppGamesFourPicsOneWordRoute = AppGamesFourPicsOneWordRouteImport.update({
+  id: '/four-pics-one-word',
+  path: '/four-pics-one-word',
+  getParentRoute: () => AppGamesRoute,
+} as any)
+const AppGamesFlashcardsRoute = AppGamesFlashcardsRouteImport.update({
+  id: '/flashcards',
+  path: '/flashcards',
+  getParentRoute: () => AppGamesRoute,
+} as any)
+const AppGamesDailyChallengeRoute = AppGamesDailyChallengeRouteImport.update({
+  id: '/daily-challenge',
+  path: '/daily-challenge',
+  getParentRoute: () => AppGamesRoute,
+} as any)
+const AppGamesCategorySortRoute = AppGamesCategorySortRouteImport.update({
+  id: '/category-sort',
+  path: '/category-sort',
+  getParentRoute: () => AppGamesRoute,
+} as any)
+const AdminAdminSettingsRoute = AdminAdminSettingsRouteImport.update({
+  id: '/admin/settings',
+  path: '/admin/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminResultsRoute = AdminAdminResultsRouteImport.update({
+  id: '/admin/results',
+  path: '/admin/results',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminReportsRoute = AdminAdminReportsRouteImport.update({
+  id: '/admin/reports',
+  path: '/admin/reports',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminQuestionsRoute = AdminAdminQuestionsRouteImport.update({
+  id: '/admin/questions',
+  path: '/admin/questions',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminModulesRoute = AdminAdminModulesRouteImport.update({
+  id: '/admin/modules',
+  path: '/admin/modules',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminLearningPathsRoute = AdminAdminLearningPathsRouteImport.update({
+  id: '/admin/learning-paths',
+  path: '/admin/learning-paths',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminLearnersRoute = AdminAdminLearnersRouteImport.update({
+  id: '/admin/learners',
+  path: '/admin/learners',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminLanguagesRoute = AdminAdminLanguagesRouteImport.update({
+  id: '/admin/languages',
+  path: '/admin/languages',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminGamesRoute = AdminAdminGamesRouteImport.update({
+  id: '/admin/games',
+  path: '/admin/games',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminAssessmentsRoute = AdminAdminAssessmentsRouteImport.update({
+  id: '/admin/assessments',
+  path: '/admin/assessments',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminAnnouncementsRoute = AdminAdminAnnouncementsRouteImport.update({
+  id: '/admin/announcements',
+  path: '/admin/announcements',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminLearnersIdRoute = AdminAdminLearnersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminAdminLearnersRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -258,10 +432,11 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/achievements': typeof AppAchievementsRoute
+  '/ai-tutor': typeof AppAiTutorRoute
   '/assessments': typeof AppAssessmentsRoute
   '/community': typeof AppCommunityRoute
   '/dashboard': typeof AppDashboardRoute
-  '/games': typeof AppGamesRoute
+  '/games': typeof AppGamesRouteWithChildren
   '/help': typeof AppHelpRoute
   '/learn': typeof AppLearnRoute
   '/learning-path': typeof AppLearningPathRoute
@@ -281,6 +456,33 @@ export interface FileRoutesByFullPath {
   '/terms': typeof PublicTermsRoute
   '/dev/validation': typeof DevValidationRoute
   '/lesson/$lessonId': typeof LessonLessonIdRoute
+  '/admin/announcements': typeof AdminAdminAnnouncementsRoute
+  '/admin/assessments': typeof AdminAdminAssessmentsRoute
+  '/admin/games': typeof AdminAdminGamesRoute
+  '/admin/languages': typeof AdminAdminLanguagesRoute
+  '/admin/learners': typeof AdminAdminLearnersRouteWithChildren
+  '/admin/learning-paths': typeof AdminAdminLearningPathsRoute
+  '/admin/modules': typeof AdminAdminModulesRoute
+  '/admin/questions': typeof AdminAdminQuestionsRoute
+  '/admin/reports': typeof AdminAdminReportsRoute
+  '/admin/results': typeof AdminAdminResultsRoute
+  '/admin/settings': typeof AdminAdminSettingsRoute
+  '/games/category-sort': typeof AppGamesCategorySortRoute
+  '/games/daily-challenge': typeof AppGamesDailyChallengeRoute
+  '/games/flashcards': typeof AppGamesFlashcardsRoute
+  '/games/four-pics-one-word': typeof AppGamesFourPicsOneWordRoute
+  '/games/listen-choose': typeof AppGamesListenChooseRoute
+  '/games/memory-match': typeof AppGamesMemoryMatchRoute
+  '/games/opposite-match': typeof AppGamesOppositeMatchRoute
+  '/games/picture-match': typeof AppGamesPictureMatchRoute
+  '/games/sentence-builder': typeof AppGamesSentenceBuilderRoute
+  '/games/spelling-challenge': typeof AppGamesSpellingChallengeRoute
+  '/games/synonym-match': typeof AppGamesSynonymMatchRoute
+  '/games/word-match': typeof AppGamesWordMatchRoute
+  '/games/word-search': typeof AppGamesWordSearchRoute
+  '/admin/': typeof AdminAdminIndexRoute
+  '/games/': typeof AppGamesIndexRoute
+  '/admin/learners/$id': typeof AdminAdminLearnersIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
@@ -297,10 +499,10 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/achievements': typeof AppAchievementsRoute
+  '/ai-tutor': typeof AppAiTutorRoute
   '/assessments': typeof AppAssessmentsRoute
   '/community': typeof AppCommunityRoute
   '/dashboard': typeof AppDashboardRoute
-  '/games': typeof AppGamesRoute
   '/help': typeof AppHelpRoute
   '/learn': typeof AppLearnRoute
   '/learning-path': typeof AppLearningPathRoute
@@ -320,9 +522,37 @@ export interface FileRoutesByTo {
   '/terms': typeof PublicTermsRoute
   '/dev/validation': typeof DevValidationRoute
   '/lesson/$lessonId': typeof LessonLessonIdRoute
+  '/admin/announcements': typeof AdminAdminAnnouncementsRoute
+  '/admin/assessments': typeof AdminAdminAssessmentsRoute
+  '/admin/games': typeof AdminAdminGamesRoute
+  '/admin/languages': typeof AdminAdminLanguagesRoute
+  '/admin/learners': typeof AdminAdminLearnersRouteWithChildren
+  '/admin/learning-paths': typeof AdminAdminLearningPathsRoute
+  '/admin/modules': typeof AdminAdminModulesRoute
+  '/admin/questions': typeof AdminAdminQuestionsRoute
+  '/admin/reports': typeof AdminAdminReportsRoute
+  '/admin/results': typeof AdminAdminResultsRoute
+  '/admin/settings': typeof AdminAdminSettingsRoute
+  '/games/category-sort': typeof AppGamesCategorySortRoute
+  '/games/daily-challenge': typeof AppGamesDailyChallengeRoute
+  '/games/flashcards': typeof AppGamesFlashcardsRoute
+  '/games/four-pics-one-word': typeof AppGamesFourPicsOneWordRoute
+  '/games/listen-choose': typeof AppGamesListenChooseRoute
+  '/games/memory-match': typeof AppGamesMemoryMatchRoute
+  '/games/opposite-match': typeof AppGamesOppositeMatchRoute
+  '/games/picture-match': typeof AppGamesPictureMatchRoute
+  '/games/sentence-builder': typeof AppGamesSentenceBuilderRoute
+  '/games/spelling-challenge': typeof AppGamesSpellingChallengeRoute
+  '/games/synonym-match': typeof AppGamesSynonymMatchRoute
+  '/games/word-match': typeof AppGamesWordMatchRoute
+  '/games/word-search': typeof AppGamesWordSearchRoute
+  '/admin': typeof AdminAdminIndexRoute
+  '/games': typeof AppGamesIndexRoute
+  '/admin/learners/$id': typeof AdminAdminLearnersIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/_admin': typeof AdminRouteWithChildren
   '/_app': typeof AppRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
   '/assessment-analyzing': typeof AssessmentAnalyzingRoute
@@ -338,10 +568,11 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_app/achievements': typeof AppAchievementsRoute
+  '/_app/ai-tutor': typeof AppAiTutorRoute
   '/_app/assessments': typeof AppAssessmentsRoute
   '/_app/community': typeof AppCommunityRoute
   '/_app/dashboard': typeof AppDashboardRoute
-  '/_app/games': typeof AppGamesRoute
+  '/_app/games': typeof AppGamesRouteWithChildren
   '/_app/help': typeof AppHelpRoute
   '/_app/learn': typeof AppLearnRoute
   '/_app/learning-path': typeof AppLearningPathRoute
@@ -362,6 +593,33 @@ export interface FileRoutesById {
   '/dev/validation': typeof DevValidationRoute
   '/lesson/$lessonId': typeof LessonLessonIdRoute
   '/_public/': typeof PublicIndexRoute
+  '/_admin/admin/announcements': typeof AdminAdminAnnouncementsRoute
+  '/_admin/admin/assessments': typeof AdminAdminAssessmentsRoute
+  '/_admin/admin/games': typeof AdminAdminGamesRoute
+  '/_admin/admin/languages': typeof AdminAdminLanguagesRoute
+  '/_admin/admin/learners': typeof AdminAdminLearnersRouteWithChildren
+  '/_admin/admin/learning-paths': typeof AdminAdminLearningPathsRoute
+  '/_admin/admin/modules': typeof AdminAdminModulesRoute
+  '/_admin/admin/questions': typeof AdminAdminQuestionsRoute
+  '/_admin/admin/reports': typeof AdminAdminReportsRoute
+  '/_admin/admin/results': typeof AdminAdminResultsRoute
+  '/_admin/admin/settings': typeof AdminAdminSettingsRoute
+  '/_app/games/category-sort': typeof AppGamesCategorySortRoute
+  '/_app/games/daily-challenge': typeof AppGamesDailyChallengeRoute
+  '/_app/games/flashcards': typeof AppGamesFlashcardsRoute
+  '/_app/games/four-pics-one-word': typeof AppGamesFourPicsOneWordRoute
+  '/_app/games/listen-choose': typeof AppGamesListenChooseRoute
+  '/_app/games/memory-match': typeof AppGamesMemoryMatchRoute
+  '/_app/games/opposite-match': typeof AppGamesOppositeMatchRoute
+  '/_app/games/picture-match': typeof AppGamesPictureMatchRoute
+  '/_app/games/sentence-builder': typeof AppGamesSentenceBuilderRoute
+  '/_app/games/spelling-challenge': typeof AppGamesSpellingChallengeRoute
+  '/_app/games/synonym-match': typeof AppGamesSynonymMatchRoute
+  '/_app/games/word-match': typeof AppGamesWordMatchRoute
+  '/_app/games/word-search': typeof AppGamesWordSearchRoute
+  '/_admin/admin/': typeof AdminAdminIndexRoute
+  '/_app/games/': typeof AppGamesIndexRoute
+  '/_admin/admin/learners/$id': typeof AdminAdminLearnersIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -380,6 +638,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/achievements'
+    | '/ai-tutor'
     | '/assessments'
     | '/community'
     | '/dashboard'
@@ -403,6 +662,33 @@ export interface FileRouteTypes {
     | '/terms'
     | '/dev/validation'
     | '/lesson/$lessonId'
+    | '/admin/announcements'
+    | '/admin/assessments'
+    | '/admin/games'
+    | '/admin/languages'
+    | '/admin/learners'
+    | '/admin/learning-paths'
+    | '/admin/modules'
+    | '/admin/questions'
+    | '/admin/reports'
+    | '/admin/results'
+    | '/admin/settings'
+    | '/games/category-sort'
+    | '/games/daily-challenge'
+    | '/games/flashcards'
+    | '/games/four-pics-one-word'
+    | '/games/listen-choose'
+    | '/games/memory-match'
+    | '/games/opposite-match'
+    | '/games/picture-match'
+    | '/games/sentence-builder'
+    | '/games/spelling-challenge'
+    | '/games/synonym-match'
+    | '/games/word-match'
+    | '/games/word-search'
+    | '/admin/'
+    | '/games/'
+    | '/admin/learners/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -419,10 +705,10 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/achievements'
+    | '/ai-tutor'
     | '/assessments'
     | '/community'
     | '/dashboard'
-    | '/games'
     | '/help'
     | '/learn'
     | '/learning-path'
@@ -442,8 +728,36 @@ export interface FileRouteTypes {
     | '/terms'
     | '/dev/validation'
     | '/lesson/$lessonId'
+    | '/admin/announcements'
+    | '/admin/assessments'
+    | '/admin/games'
+    | '/admin/languages'
+    | '/admin/learners'
+    | '/admin/learning-paths'
+    | '/admin/modules'
+    | '/admin/questions'
+    | '/admin/reports'
+    | '/admin/results'
+    | '/admin/settings'
+    | '/games/category-sort'
+    | '/games/daily-challenge'
+    | '/games/flashcards'
+    | '/games/four-pics-one-word'
+    | '/games/listen-choose'
+    | '/games/memory-match'
+    | '/games/opposite-match'
+    | '/games/picture-match'
+    | '/games/sentence-builder'
+    | '/games/spelling-challenge'
+    | '/games/synonym-match'
+    | '/games/word-match'
+    | '/games/word-search'
+    | '/admin'
+    | '/games'
+    | '/admin/learners/$id'
   id:
     | '__root__'
+    | '/_admin'
     | '/_app'
     | '/_public'
     | '/assessment-analyzing'
@@ -459,6 +773,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/_app/achievements'
+    | '/_app/ai-tutor'
     | '/_app/assessments'
     | '/_app/community'
     | '/_app/dashboard'
@@ -483,9 +798,37 @@ export interface FileRouteTypes {
     | '/dev/validation'
     | '/lesson/$lessonId'
     | '/_public/'
+    | '/_admin/admin/announcements'
+    | '/_admin/admin/assessments'
+    | '/_admin/admin/games'
+    | '/_admin/admin/languages'
+    | '/_admin/admin/learners'
+    | '/_admin/admin/learning-paths'
+    | '/_admin/admin/modules'
+    | '/_admin/admin/questions'
+    | '/_admin/admin/reports'
+    | '/_admin/admin/results'
+    | '/_admin/admin/settings'
+    | '/_app/games/category-sort'
+    | '/_app/games/daily-challenge'
+    | '/_app/games/flashcards'
+    | '/_app/games/four-pics-one-word'
+    | '/_app/games/listen-choose'
+    | '/_app/games/memory-match'
+    | '/_app/games/opposite-match'
+    | '/_app/games/picture-match'
+    | '/_app/games/sentence-builder'
+    | '/_app/games/spelling-challenge'
+    | '/_app/games/synonym-match'
+    | '/_app/games/word-match'
+    | '/_app/games/word-search'
+    | '/_admin/admin/'
+    | '/_app/games/'
+    | '/_admin/admin/learners/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  AdminRoute: typeof AdminRouteWithChildren
   AppRoute: typeof AppRouteWithChildren
   PublicRoute: typeof PublicRouteWithChildren
   AssessmentAnalyzingRoute: typeof AssessmentAnalyzingRoute
@@ -602,6 +945,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_admin': {
+      id: '/_admin'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_public/': {
@@ -772,6 +1122,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAssessmentsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/ai-tutor': {
+      id: '/_app/ai-tutor'
+      path: '/ai-tutor'
+      fullPath: '/ai-tutor'
+      preLoaderRoute: typeof AppAiTutorRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/achievements': {
       id: '/_app/achievements'
       path: '/achievements'
@@ -779,15 +1136,286 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAchievementsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/games/': {
+      id: '/_app/games/'
+      path: '/'
+      fullPath: '/games/'
+      preLoaderRoute: typeof AppGamesIndexRouteImport
+      parentRoute: typeof AppGamesRoute
+    }
+    '/_admin/admin/': {
+      id: '/_admin/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminAdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_app/games/word-search': {
+      id: '/_app/games/word-search'
+      path: '/word-search'
+      fullPath: '/games/word-search'
+      preLoaderRoute: typeof AppGamesWordSearchRouteImport
+      parentRoute: typeof AppGamesRoute
+    }
+    '/_app/games/word-match': {
+      id: '/_app/games/word-match'
+      path: '/word-match'
+      fullPath: '/games/word-match'
+      preLoaderRoute: typeof AppGamesWordMatchRouteImport
+      parentRoute: typeof AppGamesRoute
+    }
+    '/_app/games/synonym-match': {
+      id: '/_app/games/synonym-match'
+      path: '/synonym-match'
+      fullPath: '/games/synonym-match'
+      preLoaderRoute: typeof AppGamesSynonymMatchRouteImport
+      parentRoute: typeof AppGamesRoute
+    }
+    '/_app/games/spelling-challenge': {
+      id: '/_app/games/spelling-challenge'
+      path: '/spelling-challenge'
+      fullPath: '/games/spelling-challenge'
+      preLoaderRoute: typeof AppGamesSpellingChallengeRouteImport
+      parentRoute: typeof AppGamesRoute
+    }
+    '/_app/games/sentence-builder': {
+      id: '/_app/games/sentence-builder'
+      path: '/sentence-builder'
+      fullPath: '/games/sentence-builder'
+      preLoaderRoute: typeof AppGamesSentenceBuilderRouteImport
+      parentRoute: typeof AppGamesRoute
+    }
+    '/_app/games/picture-match': {
+      id: '/_app/games/picture-match'
+      path: '/picture-match'
+      fullPath: '/games/picture-match'
+      preLoaderRoute: typeof AppGamesPictureMatchRouteImport
+      parentRoute: typeof AppGamesRoute
+    }
+    '/_app/games/opposite-match': {
+      id: '/_app/games/opposite-match'
+      path: '/opposite-match'
+      fullPath: '/games/opposite-match'
+      preLoaderRoute: typeof AppGamesOppositeMatchRouteImport
+      parentRoute: typeof AppGamesRoute
+    }
+    '/_app/games/memory-match': {
+      id: '/_app/games/memory-match'
+      path: '/memory-match'
+      fullPath: '/games/memory-match'
+      preLoaderRoute: typeof AppGamesMemoryMatchRouteImport
+      parentRoute: typeof AppGamesRoute
+    }
+    '/_app/games/listen-choose': {
+      id: '/_app/games/listen-choose'
+      path: '/listen-choose'
+      fullPath: '/games/listen-choose'
+      preLoaderRoute: typeof AppGamesListenChooseRouteImport
+      parentRoute: typeof AppGamesRoute
+    }
+    '/_app/games/four-pics-one-word': {
+      id: '/_app/games/four-pics-one-word'
+      path: '/four-pics-one-word'
+      fullPath: '/games/four-pics-one-word'
+      preLoaderRoute: typeof AppGamesFourPicsOneWordRouteImport
+      parentRoute: typeof AppGamesRoute
+    }
+    '/_app/games/flashcards': {
+      id: '/_app/games/flashcards'
+      path: '/flashcards'
+      fullPath: '/games/flashcards'
+      preLoaderRoute: typeof AppGamesFlashcardsRouteImport
+      parentRoute: typeof AppGamesRoute
+    }
+    '/_app/games/daily-challenge': {
+      id: '/_app/games/daily-challenge'
+      path: '/daily-challenge'
+      fullPath: '/games/daily-challenge'
+      preLoaderRoute: typeof AppGamesDailyChallengeRouteImport
+      parentRoute: typeof AppGamesRoute
+    }
+    '/_app/games/category-sort': {
+      id: '/_app/games/category-sort'
+      path: '/category-sort'
+      fullPath: '/games/category-sort'
+      preLoaderRoute: typeof AppGamesCategorySortRouteImport
+      parentRoute: typeof AppGamesRoute
+    }
+    '/_admin/admin/settings': {
+      id: '/_admin/admin/settings'
+      path: '/admin/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminAdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/results': {
+      id: '/_admin/admin/results'
+      path: '/admin/results'
+      fullPath: '/admin/results'
+      preLoaderRoute: typeof AdminAdminResultsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/reports': {
+      id: '/_admin/admin/reports'
+      path: '/admin/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminAdminReportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/questions': {
+      id: '/_admin/admin/questions'
+      path: '/admin/questions'
+      fullPath: '/admin/questions'
+      preLoaderRoute: typeof AdminAdminQuestionsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/modules': {
+      id: '/_admin/admin/modules'
+      path: '/admin/modules'
+      fullPath: '/admin/modules'
+      preLoaderRoute: typeof AdminAdminModulesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/learning-paths': {
+      id: '/_admin/admin/learning-paths'
+      path: '/admin/learning-paths'
+      fullPath: '/admin/learning-paths'
+      preLoaderRoute: typeof AdminAdminLearningPathsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/learners': {
+      id: '/_admin/admin/learners'
+      path: '/admin/learners'
+      fullPath: '/admin/learners'
+      preLoaderRoute: typeof AdminAdminLearnersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/languages': {
+      id: '/_admin/admin/languages'
+      path: '/admin/languages'
+      fullPath: '/admin/languages'
+      preLoaderRoute: typeof AdminAdminLanguagesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/games': {
+      id: '/_admin/admin/games'
+      path: '/admin/games'
+      fullPath: '/admin/games'
+      preLoaderRoute: typeof AdminAdminGamesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/assessments': {
+      id: '/_admin/admin/assessments'
+      path: '/admin/assessments'
+      fullPath: '/admin/assessments'
+      preLoaderRoute: typeof AdminAdminAssessmentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/announcements': {
+      id: '/_admin/admin/announcements'
+      path: '/admin/announcements'
+      fullPath: '/admin/announcements'
+      preLoaderRoute: typeof AdminAdminAnnouncementsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/learners/$id': {
+      id: '/_admin/admin/learners/$id'
+      path: '/$id'
+      fullPath: '/admin/learners/$id'
+      preLoaderRoute: typeof AdminAdminLearnersIdRouteImport
+      parentRoute: typeof AdminAdminLearnersRoute
+    }
   }
 }
 
+interface AdminAdminLearnersRouteChildren {
+  AdminAdminLearnersIdRoute: typeof AdminAdminLearnersIdRoute
+}
+
+const AdminAdminLearnersRouteChildren: AdminAdminLearnersRouteChildren = {
+  AdminAdminLearnersIdRoute: AdminAdminLearnersIdRoute,
+}
+
+const AdminAdminLearnersRouteWithChildren =
+  AdminAdminLearnersRoute._addFileChildren(AdminAdminLearnersRouteChildren)
+
+interface AdminRouteChildren {
+  AdminAdminAnnouncementsRoute: typeof AdminAdminAnnouncementsRoute
+  AdminAdminAssessmentsRoute: typeof AdminAdminAssessmentsRoute
+  AdminAdminGamesRoute: typeof AdminAdminGamesRoute
+  AdminAdminLanguagesRoute: typeof AdminAdminLanguagesRoute
+  AdminAdminLearnersRoute: typeof AdminAdminLearnersRouteWithChildren
+  AdminAdminLearningPathsRoute: typeof AdminAdminLearningPathsRoute
+  AdminAdminModulesRoute: typeof AdminAdminModulesRoute
+  AdminAdminQuestionsRoute: typeof AdminAdminQuestionsRoute
+  AdminAdminReportsRoute: typeof AdminAdminReportsRoute
+  AdminAdminResultsRoute: typeof AdminAdminResultsRoute
+  AdminAdminSettingsRoute: typeof AdminAdminSettingsRoute
+  AdminAdminIndexRoute: typeof AdminAdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAdminAnnouncementsRoute: AdminAdminAnnouncementsRoute,
+  AdminAdminAssessmentsRoute: AdminAdminAssessmentsRoute,
+  AdminAdminGamesRoute: AdminAdminGamesRoute,
+  AdminAdminLanguagesRoute: AdminAdminLanguagesRoute,
+  AdminAdminLearnersRoute: AdminAdminLearnersRouteWithChildren,
+  AdminAdminLearningPathsRoute: AdminAdminLearningPathsRoute,
+  AdminAdminModulesRoute: AdminAdminModulesRoute,
+  AdminAdminQuestionsRoute: AdminAdminQuestionsRoute,
+  AdminAdminReportsRoute: AdminAdminReportsRoute,
+  AdminAdminResultsRoute: AdminAdminResultsRoute,
+  AdminAdminSettingsRoute: AdminAdminSettingsRoute,
+  AdminAdminIndexRoute: AdminAdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface AppGamesRouteChildren {
+  AppGamesCategorySortRoute: typeof AppGamesCategorySortRoute
+  AppGamesDailyChallengeRoute: typeof AppGamesDailyChallengeRoute
+  AppGamesFlashcardsRoute: typeof AppGamesFlashcardsRoute
+  AppGamesFourPicsOneWordRoute: typeof AppGamesFourPicsOneWordRoute
+  AppGamesListenChooseRoute: typeof AppGamesListenChooseRoute
+  AppGamesMemoryMatchRoute: typeof AppGamesMemoryMatchRoute
+  AppGamesOppositeMatchRoute: typeof AppGamesOppositeMatchRoute
+  AppGamesPictureMatchRoute: typeof AppGamesPictureMatchRoute
+  AppGamesSentenceBuilderRoute: typeof AppGamesSentenceBuilderRoute
+  AppGamesSpellingChallengeRoute: typeof AppGamesSpellingChallengeRoute
+  AppGamesSynonymMatchRoute: typeof AppGamesSynonymMatchRoute
+  AppGamesWordMatchRoute: typeof AppGamesWordMatchRoute
+  AppGamesWordSearchRoute: typeof AppGamesWordSearchRoute
+  AppGamesIndexRoute: typeof AppGamesIndexRoute
+}
+
+const AppGamesRouteChildren: AppGamesRouteChildren = {
+  AppGamesCategorySortRoute: AppGamesCategorySortRoute,
+  AppGamesDailyChallengeRoute: AppGamesDailyChallengeRoute,
+  AppGamesFlashcardsRoute: AppGamesFlashcardsRoute,
+  AppGamesFourPicsOneWordRoute: AppGamesFourPicsOneWordRoute,
+  AppGamesListenChooseRoute: AppGamesListenChooseRoute,
+  AppGamesMemoryMatchRoute: AppGamesMemoryMatchRoute,
+  AppGamesOppositeMatchRoute: AppGamesOppositeMatchRoute,
+  AppGamesPictureMatchRoute: AppGamesPictureMatchRoute,
+  AppGamesSentenceBuilderRoute: AppGamesSentenceBuilderRoute,
+  AppGamesSpellingChallengeRoute: AppGamesSpellingChallengeRoute,
+  AppGamesSynonymMatchRoute: AppGamesSynonymMatchRoute,
+  AppGamesWordMatchRoute: AppGamesWordMatchRoute,
+  AppGamesWordSearchRoute: AppGamesWordSearchRoute,
+  AppGamesIndexRoute: AppGamesIndexRoute,
+}
+
+const AppGamesRouteWithChildren = AppGamesRoute._addFileChildren(
+  AppGamesRouteChildren,
+)
+
 interface AppRouteChildren {
   AppAchievementsRoute: typeof AppAchievementsRoute
+  AppAiTutorRoute: typeof AppAiTutorRoute
   AppAssessmentsRoute: typeof AppAssessmentsRoute
   AppCommunityRoute: typeof AppCommunityRoute
   AppDashboardRoute: typeof AppDashboardRoute
-  AppGamesRoute: typeof AppGamesRoute
+  AppGamesRoute: typeof AppGamesRouteWithChildren
   AppHelpRoute: typeof AppHelpRoute
   AppLearnRoute: typeof AppLearnRoute
   AppLearningPathRoute: typeof AppLearningPathRoute
@@ -802,10 +1430,11 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAchievementsRoute: AppAchievementsRoute,
+  AppAiTutorRoute: AppAiTutorRoute,
   AppAssessmentsRoute: AppAssessmentsRoute,
   AppCommunityRoute: AppCommunityRoute,
   AppDashboardRoute: AppDashboardRoute,
-  AppGamesRoute: AppGamesRoute,
+  AppGamesRoute: AppGamesRouteWithChildren,
   AppHelpRoute: AppHelpRoute,
   AppLearnRoute: AppLearnRoute,
   AppLearningPathRoute: AppLearningPathRoute,
@@ -846,6 +1475,7 @@ const PublicRouteWithChildren =
   PublicRoute._addFileChildren(PublicRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
+  AdminRoute: AdminRouteWithChildren,
   AppRoute: AppRouteWithChildren,
   PublicRoute: PublicRouteWithChildren,
   AssessmentAnalyzingRoute: AssessmentAnalyzingRoute,

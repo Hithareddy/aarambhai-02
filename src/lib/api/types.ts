@@ -108,6 +108,112 @@ export interface ActivityEvent {
   message: string;
 }
 
+export interface ActivitySyncPayload {
+  activity_date: string; // YYYY-MM-DD
+  assessment_seconds: number;
+  lesson_seconds: number;
+  game_seconds: number;
+  ai_tutor_seconds: number;
+  general_seconds: number;
+}
+
+export interface DailyActivityRecord {
+  activity_date: string;
+  total_active_seconds: number;
+  assessment_seconds: number;
+  lesson_seconds: number;
+  game_seconds: number;
+  ai_tutor_seconds: number;
+  general_seconds: number;
+  goal_minutes?: number;
+  goal_eligible_seconds?: number;
+  goal_completed?: boolean;
+  bonus_learning_minutes?: number;
+}
+
+export interface CategoryBreakdown {
+  category: "lessons" | "assessment" | "games" | "ai_tutor" | "general";
+  label: string;
+  seconds: number;
+  minutes: number;
+}
+
+export interface ActivitySummary {
+  period: "today" | "week" | "month";
+  reference_date: string;
+  total_active_seconds: number;
+  total_active_minutes: number;
+  assessment_seconds: number;
+  lesson_seconds: number;
+  game_seconds: number;
+  ai_tutor_seconds: number;
+  general_seconds: number;
+  current_goal_minutes?: number;
+  today_goal_eligible_seconds?: number;
+  today_goal_completed?: boolean;
+  today_bonus_learning_minutes?: number;
+  active_days_count: number;
+  categories: CategoryBreakdown[];
+  daily_records: DailyActivityRecord[];
+}
+
+export interface MonthCalendarData {
+  year: number;
+  month: number;
+  total_active_seconds: number;
+  total_active_minutes: number;
+  goal_completed_days_count: number;
+  active_days_count: number;
+  days_in_month: number;
+  daily_records: DailyActivityRecord[];
+}
+
+export interface StreakData {
+  current_streak: number;
+  longest_streak: number;
+  today_completed: boolean;
+  last_completed_date: string | null;
+  is_new_learner: boolean;
+}
+
+export interface WordOfTheDay {
+  id: string;
+  word: string;
+  phonetic?: string | null;
+  language: string;
+  meaning_en: string;
+  meaning_support: string;
+  support_language: string;
+  example_sentence: string;
+  assigned_date: string;
+  is_completed: boolean;
+  learner_sentence?: string | null;
+}
+
+export interface SentenceCheckResult {
+  is_valid: boolean;
+  feedback_message: string;
+  is_completed: boolean;
+  learned_word?: WordOfTheDay | null;
+}
+
+export interface LearnedWord {
+  id: string;
+  word: string;
+  phonetic?: string | null;
+  language: string;
+  meaning_en: string;
+  meaning_support: string;
+  example_sentence: string;
+  learner_sentence: string;
+  learned_date: string;
+}
+
+export interface MyWordsData {
+  total_count: number;
+  words: LearnedWord[];
+}
+
 export interface DashboardSnapshot {
   profile: LearnerProfile;
   goal: DailyGoal;
@@ -124,4 +230,41 @@ export interface DashboardSnapshot {
   notifications: NotificationItem[];
   activityFeed: ActivityEvent[];
   courseCompletionPercent: number;
+}
+
+export interface TutorProfile {
+  tutor_name: string;
+  learner_name: string;
+  learning_language: string;
+  website_language: string;
+  current_familiarity: string;
+}
+
+export interface TutorConversation {
+  id: string;
+  tutor_name: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count?: number;
+}
+
+export interface TutorMessage {
+  id: string;
+  conversation_id: string;
+  role: "learner" | "tutor";
+  content: string;
+  created_at: string;
+}
+
+export interface ChatMessageResult {
+  user_message: TutorMessage;
+  tutor_reply: TutorMessage;
+}
+
+export interface VoiceChatResult {
+  transcript: string;           // What the learner said (from STT)
+  user_message: TutorMessage;
+  tutor_reply: TutorMessage;
+  tutor_audio_token: string;    // One-time token for /voice-audio/{token}
 }

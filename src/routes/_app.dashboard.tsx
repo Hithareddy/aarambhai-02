@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -18,6 +19,7 @@ import {
   BookOpen,
   CheckCircle2,
   ClipboardCheck,
+  Clock,
   Flame,
   Medal,
   PlayCircle,
@@ -39,8 +41,14 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 
 import { QueryState } from "@/components/data-state";
-import { useDashboard, useMarkAllNotificationsRead, useTodaysLearning } from "@/lib/api/hooks";
+import { useActivitySummary, useDashboard, useMarkAllNotificationsRead, useTodaysLearning } from "@/lib/api/hooks";
 import { useLanguage } from "@/hooks/use-language";
+import { DailyGoalModal } from "@/components/daily-goal-modal";
+import { LearningCalendar } from "@/components/learning-calendar";
+import { LearningCompanions } from "@/components/learning-companions";
+import { LearningActivityCard } from "@/components/learning-activity-card";
+import { StreakCard } from "@/components/streak-card";
+import { WordOfTheDayCard } from "@/components/word-of-the-day-card";
 import type {
   AchievementBadge,
   ActivityDay,
@@ -95,7 +103,6 @@ function DashboardContent({ data }: { data: DashboardSnapshot }) {
   } = data;
 
   const xpPct = Math.min(100, Math.round((profile.xp / profile.xpForNextLevel) * 100));
-  const goalPct = Math.min(100, Math.round((goal.completedMinutes / goal.targetMinutes) * 100));
 
   return (
     <div className="space-y-6">
@@ -111,21 +118,13 @@ function DashboardContent({ data }: { data: DashboardSnapshot }) {
 
       <QuickActions />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
           icon={Flame}
           label={t("dashboard.streak") || "Streak"}
           value={`${goal.streakDays} ${t("dashboard.days") || "days"}`}
           hint={`${t("dashboard.longestStreak") || "Longest"} ${goal.longestStreak} ${t("dashboard.days") || "days"}`}
           tone="primary"
-        />
-        <StatCard
-          icon={Target}
-          label={t("dashboard.todayGoal") || "Today's goal"}
-          value={`${goal.completedMinutes}/${goal.targetMinutes} min`}
-          hint={goalPct >= 100 ? (t("dashboard.goalComplete") || "Goal complete") : `${100 - goalPct}% ${t("dashboard.toGo") || "to go"}`}
-          progress={goalPct}
-          tone="accent"
         />
         <StatCard
           icon={Zap}
@@ -144,22 +143,25 @@ function DashboardContent({ data }: { data: DashboardSnapshot }) {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        {/* MAIN / LEFT COLUMN — Primary Learning Content */}
+        <div className="space-y-6 min-w-0">
           <TodaysLearningWidget />
-          <WeeklyActivityCard data={weeklyActivity} />
-          <MonthlyActivityCard data={monthlyActivity} />
+          <ActiveLearningTimeCard />
+          <LearningActivityCard weeklyData={weeklyActivity} monthlyData={monthlyActivity} />
           <AIRecommendationsCard items={recommendations} />
           <TopicsCard weak={weakTopics} strong={strongTopics} />
-          <RecentlyCompletedCard items={recentlyCompleted} />
         </div>
 
-        <div className="space-y-6">
+        {/* RIGHT COLUMN — Consistency & Quick Information */}
+        <div className="space-y-6 min-w-0">
+          <StreakCard initialStreakDays={goal.streakDays} initialLongestStreak={goal.longestStreak} />
+          <DashboardDailyGoalCard targetMinutesDefault={goal.targetMinutes || 20} />
+          <LearningCalendar />
           <SkillOverviewCard skills={skills} />
+          <WordOfTheDayCard />
           <UpcomingAssessmentsCard items={upcomingAssessments} />
           <AchievementsCard items={achievements} />
-          <NotificationsCard items={notifications} />
-          <ActivityTimelineCard items={activityFeed} />
         </div>
       </div>
     </div>
@@ -227,6 +229,9 @@ function WelcomeHero({
           </div>
         </div>
       </div>
+
+      {/* Tiny animated mascots — absolutely positioned, zero layout impact */}
+      <LearningCompanions />
     </Card>
   );
 }
@@ -367,103 +372,7 @@ function TodaysLearningWidget() {
   );
 }
 
-function WeeklyActivityCard({ data }: { data: ActivityDay[] }) {
-  const { t } = useLanguage();
-  const chart = data.map((d) => ({
-    day: new Date(d.date).toLocaleDateString(undefined, { weekday: "short" }),
-    minutes: d.minutes,
-  }));
-  const total = data.reduce((sum, d) => sum + d.minutes, 0);
-  return (
-    <Card className="p-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="font-display text-lg font-semibold">{t("dashboard.thisWeek") || "This week"}</h2>
-          <p className="text-xs text-muted-foreground">
-            {t("dashboard.learningMinutesText", { minutes: String(total) }) || `${total} minutes of learning across 7 days`}
-          </p>
-        </div>
-        <Badge variant="secondary">{t("dashboard.minutesPerDay") || "Minutes / day"}</Badge>
-      </div>
-      <div className="mt-5 h-56 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chart} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
-            <defs>
-              <linearGradient id="weekFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.5} />
-                <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-            <XAxis dataKey="day" tickLine={false} axisLine={false} stroke="var(--color-muted-foreground)" fontSize={12} />
-            <YAxis tickLine={false} axisLine={false} stroke="var(--color-muted-foreground)" fontSize={12} width={30} />
-            <Tooltip content={<ChartTooltip suffix={` ${t("dashboard.minSuffix") || "min"}`} />} cursor={{ stroke: "var(--color-border)" }} />
-            <Area
-              type="monotone"
-              dataKey="minutes"
-              stroke="var(--color-primary)"
-              strokeWidth={2}
-              fill="url(#weekFill)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </Card>
-  );
-}
 
-function MonthlyActivityCard({ data }: { data: ActivityDay[] }) {
-  const { t } = useLanguage();
-  const chart = data.map((d) => ({
-    date: new Date(d.date).toLocaleDateString(undefined, { day: "2-digit" }),
-    minutes: d.minutes,
-  }));
-  const total = data.reduce((sum, d) => sum + d.minutes, 0);
-  const activeDays = data.filter((d) => d.minutes > 0).length;
-  return (
-    <Card className="p-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="font-display text-lg font-semibold">{t("dashboard.last28Days") || "Last 28 days"}</h2>
-          <p className="text-xs text-muted-foreground">
-            {t("dashboard.activeDaysText", {
-              days: String(activeDays),
-              hours: String(Math.round(total / 60)),
-              minutes: String(total % 60),
-            }) || `${activeDays} active days · ${Math.round(total / 60)}h ${total % 60}m total`}
-          </p>
-        </div>
-        <Badge variant="secondary">{t("dashboard.dailyMinutes") || "Daily minutes"}</Badge>
-      </div>
-      <div className="mt-5 h-52 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chart} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-            <XAxis
-              dataKey="date"
-              tickLine={false}
-              axisLine={false}
-              stroke="var(--color-muted-foreground)"
-              fontSize={11}
-              interval={3}
-            />
-            <YAxis tickLine={false} axisLine={false} stroke="var(--color-muted-foreground)" fontSize={11} width={30} />
-            <Tooltip content={<ChartTooltip suffix={` ${t("dashboard.minSuffix") || "min"}`} />} cursor={{ fill: "color-mix(in oklab, var(--color-primary) 8%, transparent)" }} />
-            <Bar dataKey="minutes" radius={[6, 6, 0, 0]}>
-              {chart.map((entry, i) => (
-                <Cell
-                  key={i}
-                  fill={entry.minutes > 0 ? "var(--color-primary)" : "var(--color-muted)"}
-                  opacity={entry.minutes > 0 ? 0.85 : 0.5}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </Card>
-  );
-}
 
 function ChartTooltip({
   active,
@@ -836,6 +745,187 @@ function relativeTime(iso: string): string {
   if (Math.abs(diffH) < 24) return diffH > 0 ? `${diffH}h ago` : `in ${-diffH}h`;
   const diffD = Math.round(diffH / 24);
   return diffD > 0 ? `${diffD}d ago` : `in ${-diffD}d`;
+}
+
+function formatDuration(totalSeconds: number): string {
+  if (totalSeconds <= 0) return "0 min";
+  if (totalSeconds < 60) return `${totalSeconds} sec`;
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes} min`;
+}
+
+function ActiveLearningTimeCard() {
+  const { t } = useLanguage();
+  const [period, setPeriod] = useState<"today" | "week" | "month">("today");
+  const { data: summary, isLoading } = useActivitySummary(period);
+
+  const categoryColorMap: Record<string, string> = {
+    lessons: "bg-blue-500",
+    assessment: "bg-purple-500",
+    games: "bg-emerald-500",
+    ai_tutor: "bg-amber-500",
+    general: "bg-slate-400",
+  };
+
+  const periodLabel = period === "today" ? "today" : period === "week" ? "this week" : "this month";
+
+  return (
+    <Card className="p-6 border border-border">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Clock className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="font-display text-lg font-semibold">Today's Learning Time</h2>
+            <p className="text-xs text-muted-foreground">Accurate active learning duration</p>
+          </div>
+        </div>
+
+        {/* Period Filter Controls */}
+        <div className="flex items-center rounded-lg bg-muted p-1 text-xs font-medium">
+          {(["today", "week", "month"] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`rounded-md px-3 py-1 transition-all ${
+                period === p
+                  ? "bg-background font-semibold text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {p === "today" ? "Today" : p === "week" ? "This Week" : "This Month"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <Skeleton className="mt-4 h-32 w-full rounded-xl" />
+      ) : !summary || summary.total_active_seconds === 0 ? (
+        /* Empty / Zero State */
+        <div className="my-6 rounded-xl border border-dashed border-border/80 bg-muted/20 p-6 text-center">
+          <Clock className="mx-auto h-8 w-8 text-muted-foreground/60 mb-2" />
+          <p className="font-display text-xl font-semibold text-foreground">0 min {periodLabel}</p>
+          <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
+            No active learning time recorded yet for {periodLabel}. Start a lesson, game, or assessment to begin tracking!
+          </p>
+        </div>
+      ) : (
+        <div className="mt-5 space-y-5">
+          <div className="flex items-baseline gap-2">
+            <span className="font-display text-3xl font-bold tracking-tight text-foreground">
+              {formatDuration(summary.total_active_seconds)}
+            </span>
+            <span className="text-sm font-medium text-muted-foreground">{periodLabel}</span>
+          </div>
+
+          {/* Category Breakdown Bars */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Category Breakdown
+            </p>
+            {summary.categories.map((cat) => {
+              const pct =
+                summary.total_active_seconds > 0
+                  ? Math.round((cat.seconds / summary.total_active_seconds) * 100)
+                  : 0;
+              const colorClass = categoryColorMap[cat.category] || "bg-primary";
+
+              return (
+                <div key={cat.category} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-foreground flex items-center gap-1.5">
+                      <span className={`inline-block h-2 w-2 rounded-full ${colorClass}`} />
+                      {cat.label}
+                    </span>
+                    <span className="text-muted-foreground tabular-nums">
+                      {formatDuration(cat.seconds)} ({pct}%)
+                    </span>
+                  </div>
+                  <Progress value={pct} className="h-2" />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function DashboardDailyGoalCard({ targetMinutesDefault = 20 }: { targetMinutesDefault?: number }) {
+  const { t } = useLanguage();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { data: todaySummary } = useActivitySummary("today");
+
+  const targetMinutes = todaySummary?.current_goal_minutes || targetMinutesDefault;
+  const eligibleSeconds = todaySummary?.today_goal_eligible_seconds ?? 0;
+  const eligibleMinutes = Math.floor(eligibleSeconds / 60);
+  const isCompleted = todaySummary?.today_goal_completed ?? (eligibleMinutes >= targetMinutes);
+  const bonusMinutes = todaySummary?.today_bonus_learning_minutes ?? Math.max(0, eligibleMinutes - targetMinutes);
+  const progressPct = Math.min(100, Math.round((eligibleMinutes / targetMinutes) * 100));
+
+  return (
+    <>
+      <Card className={`p-4 transition-all ${isCompleted ? "border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/10" : ""}`}>
+        <div className="flex items-center justify-between gap-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isCompleted ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" : "bg-primary/10 text-primary"}`}>
+              <Target className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">
+                {t("dashboard.todayGoal") || "Today's Goal"}
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsModalOpen(true)}
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground shrink-0"
+          >
+            Edit
+          </Button>
+        </div>
+
+        <div className="mt-2">
+          <p className="font-display text-2xl font-bold tabular-nums text-foreground">
+            {eligibleMinutes} / {targetMinutes} min
+          </p>
+          <Progress value={progressPct} className={`mt-2 h-1.5 ${isCompleted ? "[&>div]:bg-emerald-500" : ""}`} />
+          <p className="mt-2 text-xs font-medium truncate">
+            {isCompleted ? (
+              bonusMinutes > 0 ? (
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                  🎉 Completed! +{bonusMinutes}m bonus
+                </span>
+              ) : (
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                  🎉 Goal completed!
+                </span>
+              )
+            ) : (
+              <span className="text-muted-foreground">
+                {targetMinutes - eligibleMinutes} {t("dashboard.toGo") || "min remaining"}
+              </span>
+            )}
+          </p>
+        </div>
+      </Card>
+
+      <DailyGoalModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        currentGoalMinutes={targetMinutes}
+      />
+    </>
+  );
 }
 
 /* ------------------------------- SKELETON -------------------------------- */

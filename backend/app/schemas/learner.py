@@ -19,6 +19,7 @@ class LearnerProfileBase(BaseModel):
     learning_goal: str = Field(..., max_length=100)
     learning_language: str = Field(..., max_length=10)
     website_language: str = Field(default="en", max_length=10)
+    daily_goal_minutes: int = Field(default=20, ge=1, le=480)
     current_familiarity: str = Field(..., max_length=50)
     digital_comfort: str = Field(..., max_length=50)
     voice_preference: str | None = Field(None, max_length=100)
@@ -41,6 +42,7 @@ class LearnerProfileUpdate(BaseModel):
     learning_goal: str | None = Field(None, max_length=100)
     learning_language: str | None = Field(None, max_length=10)
     website_language: str | None = Field(None, max_length=10)
+    daily_goal_minutes: int | None = Field(None, ge=1, le=480)
     current_familiarity: str | None = Field(None, max_length=50)
     digital_comfort: str | None = Field(None, max_length=50)
     voice_preference: str | None = Field(None, max_length=100)
@@ -53,6 +55,7 @@ class LearnerProfileInDB(LearnerProfileBase):
 
     id: str
     user_id: str
+    daily_goal_minutes: int
     assessment_completed: bool
     created_at: datetime
     updated_at: datetime

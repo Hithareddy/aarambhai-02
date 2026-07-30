@@ -94,6 +94,8 @@ class LearnerService:
             profile.learning_language = data["learning_language"]
         if "website_language" in data:
             profile.website_language = data["website_language"]
+        if "daily_goal_minutes" in data and data["daily_goal_minutes"] is not None:
+            profile.daily_goal_minutes = data["daily_goal_minutes"]
         if "current_familiarity" in data:
             profile.current_familiarity = data["current_familiarity"]
         if "digital_comfort" in data:

@@ -541,6 +541,39 @@ class AssessmentService:
         translated_dict, _ = await self._get_translated_question(question, target_language)
         return translated_dict
 
+    def _evaluate_correctness(self, question_type: str, selected: Any, correct: Any) -> bool:
+        """
+        Evaluate correctness of selected_answer against correct_answer with robust type normalizations.
+        """
+        if selected is None or correct is None:
+            return False
+
+        # Speaking tasks automatically return True once recorded
+        if question_type == "speaking":
+            return True
+
+        # If it's a JSON-like string (like spoken object), parse it first
+        if isinstance(selected, str) and '"status":"spoken"' in selected.replace(" ", ""):
+            try:
+                spoken_object = json.loads(selected)
+                selected = spoken_object.get("selected_option", selected)
+            except json.JSONDecodeError:
+                pass
+
+        # Normalize comparison
+        def normalize_val(val: Any) -> str:
+            if isinstance(val, list):
+                # Join list elements, trimmed and lowercase
+                return ",".join(str(x).strip().lower() for x in val)
+            return str(val).strip().lower()
+
+        # Direct exact match first
+        if selected == correct:
+            return True
+
+        # Normalized comparison
+        return normalize_val(selected) == normalize_val(correct)
+
     async def submit_response(
         self, session_id: str, response_data: QuestionResponseCreate, user_id: str | None = None
     ) -> QuestionResponse:
@@ -602,18 +635,8 @@ class AssessmentService:
         correct_answer = self._from_json(correct_answer_str)
         selected_answer = response_data.selected_answer
         
-        # Speaking attempts are sent only after the server accepts their audio
-        # upload. Until a real speech scorer is configured, record completion
-        # without manufacturing a transcript or pronunciation score.
-        if isinstance(selected_answer, str) and '"status":"spoken"' in selected_answer.replace(" ", ""):
-            try:
-                spoken_object = json.loads(selected_answer)
-                selected_answer = spoken_object.get("selected_option", selected_answer)
-                is_correct = question.question_type == "speaking"
-            except json.JSONDecodeError:
-                is_correct = selected_answer == correct_answer
-        else:
-            is_correct = selected_answer == correct_answer
+        # Calculate correctness using our robust evaluation helper
+        is_correct = self._evaluate_correctness(question.question_type, selected_answer, correct_answer)
 
         response = QuestionResponse(
             session_id=session.id,
@@ -625,7 +648,12 @@ class AssessmentService:
         )
 
         session.current_question_index += 1
-        next_difficulty = session.current_difficulty + 1 if is_correct else session.current_difficulty - 1
+        if is_correct:
+            # Acceleration: +2 if answered correctly in < 5 seconds
+            step = 2 if (response_data.response_time_seconds and response_data.response_time_seconds < 5) else 1
+            next_difficulty = session.current_difficulty + step
+        else:
+            next_difficulty = session.current_difficulty - 1
         session.current_difficulty = self._clamp_difficulty(next_difficulty)
 
         self.db.add(response)
@@ -634,6 +662,28 @@ class AssessmentService:
         await self.db.refresh(session)
 
         return response
+
+    def _calculate_overall_level(self, accuracy: float, responses: list[QuestionResponse]) -> str:
+        """
+        Determine the overall level based on deterministic thresholds.
+        Structured to easily allow incorporating difficulty reached, consistency, etc.
+        """
+        # Thresholds:
+        # <20% = Foundation
+        # 20–39% = Beginner
+        # 40–59% = Developing
+        # 60–79% = Intermediate
+        # 80%+ = Advanced
+        if accuracy < 0.2:
+            return "Foundation"
+        elif accuracy < 0.4:
+            return "Beginner"
+        elif accuracy < 0.6:
+            return "Developing"
+        elif accuracy < 0.8:
+            return "Intermediate"
+        else:
+            return "Advanced"
 
     async def complete_assessment(self, session_id: str, user_id: str | None = None) -> dict[str, Any]:
         """
@@ -705,14 +755,9 @@ class AssessmentService:
             })
 
         # Determine overall proficiency
-        if accuracy >= 0.8:
-            overall_proficiency = "Advanced"
-        elif accuracy >= 0.6:
-            overall_proficiency = "Intermediate"
-        else:
-            overall_proficiency = "Beginner"
+        overall_proficiency = self._calculate_overall_level(accuracy, responses)
 
-        # Determine strengths and weaknesses
+        # Determine strengths and weaknesses based on real skill proficiencies
         strengths = [str(s["skill"]) for s in skill_proficiencies if float(s["proficiency"]) >= 0.7]
         weaknesses = [str(s["skill"]) for s in skill_proficiencies if float(s["proficiency"]) < 0.5]
 

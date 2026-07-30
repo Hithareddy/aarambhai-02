@@ -42,7 +42,11 @@ async def lifespan(app: FastAPI):
     # Create database tables if they do not exist yet (idempotent).
     from app.db.session import init_db
 
-    await init_db()
+    try:
+        await init_db()
+        print("Database initialized successfully.")
+    except Exception as e:
+        print(f"WARNING: Database initialization failed during startup: {e}")
 
     yield
 

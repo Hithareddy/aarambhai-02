@@ -16,6 +16,7 @@ import {
   LogOut,
   LayoutDashboard,
   Gamepad2,
+  Bot,
 } from "lucide-react";
 import {
   Sidebar,
@@ -34,6 +35,7 @@ import { useLanguage } from "@/hooks/use-language";
 
 const learnItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "AI Tutor", url: "/ai-tutor", icon: Bot },
   { title: "Learn", url: "/learn", icon: BookOpen },
   { title: "Learning Path", url: "/learning-path", icon: Compass },
   { title: "Practice", url: "/practice", icon: Dumbbell },
@@ -60,6 +62,7 @@ const accountItems = [
 ] as const;
 
 const getTranslationKey = (title: string): string => {
+  if (title === "AI Tutor") return "nav.aiTutor";
   if (title === "Learning Path") return "nav.learningPath";
   if (title === "Log out") return "nav.logout";
   return `nav.${title.toLowerCase()}`;

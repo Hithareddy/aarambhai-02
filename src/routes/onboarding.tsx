@@ -11,6 +11,7 @@ import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { saveLearnerProfile } from "@/lib/api/learner";
 import { useLanguage } from "@/hooks/use-language";
 import { LANGUAGES } from "@/constants/languages";
+import { useAdminGuard } from "@/hooks/use-admin-guard";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: "Getting to know you — Aarambh AI" }] }),
@@ -118,8 +119,11 @@ const getStepTranslationKeys = (key: StepKey) => {
 };
 
 function OnboardingPage() {
+  // Superuser accounts must never render learner onboarding.
+  const { checking } = useAdminGuard();
   const { t, websiteLanguage, setTargetLanguage } = useLanguage();
   const [i, setI] = useState(0);
+  if (checking) return null;
   const [answers, setAnswers] = useState<Partial<Record<StepKey, string>>>(() => {
     const defaultTgt = localStorage.getItem("target_language") || localStorage.getItem("learning_language") || "en";
     const uiLabelMap: Record<string, string> = {

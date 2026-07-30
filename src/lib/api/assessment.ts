@@ -248,6 +248,16 @@ export async function startAssessmentSession(): Promise<AssessmentSession> {
   };
 }
 
+export async function getAssessmentSession(sessionId: string): Promise<AssessmentSession> {
+  const data = await apiRequest<BackendSession>(`/assessments/sessions/${sessionId}`);
+  return {
+    id: data.id,
+    status: data.status,
+    currentIndex: data.current_question_index ?? 0,
+    totalQuestions: data.total_questions ?? 15,
+  };
+}
+
 /**
  * Fetch the next question for a session. Returns null when the assessment has
  * no more questions (the learner should be routed to completion). Any other

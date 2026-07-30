@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from "@/hooks/use-language";
+import { PwaManager } from "@/components/pwa-manager";
 
 function NotFoundComponent() {
   return (
@@ -95,10 +96,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Aarambh AI — Begin Learning, Anytime" },
       { name: "twitter:description", content: "Aarambh AI is an AI-powered adaptive multilingual learning platform that meets every learner where they are." },
+      { name: "theme-color", content: "#1e1b4b" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Aarambh AI" },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/cde39cfe-9e5e-4d47-a93e-3b8684c0272f/id-preview-e15320c2--89a87cc1-3974-4895-916e-e0e277db088f.lovable.app-1784118875464.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/cde39cfe-9e5e-4d47-a93e-3b8684c0272f/id-preview-e15320c2--89a87cc1-3974-4895-916e-e0e277db088f.lovable.app-1784118875464.png" },
     ],
     links: [
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -109,7 +117,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+      { rel: "alternate icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
   }),
   shellComponent: RootShell,
@@ -140,6 +149,7 @@ function RootComponent() {
       <LanguageProvider>
         <Outlet />
         <Toaster richColors position="top-right" />
+        <PwaManager />
       </LanguageProvider>
     </QueryClientProvider>
   );

@@ -12,7 +12,7 @@ export const Route = createFileRoute("/role-selection")({
 });
 
 function RoleSelectionPage() {
-  const [role, setRole] = useState<"user" | null>("user");
+  const [role, setRole] = useState<"user" | "admin" | null>("user");
   const navigate = useNavigate();
   return (
     <div className="flex min-h-dvh flex-col bg-background">
@@ -52,22 +52,39 @@ function RoleSelectionPage() {
             )}
           </button>
 
-          <div className="relative cursor-not-allowed rounded-2xl border-2 border-dashed border-border bg-muted/40 p-8 text-left opacity-70">
-            <div className="grid h-12 w-12 place-items-center rounded-xl bg-muted text-muted-foreground">
+          <button
+            onClick={() => setRole("admin")}
+            className={`relative rounded-2xl border-2 bg-card p-8 text-left transition ${
+              role === "admin" ? "border-primary shadow-md" : "border-border hover:border-primary/40"
+            }`}
+          >
+            <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary-soft text-primary">
               <ShieldCheck className="h-6 w-6" />
             </div>
             <h3 className="mt-4 font-display text-xl font-semibold">Admin</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Manage learners, content and reports.
             </p>
-            <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-warning/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-warning-foreground">
-              <Lock className="h-3 w-3" /> Coming soon
-            </span>
-          </div>
+            {role === "admin" && (
+              <span className="absolute right-4 top-4 grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground">
+                <Check className="h-4 w-4" />
+              </span>
+            )}
+          </button>
         </div>
 
-        <Button size="lg" className="mt-10" onClick={() => navigate({ to: "/signup" })}>
-          Continue as Learner
+        <Button 
+          size="lg" 
+          className="mt-10 min-w-[200px]" 
+          onClick={() => {
+            if (role === "admin") {
+              navigate({ to: "/login", search: { role: "admin" } });
+            } else {
+              navigate({ to: "/signup" });
+            }
+          }}
+        >
+          {role === "admin" ? "Continue as Admin" : "Continue as Learner"}
         </Button>
       </main>
     </div>

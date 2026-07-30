@@ -23,6 +23,7 @@ export interface LearnerProfile extends LearnerProfileInput {
   user_id: string;
   assessment_completed: boolean;
   website_language: string;
+  daily_goal_minutes?: number;
   created_at: string;
   updated_at: string;
 }

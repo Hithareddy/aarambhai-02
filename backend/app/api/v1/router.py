@@ -14,9 +14,13 @@ from app.api.v1.endpoints import (
     users,
     learning,
     validation,
-    validation,
     practice,
     games,
+    activity,
+    vocabulary,
+    tutor,
+    admin,
+    announcements,
 )
 
 api_router = APIRouter()
@@ -50,3 +54,18 @@ api_router.include_router(validation.router, prefix="/dev/validation", tags=["de
 
 # Games Endpoints
 api_router.include_router(games.router, prefix="/games", tags=["games"])
+
+# Activity Tracking Endpoints
+api_router.include_router(activity.router, prefix="/activity", tags=["activity"])
+
+# Word of the Day & Vocabulary Endpoints
+api_router.include_router(vocabulary.router, prefix="/vocabulary", tags=["vocabulary"])
+
+# AI Tutor Endpoints
+api_router.include_router(tutor.router, prefix="/tutor", tags=["tutor"])
+
+# Admin Endpoints
+api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
+
+# Announcements Endpoints
+api_router.include_router(announcements.router, prefix="/announcements", tags=["announcements"])

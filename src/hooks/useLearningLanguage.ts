@@ -1,21 +1,26 @@
 import { useEffect, useState } from 'react';
 
 /**
- * Ensures strict separation from website navigation language (which runs through i18next).
- * All educational game content MUST utilize this hook to resolve the target mapping context.
+ * Ensures strict separation from website navigation language.
+ * Educational content & games utilize this hook to resolve the target learning language.
  */
 export function useLearningLanguage() {
-    const [learningLang, setLearningLang] = useState('en');
+    const [learningLang, setLearningLang] = useState<string>(() => {
+        if (typeof window !== "undefined") {
+            return localStorage.getItem("target_language") || localStorage.getItem("learning_language") || 'en';
+        }
+        return 'en';
+    });
 
-    // Future hook into user settings database payload or Zustand store.
-    // For standard Games scaffold, it defaults to target English ('en')
     useEffect(() => {
-        const fetchUserPreferences = async () => {
-            // Mock internal resolution mechanics per design spec requirement.
-            setLearningLang('en');
-        };
-        fetchUserPreferences();
+        if (typeof window !== "undefined") {
+            const stored = localStorage.getItem("target_language") || localStorage.getItem("learning_language");
+            if (stored) {
+                setLearningLang(stored);
+            }
+        }
     }, []);
 
     return { learningLang };
 }
+

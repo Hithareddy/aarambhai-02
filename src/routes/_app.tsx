@@ -1,4 +1,5 @@
-import { Outlet, createFileRoute, Link, useRouterState } from "@tanstack/react-router";
+import { Outlet, createFileRoute, Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Bell, Search } from "lucide-react";
 import {
   SidebarInset,
@@ -6,10 +7,12 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { ActiveTimeTracker } from "@/components/active-time-tracker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { apiRequest } from "@/lib/api/http";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -17,11 +20,51 @@ export const Route = createFileRoute("/_app")({
 
 function AppLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const [adminChecked, setAdminChecked] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      setAdminChecked(true);
+      return;
+    }
+    apiRequest<any>("/users/me")
+      .then(async (profile) => {
+        if (profile?.is_superuser) {
+          // Admin accounts must never see the learner layout.
+          navigate({ to: "/admin" as any, replace: true });
+        } else {
+          // Verify learner profile exists (completed onboarding)
+          try {
+            await apiRequest<any>("/learners/me");
+            setAdminChecked(true);
+          } catch (err: any) {
+            if (err?.status === 404) {
+              // Profile not found - force onboarding
+              navigate({ to: "/onboarding" as any, replace: true });
+            } else {
+              // Network error or other server issue - let the page render
+              setAdminChecked(true);
+            }
+          }
+        }
+      })
+      .catch(() => {
+        // Request failed or unauthenticated — allow the page to render
+        // (auth errors are handled by individual route components/http.ts).
+        setAdminChecked(true);
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const title = pathname.split("/").filter(Boolean).slice(-1)[0] ?? "dashboard";
   const pretty = title.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
+  if (!adminChecked) return null; // Silently wait while checking admin status.
+
   return (
     <SidebarProvider>
+      <ActiveTimeTracker />
       <AppSidebar />
       <SidebarInset>
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur">

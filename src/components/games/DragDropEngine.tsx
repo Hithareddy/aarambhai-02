@@ -56,7 +56,7 @@ export function DragDropEngine({
 
                 {/* Target Sequence Zone */}
                 <Droppable droppableId={droppableId} direction={orientation}>
-                    {(provided, snapshot) => (
+                    {(provided: any, snapshot: any) => (
                         <div
                             ref={provided.innerRef}
                             {...provided.droppableProps}
@@ -71,7 +71,7 @@ export function DragDropEngine({
                             )}
                             {controlledTargetItems.map((item, index) => (
                                 <Draggable key={`${item.id}-target-${index}`} draggableId={`${item.id}-target-${index}`} index={index}>
-                                    {(provided, snapshot) => (
+                                    {(provided: any, snapshot: any) => (
                                         <div
                                             ref={provided.innerRef}
                                             {...provided.draggableProps}
@@ -96,7 +96,7 @@ export function DragDropEngine({
 
                 {/* Source Word Bank */}
                 <Droppable droppableId="source-bank" direction="horizontal" isDropDisabled={true}>
-                    {(provided) => (
+                    {(provided: any) => (
                         <div
                             ref={provided.innerRef}
                             {...provided.droppableProps}
@@ -104,7 +104,7 @@ export function DragDropEngine({
                         >
                             {sourceItems.filter(s => !controlledTargetItems.some(t => t.id === s.id)).map((item, index) => (
                                 <Draggable key={item.id} draggableId={item.id} index={index}>
-                                    {(provided, snapshot) => (
+                                    {(provided: any, snapshot: any) => (
                                         <div
                                             ref={provided.innerRef}
                                             {...provided.draggableProps}

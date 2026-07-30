@@ -7,7 +7,7 @@ including demographics, learning goals, and preferences.
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, String
+from sqlalchemy import Boolean, ForeignKey, String, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -47,6 +47,7 @@ class LearnerProfile(Base, TimestampMixin):
     learning_goal: Mapped[str] = mapped_column(String(100), nullable=False)
     learning_language: Mapped[str] = mapped_column(String(10), nullable=False)
     website_language: Mapped[str] = mapped_column(String(10), nullable=False, default="en", server_default="en")
+    daily_goal_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=20, server_default="20")
     current_familiarity: Mapped[str] = mapped_column(String(50), nullable=False)
     digital_comfort: Mapped[str] = mapped_column(String(50), nullable=False)
     voice_preference: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -54,6 +55,9 @@ class LearnerProfile(Base, TimestampMixin):
 
     # Assessment Status
     assessment_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Tutor Preferences
+    tutor_name: Mapped[str | None] = mapped_column(String(100), nullable=True, default="Mira", server_default="Mira")
 
     # Relationship to user
     user: Mapped["User"] = relationship("User", back_populates="learner_profile")

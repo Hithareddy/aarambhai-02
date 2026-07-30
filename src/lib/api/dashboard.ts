@@ -61,14 +61,17 @@ function toTopics(names: string[], latest: AssessmentResult | undefined): TopicI
 }
 
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
-  const [user, profile, history, recommendedLessonNode, allModules, skillProfiles, gamification] = await Promise.all([
+  const [user, profile, history, recommendedLessonNode, allModules, skillProfiles, gamification, weekActivity, monthActivity, streakData] = await Promise.all([
     apiRequest<BackendUser>("/auth/me"),
-    getLearnerProfile(),
+    getLearnerProfile().catch(() => null),
     getAssessmentHistory().catch(() => [] as AssessmentResult[]),
     getRecommendedLesson().catch(() => null),
     getModules().catch(() => []),
     getSkillProfiles().catch(() => []),
     apiRequest<any>("/users/me/gamification").catch(() => null),
+    apiRequest<any>("/activity/summary?period=week").catch(() => null),
+    apiRequest<any>("/activity/summary?period=month").catch(() => null),
+    apiRequest<any>("/activity/streak").catch(() => null),
   ]);
 
   const name = profile?.name || user.full_name;
@@ -111,6 +114,28 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   // Derive "upcoming recommendations" from genuine Modules excluding the currently active one
   const upcomingModules = allModules.filter(m => m.id !== continueLesson?.courseId).slice(0, 3);
 
+  // Map real weekly and monthly activity records
+  const weeklyActivityList = weekActivity?.daily_records
+    ? weekActivity.daily_records.map((r: any) => ({
+        date: r.activity_date,
+        minutes: Math.round(r.total_active_seconds / 60),
+        xp: 0,
+        lessonsCompleted: 0,
+      }))
+    : [];
+
+  const monthlyActivityList = monthActivity?.daily_records
+    ? monthActivity.daily_records.map((r: any) => ({
+        date: r.activity_date,
+        minutes: Math.round(r.total_active_seconds / 60),
+        xp: 0,
+        lessonsCompleted: 0,
+      }))
+    : [];
+
+  const todayRecord = weekActivity?.daily_records?.slice(-1)[0];
+  const todayMinutes = todayRecord ? Math.round(todayRecord.total_active_seconds / 60) : 0;
+  const learningHoursThisWeek = weekActivity ? Math.round((weekActivity.total_active_seconds / 3600) * 10) / 10 : 0;
 
   return {
     profile: {
@@ -127,15 +152,15 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
       joinedAt: user.created_at,
     },
     goal: {
-      targetMinutes: 15,
-      completedMinutes: 0,
-      streakDays: gamification?.streak_days || 0,
-      longestStreak: gamification?.longest_streak || 0,
-      consistencyPercent: 0,
-      learningHoursThisWeek: 0,
+      targetMinutes: profile?.daily_goal_minutes || 20,
+      completedMinutes: todayMinutes,
+      streakDays: streakData?.current_streak ?? gamification?.streak_days ?? (weekActivity?.active_days_count > 0 ? 1 : 0),
+      longestStreak: streakData?.longest_streak ?? gamification?.longest_streak ?? 1,
+      consistencyPercent: weekActivity ? Math.round((weekActivity.active_days_count / 7) * 100) : 0,
+      learningHoursThisWeek,
     },
-    weeklyActivity: [],
-    monthlyActivity: [],
+    weeklyActivity: weeklyActivityList,
+    monthlyActivity: monthlyActivityList,
     skills: toSkillMastery(latest, skillProfiles),
     weakTopics: toTopics(latest?.improvements ?? [], latest),
     strongTopics: toTopics(latest?.strengths ?? [], latest),

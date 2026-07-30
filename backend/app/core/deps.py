@@ -94,7 +94,7 @@ async def get_current_active_user(
 
     Args:
         current_user: The current authenticated user
-
+     
     Returns:
         User: The active user
 
@@ -105,5 +105,21 @@ async def get_current_active_user(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user account",
+        )
+    return current_user
+
+
+async def get_current_admin(
+    current_user: User = Depends(get_current_active_user),
+) -> User:
+    """
+    Dependency for getting the current admin user.
+
+    Ensures the user has is_superuser set to True.
+    """
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User does not have administrator privileges",
         )
     return current_user
