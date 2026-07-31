@@ -122,8 +122,9 @@ function OnboardingPage() {
   // Superuser accounts must never render learner onboarding.
   const { checking } = useAdminGuard();
   const { t, websiteLanguage, setTargetLanguage } = useLanguage();
+  const navigate = useNavigate();
+
   const [i, setI] = useState(0);
-  if (checking) return null;
   const [answers, setAnswers] = useState<Partial<Record<StepKey, string>>>(() => {
     const defaultTgt = localStorage.getItem("target_language") || localStorage.getItem("learning_language") || "en";
     const uiLabelMap: Record<string, string> = {
@@ -140,23 +141,26 @@ function OnboardingPage() {
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   const step = steps[i];
-  const value = answers[step.key] ?? "";
-  const canContinue = value.trim().length > 0;
-  const pct = Math.round(((i + 1) / steps.length) * 100);
-
-  const translationKeys = getStepTranslationKeys(step.key);
-  const stepTitle = t(translationKeys.title) || step.title;
-  const stepSubtitle = t(translationKeys.sub) || step.subtitle;
 
   const currentOptions = useMemo(() => {
+    if (!step) return [];
     if (typeof step.options === 'function') {
       return step.options(answers.target_language || "English");
     }
     return step.options;
   }, [step, answers.target_language]);
+
+  if (checking) return null;
+
+  const value = step ? (answers[step.key] ?? "") : "";
+  const canContinue = value.trim().length > 0;
+  const pct = Math.round(((i + 1) / steps.length) * 100);
+
+  const translationKeys = getStepTranslationKeys(step?.key ?? "name");
+  const stepTitle = step ? (t(translationKeys.title) || step.title) : "";
+  const stepSubtitle = step ? (t(translationKeys.sub) || step.subtitle) : "";
 
   async function next() {
     if (i < steps.length - 1) {

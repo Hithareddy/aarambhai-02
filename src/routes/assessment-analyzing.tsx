@@ -34,9 +34,9 @@ function AnalyzingPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [errorState, setErrorState] = useState<string | null>(null);
 
-  if (checking) return null;
-
   useEffect(() => {
+    if (checking) return;
+
     const sessionId = s || localStorage.getItem("assessment_session_id");
     if (!sessionId) {
       navigate({ to: "/assessment-intro" });
@@ -72,7 +72,9 @@ function AnalyzingPage() {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [s, navigate]);
+  }, [checking, s, navigate]);
+
+  if (checking) return null;
 
   if (errorState) {
     return (

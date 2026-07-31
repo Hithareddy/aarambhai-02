@@ -52,7 +52,6 @@ export function AssessmentQuizPage() {
 
   const [session, setSession] = useState<AssessmentSession | null>(null);
   const [activeQuestion, setActiveQuestion] = useState<Question | null>(null);
-  if (checking) return null;
   const [currentIndex, setCurrentIndex] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(15);
 
@@ -68,6 +67,8 @@ export function AssessmentQuizPage() {
 
   // Initialize session and pull first question
   useEffect(() => {
+    if (checking) return;
+
     const initSession = async () => {
       setLoading(true);
       setError(null);
