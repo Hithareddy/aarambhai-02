@@ -76,6 +76,7 @@ import { Route as AdminAdminLanguagesRouteImport } from './routes/_admin.admin.l
 import { Route as AdminAdminGamesRouteImport } from './routes/_admin.admin.games'
 import { Route as AdminAdminAssessmentsRouteImport } from './routes/_admin.admin.assessments'
 import { Route as AdminAdminAnnouncementsRouteImport } from './routes/_admin.admin.announcements'
+import { Route as ApiPublicBackendSplatRouteImport } from './routes/api/public/backend.$'
 import { Route as AdminAdminLearnersIdRouteImport } from './routes/_admin.admin.learners.$id'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -411,6 +412,11 @@ const AdminAdminAnnouncementsRoute = AdminAdminAnnouncementsRouteImport.update({
   path: '/admin/announcements',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiPublicBackendSplatRoute = ApiPublicBackendSplatRouteImport.update({
+  id: '/api/public/backend/$',
+  path: '/api/public/backend/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminAdminLearnersIdRoute = AdminAdminLearnersIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -483,6 +489,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminAdminIndexRoute
   '/games/': typeof AppGamesIndexRoute
   '/admin/learners/$id': typeof AdminAdminLearnersIdRoute
+  '/api/public/backend/$': typeof ApiPublicBackendSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
@@ -549,6 +556,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminAdminIndexRoute
   '/games': typeof AppGamesIndexRoute
   '/admin/learners/$id': typeof AdminAdminLearnersIdRoute
+  '/api/public/backend/$': typeof ApiPublicBackendSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -620,6 +628,7 @@ export interface FileRoutesById {
   '/_admin/admin/': typeof AdminAdminIndexRoute
   '/_app/games/': typeof AppGamesIndexRoute
   '/_admin/admin/learners/$id': typeof AdminAdminLearnersIdRoute
+  '/api/public/backend/$': typeof ApiPublicBackendSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -689,6 +698,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/games/'
     | '/admin/learners/$id'
+    | '/api/public/backend/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -755,6 +765,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/games'
     | '/admin/learners/$id'
+    | '/api/public/backend/$'
   id:
     | '__root__'
     | '/_admin'
@@ -825,6 +836,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/'
     | '/_app/games/'
     | '/_admin/admin/learners/$id'
+    | '/api/public/backend/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -845,6 +857,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   DevValidationRoute: typeof DevValidationRoute
   LessonLessonIdRoute: typeof LessonLessonIdRoute
+  ApiPublicBackendSplatRoute: typeof ApiPublicBackendSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1318,6 +1331,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminAnnouncementsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/public/backend/$': {
+      id: '/api/public/backend/$'
+      path: '/api/public/backend/$'
+      fullPath: '/api/public/backend/$'
+      preLoaderRoute: typeof ApiPublicBackendSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_admin/admin/learners/$id': {
       id: '/_admin/admin/learners/$id'
       path: '/$id'
@@ -1492,7 +1512,18 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   DevValidationRoute: DevValidationRoute,
   LessonLessonIdRoute: LessonLessonIdRoute,
+  ApiPublicBackendSplatRoute: ApiPublicBackendSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
