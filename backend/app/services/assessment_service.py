@@ -5,6 +5,7 @@ Handles business logic for assessment blueprint generation, session management,
 and result calculation.
 """
 import json
+import random
 from datetime import datetime, timezone
 from typing import Any
 
@@ -89,6 +90,103 @@ class AssessmentService:
     def _clamp_difficulty(difficulty: int) -> int:
         """Keep adaptive difficulty inside the supported range."""
         return max(1, min(5, difficulty))
+
+    @staticmethod
+    def shuffle_options_for_session(
+        session_id: str,
+        question_id: str,
+        options: list[Any],
+        correct_answer: Any,
+        question_type: str = ""
+    ) -> tuple[list[dict], Any]:
+        """
+        Shuffles options for option-based assessment questions deterministically per session and question.
+        Re-labels option IDs to 'A', 'B', 'C', 'D'... and updates effective correct answer.
+        Preserves correct answer mapping and returns (shuffled_options, effective_correct_answer).
+        """
+        if (
+            not options
+            or not isinstance(options, list)
+            or len(options) < 2
+            or question_type in ["speaking", "arrange"]
+        ):
+            return options, correct_answer
+
+        norm_options = []
+        for idx, opt in enumerate(options):
+            if isinstance(opt, dict):
+                orig_id = str(opt.get("id") or str(idx))
+                orig_text = str(opt.get("text") or opt.get("label") or opt.get("value") or "")
+                opt_copy = dict(opt)
+            else:
+                orig_id = str(idx)
+                orig_text = str(opt)
+                opt_copy = {"id": orig_id, "text": orig_text}
+            
+            opt_copy["_orig_id"] = orig_id
+            opt_copy["_orig_text"] = orig_text
+            opt_copy["_orig_idx"] = idx
+            norm_options.append(opt_copy)
+
+        def _is_correct(opt_dict: dict, corr_ans: Any) -> bool:
+            if corr_ans is None:
+                return False
+            
+            if isinstance(corr_ans, str):
+                try:
+                    corr_ans = json.loads(corr_ans)
+                except Exception:
+                    pass
+            
+            orig_id = opt_dict["_orig_id"].strip().lower()
+            orig_text = opt_dict["_orig_text"].strip().lower()
+            orig_idx = opt_dict["_orig_idx"]
+
+            if isinstance(corr_ans, list):
+                norm_list = [str(x).strip().lower() for x in corr_ans]
+                return orig_id in norm_list or orig_text in norm_list or str(orig_idx) in norm_list
+
+            corr_str = str(corr_ans).strip().lower()
+            
+            if orig_id == corr_str or orig_text == corr_str or str(orig_idx) == corr_str:
+                return True
+            
+            if corr_str in ["a", "b", "c", "d"] and orig_id in ["a", "b", "c", "d"]:
+                corr_idx = ord(corr_str) - ord("a")
+                if orig_idx == corr_idx:
+                    return True
+
+            return False
+
+        for opt in norm_options:
+            opt["_is_correct"] = _is_correct(opt, correct_answer)
+
+        seed_str = f"assessment_shuffle:{session_id}:{question_id}"
+        rng = random.Random(seed_str)
+        
+        shuffled = list(norm_options)
+        rng.shuffle(shuffled)
+
+        new_options = []
+        effective_correct_ids = []
+
+        for i, opt in enumerate(shuffled):
+            new_id = chr(65 + i)
+            clean_opt = {k: v for k, v in opt.items() if not k.startswith("_")}
+            clean_opt["id"] = new_id
+            new_options.append(clean_opt)
+
+            if opt.get("_is_correct"):
+                effective_correct_ids.append(new_id)
+
+        if len(effective_correct_ids) == 1:
+            effective_correct = effective_correct_ids[0]
+        elif len(effective_correct_ids) > 1:
+            effective_correct = effective_correct_ids
+        else:
+            effective_correct = correct_answer
+
+        return new_options, effective_correct
 
     def serialize_question_for_assessment(
         self, question: Question, is_fallback: bool | None = None
@@ -554,6 +652,16 @@ class AssessmentService:
 
         # Translate instruction for website_language and options for learning_language
         translated_dict, _ = await self._get_translated_question(best_question, website_language, learning_language)
+        
+        # Shuffle answer options deterministically for this session and question
+        shuffled_options, _ = self.shuffle_options_for_session(
+            session_id=session.id,
+            question_id=best_question.id,
+            options=translated_dict.get("options") or [],
+            correct_answer=best_question.correct_answer,
+            question_type=best_question.question_type or ""
+        )
+        translated_dict["options"] = shuffled_options
         return translated_dict
 
     def _evaluate_speaking_rubric(self, question: Question, selected: Any) -> bool:
@@ -629,7 +737,7 @@ class AssessmentService:
         ratio = matches / len(exp_keywords) if exp_keywords else 1.0
         return ratio >= 0.6 or len(words) >= 5
 
-    def _evaluate_correctness(self, question: Question, selected: Any, correct: Any) -> bool:
+    def _evaluate_correctness(self, question: Question, selected: Any, correct: Any, options: list[Any] | None = None) -> bool:
         """
         Evaluate correctness of selected_answer against correct_answer with robust type normalizations
         and Phase D multi-tiered speaking rubric.
@@ -663,7 +771,21 @@ class AssessmentService:
             return True
 
         # Normalized comparison
-        return normalize_val(selected) == normalize_val(correct)
+        if normalize_val(selected) == normalize_val(correct):
+            return True
+
+        # Also check if selected matches text of option whose ID is correct
+        if options and isinstance(options, list):
+            norm_selected = normalize_val(selected)
+            norm_correct = normalize_val(correct)
+            for opt in options:
+                if isinstance(opt, dict):
+                    opt_id = normalize_val(opt.get("id"))
+                    opt_text = normalize_val(opt.get("text") or opt.get("label") or "")
+                    if opt_id == norm_correct and opt_text == norm_selected:
+                        return True
+
+        return False
 
     async def submit_response(
         self, session_id: str, response_data: QuestionResponseCreate, user_id: str | None = None
@@ -698,6 +820,7 @@ class AssessmentService:
         target_language = (profile.learning_language or "en").strip().lower() if profile else "en"
         
         correct_answer_str = question.correct_answer
+        trans_fields = None
         if target_language != "en":
             from app.models.translation import ContentTranslation
             trans_result = await self.db.execute(
@@ -715,9 +838,23 @@ class AssessmentService:
 
         correct_answer = self._from_json(correct_answer_str)
         selected_answer = response_data.selected_answer
+
+        raw_options = self._from_json(question.options)
+        if target_language != "en" and trans_fields:
+            fields = self._from_json(trans_fields)
+            if "options" in fields and fields["options"]:
+                raw_options = fields["options"]
+
+        shuffled_options, effective_correct_answer = self.shuffle_options_for_session(
+            session_id=session.id,
+            question_id=question.id,
+            options=raw_options,
+            correct_answer=correct_answer,
+            question_type=question.question_type or ""
+        )
         
-        # Calculate correctness using our robust evaluation helper & speaking rubric
-        is_correct = self._evaluate_correctness(question, selected_answer, correct_answer)
+        # Calculate correctness using effective correct answer and shuffled options
+        is_correct = self._evaluate_correctness(question, selected_answer, effective_correct_answer, shuffled_options)
 
         response = QuestionResponse(
             session_id=session.id,
