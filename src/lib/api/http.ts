@@ -6,7 +6,12 @@
  * to FastAPI.
  */
 
-export const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+// The hosted preview runs in the browser on lovable.app, so "localhost:8000"
+// is never reachable there (and http from an https page is blocked anyway).
+// Default to the deployed FastAPI backend; local devs can override with
+// VITE_API_URL=http://localhost:8000/api/v1 in a .env.local file.
+export const API_BASE =
+  import.meta.env.VITE_API_URL || "https://aarambhai-02-backend.onrender.com/api/v1";
 
 export class ApiError extends Error {
   readonly status: number;

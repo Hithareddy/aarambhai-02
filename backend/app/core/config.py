@@ -61,8 +61,14 @@ class Settings(BaseSettings):
             "http://localhost:8083",
         ]
     )
-    # Allow any localhost / 127.0.0.1 port and local network 192.168.x.x during development.
-    CORS_ORIGIN_REGEX: str = r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?"
+    # Allow any localhost / 127.0.0.1 port and local network 192.168.x.x during
+    # development, plus the hosted Lovable preview/published domains.
+    CORS_ORIGIN_REGEX: str = (
+        r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?"
+        r"|https://([a-z0-9-]+\.)*lovable\.app"
+        r"|https://([a-z0-9-]+\.)*lovableproject\.com"
+        r"|https://([a-z0-9-]+\.)*lovable\.dev"
+    )
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: List[str] = Field(default=["*"])
     CORS_ALLOW_HEADERS: List[str] = Field(default=["*"])
