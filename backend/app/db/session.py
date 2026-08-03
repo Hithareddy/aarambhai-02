@@ -32,7 +32,16 @@ def _build_engine(url_str: str):
             connect_args={"check_same_thread": False}
         )
 
-    _using_pgbouncer = "pgbouncer=true" in url_str
+    # Supabase's transaction-mode pooler (port 6543 / *.pooler.supabase.com)
+    # multiplexes many clients over few server connections, so a server-side
+    # prepared statement created by one request can collide with another
+    # ("prepared statement _pg3_0 already exists"). Detect it from the flag,
+    # the pooler host, or the pooler port — not just the explicit flag.
+    _using_pgbouncer = (
+        "pgbouncer=true" in url_str
+        or "pooler.supabase.com" in url_str
+        or ":6543" in url_str
+    )
     if url_str.startswith("postgres://"):
         url_str = url_str.replace("postgres://", "postgresql+psycopg://", 1)
     elif url_str.startswith("postgresql://") and not url_str.startswith("postgresql+"):
@@ -44,13 +53,22 @@ def _build_engine(url_str: str):
         echo=settings.APP_DEBUG,
     )
 
+    # Disabling prepared statements is always safe with psycopg3 and is the
+    # only reliable fix behind a transaction pooler.
+    _connect_args: dict = {"prepare_threshold": None}
+
     if _using_pgbouncer:
+        # No client-side pooling on top of the server-side pooler, and never
+        # reuse a cached statement name across multiplexed connections.
         _engine_kwargs["poolclass"] = NullPool
-        _engine_kwargs["connect_args"] = {"prepare_threshold": 0}
+        _connect_args["prepare_threshold"] = None
     else:
         _engine_kwargs["pool_size"] = settings.DATABASE_POOL_SIZE
         _engine_kwargs["max_overflow"] = settings.DATABASE_MAX_OVERFLOW
         _engine_kwargs["pool_timeout"] = settings.DATABASE_POOL_TIMEOUT
+        _engine_kwargs["pool_pre_ping"] = True
+
+    _engine_kwargs["connect_args"] = _connect_args
 
     return create_async_engine(_db_url, **_engine_kwargs)
 
