@@ -1,8 +1,11 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Boolean
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Boolean, JSON
+from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB
+def UUID(*args, **kwargs):
+    return String()
+JSONB = JSON().with_variant(PG_JSONB, "postgresql")
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base, TimestampMixin

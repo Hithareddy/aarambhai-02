@@ -55,7 +55,7 @@ async def get_lesson(
 ):
     """Get a specific lesson fully populated with content blocks."""
     service = LearningService(db)
-    lesson = await service.get_lesson(lesson_id)
+    lesson = await service.get_lesson(lesson_id, current_user.id)
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
     return lesson

@@ -34,10 +34,31 @@ class ConversationResponse(BaseModel):
 
 from typing import List, Optional, Dict, Any
 
+class ScreenContextSchema(BaseModel):
+    page_type: Optional[str] = Field(None, max_length=50)
+    assessment_mode: Optional[bool] = Field(False)
+    module_id: Optional[str] = Field(None, max_length=100)
+    module_title: Optional[str] = Field(None, max_length=200)
+    lesson_id: Optional[str] = Field(None, max_length=100)
+    lesson_title: Optional[str] = Field(None, max_length=200)
+    skill: Optional[str] = Field(None, max_length=50)
+    activity_id: Optional[str] = Field(None, max_length=100)
+    activity_type: Optional[str] = Field(None, max_length=50)
+    activity_title: Optional[str] = Field(None, max_length=200)
+    displayed_content: Optional[str] = Field(None, max_length=500)
+    question_id: Optional[str] = Field(None, max_length=100)
+    question_type: Optional[str] = Field(None, max_length=50)
+    difficulty: Optional[int] = Field(None, ge=1, le=5)
+    learner_answer: Optional[str] = Field(None, max_length=500)
+    correct_answer: Optional[str] = Field(None, max_length=500)
+    answer_status: Optional[str] = Field(None, max_length=50)
+
+
 class ChatMessageRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=1000, description="Learner message text")
     mode: Optional[str] = Field("free_talk", description="Practice mode: free_talk, role_play, fix_sentence, explain_lesson, quick_practice")
     mode_params: Optional[Dict[str, Any]] = Field(default=None, description="Optional parameters for specific practice mode")
+    screen_context: Optional[ScreenContextSchema] = Field(default=None, description="Optional live learner screen context")
 
 
 class ChatMessageResponse(BaseModel):

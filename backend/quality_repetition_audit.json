@@ -1,0 +1,121 @@
+{
+  "total_questions": 270,
+  "exact_duplicates": 0,
+  "near_duplicate_clusters_count": 11743,
+  "top_repeated_stems": [
+    {
+      "stem": "Identify the correct response",
+      "count": 163
+    },
+    {
+      "stem": "Listen to the spoken",
+      "count": 28
+    },
+    {
+      "stem": "Situation (School - Scenario",
+      "count": 28
+    },
+    {
+      "stem": "Speak clearly into the",
+      "count": 5
+    },
+    {
+      "stem": "Arrange the words to",
+      "count": 4
+    },
+    {
+      "stem": "Listen to the dialogue:",
+      "count": 3
+    },
+    {
+      "stem": "Look at the sign:",
+      "count": 3
+    },
+    {
+      "stem": "Listen to the announcement:",
+      "count": 2
+    },
+    {
+      "stem": "Which word means a",
+      "count": 2
+    },
+    {
+      "stem": "Listen to the word:",
+      "count": 1
+    }
+  ],
+  "unique_prompts_ratio": 1.0,
+  "unique_option_sets_ratio": 0.193,
+  "sample_near_duplicates": [
+    {
+      "id1": "q-div-lis-33",
+      "text1": "Listen to the spoken audio clip #33: 'Doctor'. What word was spoken?",
+      "id2": "q-div-lis-41",
+      "text2": "Listen to the spoken audio clip #41: 'Doctor'. What word was spoken?",
+      "similarity": 0.971
+    },
+    {
+      "id1": "q-div-lis-33",
+      "text1": "Listen to the spoken audio clip #33: 'Doctor'. What word was spoken?",
+      "id2": "q-div-lis-49",
+      "text2": "Listen to the spoken audio clip #49: 'Doctor'. What word was spoken?",
+      "similarity": 0.971
+    },
+    {
+      "id1": "q-div-lis-33",
+      "text1": "Listen to the spoken audio clip #33: 'Doctor'. What word was spoken?",
+      "id2": "q-div-lis-57",
+      "text2": "Listen to the spoken audio clip #57: 'Doctor'. What word was spoken?",
+      "similarity": 0.971
+    },
+    {
+      "id1": "q-div-lis-33",
+      "text1": "Listen to the spoken audio clip #33: 'Doctor'. What word was spoken?",
+      "id2": "q-div-lis-65",
+      "text2": "Listen to the spoken audio clip #65: 'Doctor'. What word was spoken?",
+      "similarity": 0.971
+    },
+    {
+      "id1": "q-div-lis-33",
+      "text1": "Listen to the spoken audio clip #33: 'Doctor'. What word was spoken?",
+      "id2": "q-div-lis-73",
+      "text2": "Listen to the spoken audio clip #73: 'Doctor'. What word was spoken?",
+      "similarity": 0.985
+    },
+    {
+      "id1": "q-div-lis-33",
+      "text1": "Listen to the spoken audio clip #33: 'Doctor'. What word was spoken?",
+      "id2": "q-div-lis-81",
+      "text2": "Listen to the spoken audio clip #81: 'Doctor'. What word was spoken?",
+      "similarity": 0.971
+    },
+    {
+      "id1": "q-div-lis-33",
+      "text1": "Listen to the spoken audio clip #33: 'Doctor'. What word was spoken?",
+      "id2": "q-div-lis-89",
+      "text2": "Listen to the spoken audio clip #89: 'Doctor'. What word was spoken?",
+      "similarity": 0.971
+    },
+    {
+      "id1": "q-div-lis-33",
+      "text1": "Listen to the spoken audio clip #33: 'Doctor'. What word was spoken?",
+      "id2": "q-div-lis-97",
+      "text2": "Listen to the spoken audio clip #97: 'Doctor'. What word was spoken?",
+      "similarity": 0.971
+    },
+    {
+      "id1": "q-div-lis-33",
+      "text1": "Listen to the spoken audio clip #33: 'Doctor'. What word was spoken?",
+      "id2": "q-div-lis-105",
+      "text2": "Listen to the spoken audio clip #105: 'Doctor'. What word was spoken?",
+      "similarity": 0.964
+    },
+    {
+      "id1": "q-div-lis-33",
+      "text1": "Listen to the spoken audio clip #33: 'Doctor'. What word was spoken?",
+      "id2": "q-div-lis-113",
+      "text2": "Listen to the spoken audio clip #113: 'Doctor'. What word was spoken?",
+      "similarity": 0.978
+    }
+  ]
+}

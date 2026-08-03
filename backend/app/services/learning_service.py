@@ -35,12 +35,48 @@ class LearningService:
         )
         return result.scalars().first()
         
-    async def get_lesson(self, lesson_id: str) -> Optional[Lesson]:
-        """Fetch a lesson by ID."""
+    async def get_lesson(self, lesson_id: str, user_id: Optional[str] = None) -> Optional[Lesson]:
+        """Fetch a lesson by ID and ensure rich 13-section interactive content blocks exist."""
         result = await self.db.execute(
             select(Lesson).where(Lesson.id == lesson_id)
         )
-        return result.scalars().first()
+        lesson = result.scalars().first()
+        if not lesson:
+            return None
+
+        # Check if lesson content_blocks need full 13-section enrichment
+        if not lesson.content_blocks or len(lesson.content_blocks) < 5:
+            # Fetch user profile to get learning & website languages
+            learning_lang = "en"
+            website_lang = "en"
+            age_grp = "25-34"
+            if user_id:
+                prof_res = await self.db.execute(select(LearnerProfile).where(LearnerProfile.user_id == str(user_id)))
+                prof = prof_res.scalars().first()
+                if prof:
+                    learning_lang = prof.learning_language or "en"
+                    website_lang = prof.website_language or "en"
+                    age_grp = prof.age_group or "25-34"
+
+            # Determine skill from parent module
+            skill = "general"
+            if lesson.module_id:
+                mod_res = await self.db.execute(select(LearningModule).where(LearningModule.id == lesson.module_id))
+                mod = mod_res.scalars().first()
+                if mod and mod.skill:
+                    skill = mod.skill
+
+            from app.services.lesson_content_builder import build_interactive_lesson_content
+            lesson.content_blocks = build_interactive_lesson_content(
+                lesson_id=lesson.id,
+                title=lesson.title,
+                skill=skill,
+                learning_language=learning_lang,
+                website_language=website_lang,
+                age_group=age_grp
+            )
+
+        return lesson
 
     async def update_lesson_progress(self, user_id: UUID, lesson_id: str, update_data: LessonProgressUpdate) -> LessonProgress:
         """Update or create a lesson progress record."""
@@ -49,9 +85,11 @@ class LearningService:
         if not lesson:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found")
             
+        import uuid
+        user_id_str = str(user_id)
         result = await self.db.execute(
             select(LessonProgress).where(
-                and_(LessonProgress.user_id == user_id, LessonProgress.lesson_id == lesson_id)
+                and_(LessonProgress.user_id == user_id_str, LessonProgress.lesson_id == lesson_id)
             )
         )
         progress = result.scalars().first()
@@ -59,7 +97,8 @@ class LearningService:
         now = datetime.utcnow()
         if not progress:
             progress = LessonProgress(
-                user_id=user_id,
+                id=str(uuid.uuid4()),
+                user_id=user_id_str,
                 lesson_id=lesson_id,
                 started_at=now,
                 last_accessed_at=now,
@@ -75,7 +114,7 @@ class LearningService:
         if update_data.score is not None:
             progress.score = update_data.score
         if update_data.time_spent_seconds is not None:
-            progress.time_spent_seconds += update_data.time_spent_seconds
+            progress.time_spent_seconds = (progress.time_spent_seconds or 0) + update_data.time_spent_seconds
 
         if progress.status == "completed" and not progress.completed_at:
             progress.completed_at = update_data.completed_at or now
@@ -87,9 +126,13 @@ class LearningService:
         # Sprint 10 Adaptive Modification
         await self._update_skill_profiling(str(user_id), lesson, update_data)
 
-        # Trigger module progress recalculation on completion
+        # Trigger module progress recalculation and award XP on completion
         if progress.status == "completed":
             await self._recalculate_module_progress(user_id, lesson.module_id)
+            from app.services.gamification_service import GamificationService
+            await GamificationService(self.db).award_xp(
+                str(user_id), 25, activity_type="lesson", metadata={"score": update_data.score or 100}
+            )
 
         return progress
 
@@ -103,10 +146,11 @@ class LearningService:
         if total_lessons == 0:
             return
 
+        user_id_str = str(user_id)
         lesson_ids = [l.id for l in module_lessons]
         prog_result = await self.db.execute(
             select(LessonProgress).where(
-                and_(LessonProgress.user_id == user_id, LessonProgress.lesson_id.in_(lesson_ids), LessonProgress.status == "completed")
+                and_(LessonProgress.user_id == user_id_str, LessonProgress.lesson_id.in_(lesson_ids), LessonProgress.status == "completed")
             )
         )
         completed_lessons = prog_result.scalars().all()
@@ -114,14 +158,16 @@ class LearningService:
 
         mod_prog_result = await self.db.execute(
             select(ModuleProgress).where(
-                and_(ModuleProgress.user_id == user_id, ModuleProgress.module_id == module_id)
+                and_(ModuleProgress.user_id == user_id_str, ModuleProgress.module_id == module_id)
             )
         )
         mod_prog = mod_prog_result.scalars().first()
 
         if not mod_prog:
+            import uuid
             mod_prog = ModuleProgress(
-                user_id=user_id,
+                id=str(uuid.uuid4()),
+                user_id=user_id_str,
                 module_id=module_id
             )
             self.db.add(mod_prog)
@@ -142,8 +188,10 @@ class LearningService:
             if update_data.status != "completed":
                 return
         
-        # Skill derives from the module parent
-        skill = lesson.module.skill if lesson.module else None
+        # Skill derives from the module parent via async query
+        mod_res = await self.db.execute(select(LearningModule).where(LearningModule.id == lesson.module_id))
+        mod_obj = mod_res.scalars().first()
+        skill = mod_obj.skill if mod_obj else None
         if not skill: return
 
         # Load or create profile

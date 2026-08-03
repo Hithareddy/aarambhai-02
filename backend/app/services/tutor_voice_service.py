@@ -247,6 +247,7 @@ class TutorVoiceService:
         mode_params: dict | None = None,
         voice_name: str | None = None,
         speed: float = 1.0,
+        screen_context: dict | None = None,
     ) -> dict:
         """
         Full voice pipeline:
@@ -267,7 +268,7 @@ class TutorVoiceService:
             language_hint=language_hint,
         )
 
-        # 3. Use existing TutorService.chat() for the full 7B personalized response.
+        # 3. Use existing TutorService.chat() for the full personalized response.
         #    This calls TutorContextBuilder + TutorAIService + saves TutorMessage rows.
         user_msg, tutor_reply_msg = await tutor_svc.chat(
             user_id=user_id,
@@ -275,6 +276,7 @@ class TutorVoiceService:
             message_text=transcript,
             mode=mode,
             mode_params=mode_params,
+            screen_context=screen_context,
         )
 
         # 4. TTS — synthesize tutor reply

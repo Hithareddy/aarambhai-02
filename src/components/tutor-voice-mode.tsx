@@ -337,7 +337,8 @@ const MAX_RECORDING_SECONDS = 30;
 export function useVoiceTutor(
   conversationId: string,
   activeMode: string,
-  onMicDenied?: () => void
+  onMicDenied?: () => void,
+  getScreenContext?: () => any
 ) {
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -484,6 +485,7 @@ export function useVoiceTutor(
       setVoiceState("processing");
 
       try {
+        const screenContext = getScreenContext ? getScreenContext() : undefined;
         const result = await voiceMutation.mutateAsync({
           conversationId,
           audioBlob,

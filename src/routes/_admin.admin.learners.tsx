@@ -64,10 +64,7 @@ function AdminLearnersPage() {
             placeholder="Search name or email..."
             className="pl-9 h-11 rounded-2xl border-border"
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setLoading(true);
-            }}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>

@@ -73,3 +73,31 @@ async def update_my_learner_profile(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
+
+
+@router.get("/me/report")
+async def get_my_assessment_report(
+    current_user=Depends(get_current_active_user),
+    db=Depends(get_db),
+):
+    """
+    Fetch comprehensive professional diagnostic assessment report for current learner.
+    """
+    from app.services.assessment_service import AssessmentService
+    service = AssessmentService(db)
+    history = await service.get_assessment_history(current_user.id)
+    if not history:
+        return {"report": None, "has_assessment": False}
+    
+    latest = history[0]
+    learner_prof = await LearnerService(db).get_learner_profile_by_user_id(current_user.id)
+    
+    return {
+        "has_assessment": True,
+        "learner_name": learner_prof.name if learner_prof else current_user.full_name,
+        "age_group": learner_prof.age_group if learner_prof else "General",
+        "role": learner_prof.current_role if learner_prof else "Learner",
+        "website_language": learner_prof.website_language if learner_prof else "en",
+        "learning_language": learner_prof.learning_language if learner_prof else "en",
+        "report": latest
+    }

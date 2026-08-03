@@ -1,0 +1,42 @@
+{
+  "total_sessions": 18,
+  "passed_sessions": 4,
+  "results": [
+    {
+      "persona": "Child Beginner",
+      "runs_completed": 2,
+      "run_1_run_2_overlap_pct": 13.3,
+      "passed": false
+    },
+    {
+      "persona": "School Intermediate",
+      "runs_completed": 0,
+      "run_1_run_2_overlap_pct": 0.0,
+      "passed": false
+    },
+    {
+      "persona": "College Advanced",
+      "runs_completed": 0,
+      "run_1_run_2_overlap_pct": 0.0,
+      "passed": false
+    },
+    {
+      "persona": "Working Professional Intermediate",
+      "runs_completed": 1,
+      "run_1_run_2_overlap_pct": 0.0,
+      "passed": false
+    },
+    {
+      "persona": "Homemaker Telugu Support",
+      "runs_completed": 1,
+      "run_1_run_2_overlap_pct": 0.0,
+      "passed": false
+    },
+    {
+      "persona": "Senior Citizen Beginner",
+      "runs_completed": 0,
+      "run_1_run_2_overlap_pct": 0.0,
+      "passed": false
+    }
+  ]
+}

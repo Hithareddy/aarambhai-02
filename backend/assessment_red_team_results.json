@@ -1,0 +1,329 @@
+{
+  "total_audited": 120,
+  "classifications": {
+    "GOOD": 120,
+    "NEEDS_REVISION": 0,
+    "REJECT": 0
+  },
+  "skill_breakdown": {
+    "listening": {
+      "total": 24,
+      "good": 24,
+      "revision": 0,
+      "reject": 0
+    },
+    "speaking": {
+      "total": 24,
+      "good": 24,
+      "revision": 0,
+      "reject": 0
+    },
+    "reading": {
+      "total": 24,
+      "good": 24,
+      "revision": 0,
+      "reject": 0
+    },
+    "writing": {
+      "total": 24,
+      "good": 24,
+      "revision": 0,
+      "reject": 0
+    },
+    "conversations": {
+      "total": 24,
+      "good": 24,
+      "revision": 0,
+      "reject": 0
+    }
+  },
+  "writing_format_diversity": {
+    "arrange": 12,
+    "fill_blank": 6,
+    "everyday_communication": 6
+  },
+  "defects_count": 0,
+  "defects_list": [],
+  "manual_review_40_sample": [
+    {
+      "id": "cat-lis-001",
+      "skill": "listening",
+      "diff": 1,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-lis-004",
+      "skill": "listening",
+      "diff": 1,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-lis-007",
+      "skill": "listening",
+      "diff": 2,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-lis-010",
+      "skill": "listening",
+      "diff": 2,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-lis-013",
+      "skill": "listening",
+      "diff": 3,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-lis-016",
+      "skill": "listening",
+      "diff": 4,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-lis-019",
+      "skill": "listening",
+      "diff": 4,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-lis-022",
+      "skill": "listening",
+      "diff": 5,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-spe-001",
+      "skill": "speaking",
+      "diff": 1,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-spe-004",
+      "skill": "speaking",
+      "diff": 1,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-spe-007",
+      "skill": "speaking",
+      "diff": 2,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-spe-010",
+      "skill": "speaking",
+      "diff": 2,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-spe-013",
+      "skill": "speaking",
+      "diff": 3,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-spe-016",
+      "skill": "speaking",
+      "diff": 4,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-spe-019",
+      "skill": "speaking",
+      "diff": 4,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-spe-022",
+      "skill": "speaking",
+      "diff": 5,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-rea-001",
+      "skill": "reading",
+      "diff": 1,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-rea-004",
+      "skill": "reading",
+      "diff": 1,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-rea-007",
+      "skill": "reading",
+      "diff": 2,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-rea-010",
+      "skill": "reading",
+      "diff": 2,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-rea-013",
+      "skill": "reading",
+      "diff": 3,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-rea-016",
+      "skill": "reading",
+      "diff": 4,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-rea-019",
+      "skill": "reading",
+      "diff": 4,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-rea-022",
+      "skill": "reading",
+      "diff": 5,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-wri-001",
+      "skill": "writing",
+      "diff": 1,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-wri-004",
+      "skill": "writing",
+      "diff": 1,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-wri-008",
+      "skill": "writing",
+      "diff": 2,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-wri-016",
+      "skill": "writing",
+      "diff": 4,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-wri-005",
+      "skill": "writing",
+      "diff": 1,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-wri-013",
+      "skill": "writing",
+      "diff": 3,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-wri-015",
+      "skill": "writing",
+      "diff": 3,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-wri-022",
+      "skill": "writing",
+      "diff": 5,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-com-001",
+      "skill": "conversations",
+      "diff": 1,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-com-004",
+      "skill": "conversations",
+      "diff": 1,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-com-007",
+      "skill": "conversations",
+      "diff": 2,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-com-010",
+      "skill": "conversations",
+      "diff": 2,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-com-013",
+      "skill": "conversations",
+      "diff": 3,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-com-016",
+      "skill": "conversations",
+      "diff": 4,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-com-019",
+      "skill": "conversations",
+      "diff": 4,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    },
+    {
+      "id": "cat-com-022",
+      "skill": "conversations",
+      "diff": 5,
+      "verdict": "GOOD",
+      "reason": "Clear, contextually authentic, and pedagogically valid."
+    }
+  ]
+}

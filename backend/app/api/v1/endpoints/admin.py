@@ -152,13 +152,16 @@ async def get_admin_dashboard(
         .limit(5)
     )
     users = q_recent_users.scalars().all()
+    user_ids = [str(u.id) for u in users]
+
+    profiles_by_user = {}
+    if user_ids:
+        p_res = await db.execute(select(LearnerProfile).where(LearnerProfile.user_id.in_(user_ids)))
+        profiles_by_user = {p.user_id: p for p in p_res.scalars().all()}
 
     recent_learners_list = []
     for u in users:
-        # Check profile
-        prof_res = await db.execute(select(LearnerProfile).where(LearnerProfile.user_id == str(u.id)))
-        prof = prof_res.scalar_one_or_none()
-        
+        prof = profiles_by_user.get(str(u.id))
         recent_learners_list.append({
             "id": str(u.id),
             "name": u.full_name,
@@ -192,22 +195,33 @@ async def list_learners(
     query = query.order_by(User.created_at.desc())
     res = await db.execute(query)
     users = res.scalars().all()
+    if not users:
+        return []
+
+    user_ids = [str(u.id) for u in users]
+
+    # Bulk fetch all profiles & latest assessments in 2 queries total instead of 2N queries
+    prof_res = await db.execute(select(LearnerProfile).where(LearnerProfile.user_id.in_(user_ids)))
+    profiles_by_user = {p.user_id: p for p in prof_res.scalars().all()}
+
+    assess_res = await db.execute(
+        select(AssessmentResult)
+        .where(AssessmentResult.learner_id.in_(user_ids))
+        .order_by(desc(AssessmentResult.created_at))
+    )
+    assessments_by_user = {}
+    for a in assess_res.scalars().all():
+        if a.learner_id not in assessments_by_user:
+            assessments_by_user[a.learner_id] = a
 
     results = []
     for u in users:
-        prof_res = await db.execute(select(LearnerProfile).where(LearnerProfile.user_id == str(u.id)))
-        prof = prof_res.scalar_one_or_none()
-
-        latest_assess_res = await db.execute(
-            select(AssessmentResult)
-            .where(AssessmentResult.learner_id == str(u.id))
-            .order_by(desc(AssessmentResult.created_at))
-            .limit(1)
-        )
-        assess = latest_assess_res.scalar_one_or_none()
+        uid_str = str(u.id)
+        prof = profiles_by_user.get(uid_str)
+        assess = assessments_by_user.get(uid_str)
 
         results.append({
-            "id": str(u.id),
+            "id": uid_str,
             "name": u.full_name,
             "email": u.email,
             "created_at": u.created_at,
@@ -636,19 +650,30 @@ async def list_learning_paths(
     
     res = await db.execute(query.order_by(desc(User.created_at)))
     users = res.scalars().all()
+    if not users:
+        return []
+
+    user_ids = [str(u.id) for u in users]
+
+    # Bulk fetch profiles & latest assessments in 2 queries total instead of 2N queries
+    prof_res = await db.execute(select(LearnerProfile).where(LearnerProfile.user_id.in_(user_ids)))
+    profiles_by_user = {p.user_id: p for p in prof_res.scalars().all()}
+
+    assess_res = await db.execute(
+        select(AssessmentResult)
+        .where(AssessmentResult.learner_id.in_(user_ids))
+        .order_by(desc(AssessmentResult.created_at))
+    )
+    assessments_by_user = {}
+    for a in assess_res.scalars().all():
+        if a.learner_id not in assessments_by_user:
+            assessments_by_user[a.learner_id] = a
 
     results = []
     for u in users:
-        prof_res = await db.execute(select(LearnerProfile).where(LearnerProfile.user_id == str(u.id)))
-        prof = prof_res.scalar_one_or_none()
-
-        latest_assess_res = await db.execute(
-            select(AssessmentResult)
-            .where(AssessmentResult.learner_id == str(u.id))
-            .order_by(desc(AssessmentResult.created_at))
-            .limit(1)
-        )
-        assess = latest_assess_res.scalar_one_or_none()
+        uid_str = str(u.id)
+        prof = profiles_by_user.get(uid_str)
+        assess = assessments_by_user.get(uid_str)
 
         raw_path = _from_json(assess.learning_path) if (assess and assess.learning_path) else []
         weaknesses = _from_json(assess.weaknesses) if (assess and assess.weaknesses) else []

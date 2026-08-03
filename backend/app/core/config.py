@@ -74,13 +74,13 @@ class Settings(BaseSettings):
     # AI Integration
     AI_PROVIDER: str = "gemini"
     GEMINI_API_KEY: str = ""
-    GEMINI_TUTOR_MODEL: str = "gemini-3.5-flash"
+    GEMINI_TUTOR_MODEL: str = "gemini-1.5-flash"
     OPENAI_API_KEY: str = ""
     OPENAI_TUTOR_MODEL: str = "gpt-4o-mini"
     # Voice Tutor (Phase 7C)
-    OPENAI_STT_MODEL: str = "gpt-4o-mini-transcribe"   # current multilingual STT model
-    OPENAI_TTS_MODEL: str = "gpt-4o-mini-tts"          # current TTS model
-    OPENAI_TTS_VOICE: str = "coral"                    # warm, natural voice
+    OPENAI_STT_MODEL: str = "whisper-1"                 # Whisper STT model
+    OPENAI_TTS_MODEL: str = "tts-1"                     # OpenAI TTS model
+    OPENAI_TTS_VOICE: str = "alloy"                     # Natural TTS voice
     OPENAI_VOICE_MAX_AUDIO_MB: int = 25                # reject uploads over this size
     ANTHROPIC_API_KEY: str = ""
 

@@ -1,0 +1,535 @@
+{
+  "version": "5.0.0",
+  "total_items": 9,
+  "items": [
+    {
+      "question_id": "cat-lis-101",
+      "skill": "listening",
+      "subskill": "word_discrimination",
+      "difficulty": 1,
+      "proficiency_level": "Beginner",
+      "core_or_personalized": "core",
+      "applicable_age_groups": [
+        "Under 12",
+        "12 – 17",
+        "18 – 25",
+        "26 – 45",
+        "46 – 60",
+        "60+"
+      ],
+      "applicable_roles": [
+        "Student",
+        "Working professional",
+        "Homemaker",
+        "Senior citizen",
+        "Just curious"
+      ],
+      "applicable_education_levels": [
+        "Primary school",
+        "Secondary school",
+        "Graduate",
+        "Postgraduate"
+      ],
+      "applicable_learning_goals": [
+        "Basic reading & writing",
+        "Everyday English",
+        "Career skills"
+      ],
+      "question_type": "listening",
+      "topic": "everyday_vocabulary",
+      "learner_visible_instruction": "Listen carefully to the audio. Which word did you hear?",
+      "learner_visible_stimulus": null,
+      "hidden_audio_script": "Hospital",
+      "image_requirement": null,
+      "options": [
+        {
+          "id": "A",
+          "text": "Hospital"
+        },
+        {
+          "id": "B",
+          "text": "School"
+        },
+        {
+          "id": "C",
+          "text": "Market"
+        },
+        {
+          "id": "D",
+          "text": "Office"
+        }
+      ],
+      "correct_answer": "A",
+      "explanation": "The spoken audio clip clearly says 'Hospital'.",
+      "what_this_question_measures": "Basic auditory word discrimination for everyday places.",
+      "why_each_distractor_is_plausible": "All options are common public place nouns that share similar initial consonant sounds or syllable length.",
+      "estimated_time": 8,
+      "accessibility_notes": "Clean audio clip at normal speaking rate; clear text buttons.",
+      "translation_requirements": {
+        "te_instruction": "ఆడియోను శ్రద్ధగా వినండి. మీరు ఏ పదాన్ని విన్నారు?"
+      }
+    },
+    {
+      "question_id": "cat-lis-102",
+      "skill": "listening",
+      "subskill": "detail_extraction",
+      "difficulty": 2,
+      "proficiency_level": "Elementary",
+      "core_or_personalized": "personalized",
+      "applicable_age_groups": [
+        "18 – 25",
+        "26 – 45"
+      ],
+      "applicable_roles": [
+        "Student",
+        "Working professional",
+        "Homemaker"
+      ],
+      "applicable_education_levels": [
+        "Secondary school",
+        "Graduate"
+      ],
+      "applicable_learning_goals": [
+        "Everyday English"
+      ],
+      "question_type": "comprehension",
+      "topic": "public_transport",
+      "learner_visible_instruction": "Listen to the short dialogue. Where does the speaker want to go?",
+      "learner_visible_stimulus": null,
+      "hidden_audio_script": "Excuse me, could you tell me which bus goes to the Central Library?",
+      "image_requirement": null,
+      "options": [
+        {
+          "id": "A",
+          "text": "Central Library"
+        },
+        {
+          "id": "B",
+          "text": "Railway Station"
+        },
+        {
+          "id": "C",
+          "text": "Bus Depot"
+        },
+        {
+          "id": "D",
+          "text": "City Hospital"
+        }
+      ],
+      "correct_answer": "A",
+      "explanation": "The speaker asks for the bus going to the Central Library.",
+      "what_this_question_measures": "Ability to extract specific destination details from a spoken request.",
+      "why_each_distractor_is_plausible": "All options represent common urban destinations a commuter might ask about.",
+      "estimated_time": 12,
+      "accessibility_notes": "Conversational speed audio with standard accent.",
+      "translation_requirements": {
+        "te_instruction": "చిన్న సంభాషణను వినండి. మాట్లాడే వ్యక్తి ఎక్కడికి వెళ్లాలనుకుంటున్నారు?"
+      }
+    },
+    {
+      "question_id": "cat-lis-103",
+      "skill": "listening",
+      "subskill": "announcement_comprehension",
+      "difficulty": 3,
+      "proficiency_level": "Intermediate",
+      "core_or_personalized": "core",
+      "applicable_age_groups": [
+        "18 – 25",
+        "26 – 45",
+        "46 – 60"
+      ],
+      "applicable_roles": [
+        "Working professional",
+        "Student"
+      ],
+      "applicable_education_levels": [
+        "Secondary school",
+        "Graduate"
+      ],
+      "applicable_learning_goals": [
+        "Everyday English",
+        "Career skills"
+      ],
+      "question_type": "comprehension",
+      "topic": "public_transport",
+      "learner_visible_instruction": "Listen to the train station announcement. Which platform is the train arriving on?",
+      "learner_visible_stimulus": null,
+      "hidden_audio_script": "Attention passengers, the Intercity Express from Vijayawada will arrive shortly on Platform 4.",
+      "image_requirement": null,
+      "options": [
+        {
+          "id": "A",
+          "text": "Platform 4"
+        },
+        {
+          "id": "B",
+          "text": "Platform 2"
+        },
+        {
+          "id": "C",
+          "text": "Platform 14"
+        },
+        {
+          "id": "D",
+          "text": "Platform 40"
+        }
+      ],
+      "correct_answer": "A",
+      "explanation": "The announcement explicitly states Platform 4.",
+      "what_this_question_measures": "Auditory number & platform identification under transit announcement conditions.",
+      "why_each_distractor_is_plausible": "Distractors feature phonetically similar numbers (4 vs 14 vs 40).",
+      "estimated_time": 15,
+      "accessibility_notes": "Public address announcement voice effect.",
+      "translation_requirements": {
+        "te_instruction": "రైల్వే స్టేషన్ ప్రకటనను వినండి. రైలు ఏ ప్లాట్‌ఫారమ్‌పైకి వస్తోంది?"
+      }
+    },
+    {
+      "question_id": "cat-lis-104",
+      "skill": "listening",
+      "subskill": "dialogue_intent",
+      "difficulty": 4,
+      "proficiency_level": "Upper-Intermediate",
+      "core_or_personalized": "personalized",
+      "applicable_age_groups": [
+        "26 – 45",
+        "46 – 60"
+      ],
+      "applicable_roles": [
+        "Working professional",
+        "Homemaker"
+      ],
+      "applicable_education_levels": [
+        "Graduate",
+        "Postgraduate"
+      ],
+      "applicable_learning_goals": [
+        "Career skills",
+        "Everyday English"
+      ],
+      "question_type": "comprehension",
+      "topic": "healthcare",
+      "learner_visible_instruction": "Listen to the clinic phone call. What is the caller trying to do?",
+      "learner_visible_stimulus": null,
+      "hidden_audio_script": "Hello Doctor, I need to reschedule my consultation from Thursday afternoon to Friday morning if possible.",
+      "image_requirement": null,
+      "options": [
+        {
+          "id": "A",
+          "text": "Reschedule an appointment"
+        },
+        {
+          "id": "B",
+          "text": "Cancel a surgery"
+        },
+        {
+          "id": "C",
+          "text": "Order medicines"
+        },
+        {
+          "id": "D",
+          "text": "Ask for directions"
+        }
+      ],
+      "correct_answer": "A",
+      "explanation": "The caller asks to change the consultation time from Thursday to Friday.",
+      "what_this_question_measures": "Identifying main intent in professional service phone calls.",
+      "why_each_distractor_is_plausible": "All options represent common reasons patients telephone a clinic.",
+      "estimated_time": 15,
+      "accessibility_notes": "Natural phone audio quality.",
+      "translation_requirements": {
+        "te_instruction": "ఫోన్ పిలుపును వినండి. కాలర్ ఏమి చేయాలనుకుంటున్నారు?"
+      }
+    },
+    {
+      "question_id": "cat-lis-105",
+      "skill": "listening",
+      "subskill": "complex_inference",
+      "difficulty": 5,
+      "proficiency_level": "Advanced",
+      "core_or_personalized": "core",
+      "applicable_age_groups": [
+        "18 – 25",
+        "26 – 45"
+      ],
+      "applicable_roles": [
+        "Working professional",
+        "Student"
+      ],
+      "applicable_education_levels": [
+        "Graduate",
+        "Postgraduate"
+      ],
+      "applicable_learning_goals": [
+        "Career skills"
+      ],
+      "question_type": "comprehension",
+      "topic": "workplace",
+      "learner_visible_instruction": "Listen to the project update audio clip. What is the speaker's main recommendation?",
+      "learner_visible_stimulus": null,
+      "hidden_audio_script": "Although our development speed is good, we should extend testing by one week to ensure complete security compliance.",
+      "image_requirement": null,
+      "options": [
+        {
+          "id": "A",
+          "text": "Extend testing by one week for security"
+        },
+        {
+          "id": "B",
+          "text": "Hire more developers immediately"
+        },
+        {
+          "id": "C",
+          "text": "Cancel the security review"
+        },
+        {
+          "id": "D",
+          "text": "Launch the product today"
+        }
+      ],
+      "correct_answer": "A",
+      "explanation": "The speaker advises adding a week for security compliance testing.",
+      "what_this_question_measures": "Extracting professional recommendations from multi-clause spoken statements.",
+      "why_each_distractor_is_plausible": "Distractors represent typical software management decisions.",
+      "estimated_time": 18,
+      "accessibility_notes": "Professional boardroom audio tone.",
+      "translation_requirements": {
+        "te_instruction": "ప్రాజెక్ట్ అప్‌డేట్‌ను వినండి. మాట్లాడే వారి ప్రధాన సిఫార్సు ఏమిటి?"
+      }
+    },
+    {
+      "question_id": "cat-spe-201",
+      "skill": "speaking",
+      "subskill": "pronunciation_read_aloud",
+      "difficulty": 1,
+      "proficiency_level": "Beginner",
+      "core_or_personalized": "core",
+      "applicable_age_groups": [
+        "Under 12",
+        "12 – 17",
+        "18 – 25",
+        "26 – 45",
+        "46 – 60",
+        "60+"
+      ],
+      "applicable_roles": [
+        "Student",
+        "Working professional",
+        "Homemaker",
+        "Senior citizen",
+        "Just curious"
+      ],
+      "applicable_education_levels": [
+        "Primary school",
+        "Secondary school"
+      ],
+      "applicable_learning_goals": [
+        "Basic reading & writing",
+        "Everyday English"
+      ],
+      "question_type": "speaking",
+      "topic": "greetings",
+      "learner_visible_instruction": "Tap the microphone and read this greeting aloud:",
+      "learner_visible_stimulus": "Good morning! How are you today?",
+      "hidden_audio_script": null,
+      "image_requirement": null,
+      "options": [],
+      "correct_answer": [],
+      "explanation": "Standard polite greeting pronunciation assessment.",
+      "what_this_question_measures": "Oral clarity, stress, and intonation on basic social greetings.",
+      "why_each_distractor_is_plausible": "N/A - Productive speech assessment.",
+      "expected_keywords": [
+        "Good",
+        "morning",
+        "how",
+        "are",
+        "you",
+        "today"
+      ],
+      "estimated_time": 10,
+      "accessibility_notes": "Includes audio preview button so learner can hear model voice first.",
+      "translation_requirements": {
+        "te_instruction": "మైక్రోఫోన్‌ను నొక్కి ఈ శుభాకాంక్షను బిగ్గరగా చదవండి:"
+      }
+    },
+    {
+      "question_id": "cat-spe-202",
+      "skill": "speaking",
+      "subskill": "functional_response",
+      "difficulty": 3,
+      "proficiency_level": "Intermediate",
+      "core_or_personalized": "personalized",
+      "applicable_age_groups": [
+        "18 – 25",
+        "26 – 45"
+      ],
+      "applicable_roles": [
+        "Working professional",
+        "Student"
+      ],
+      "applicable_education_levels": [
+        "Secondary school",
+        "Graduate"
+      ],
+      "applicable_learning_goals": [
+        "Everyday English",
+        "Career skills"
+      ],
+      "question_type": "speaking",
+      "topic": "introductions",
+      "learner_visible_instruction": "Imagine meeting a new teammate at work. Tap the microphone and introduce yourself in 1-2 short sentences.",
+      "learner_visible_stimulus": "Example idea: Mention your name and your department or background.",
+      "hidden_audio_script": null,
+      "image_requirement": null,
+      "options": [],
+      "correct_answer": [],
+      "explanation": "Spontaneous personal introduction speech evaluation.",
+      "what_this_question_measures": "Spontaneous oral sentence production for workplace social integration.",
+      "why_each_distractor_is_plausible": "N/A - Productive speech assessment.",
+      "expected_keywords": [
+        "Hello",
+        "name",
+        "work",
+        "team",
+        "nice",
+        "meet"
+      ],
+      "estimated_time": 15,
+      "accessibility_notes": "Allows 20 seconds maximum recording window.",
+      "translation_requirements": {
+        "te_instruction": "కార్యాలయంలో కొత్త సహోద్యోగిని కలిసినప్పుడు మిమ్మల్ని పరిచయం చేసుకోండి:"
+      }
+    },
+    {
+      "question_id": "cat-rea-301",
+      "skill": "reading",
+      "subskill": "sign_interpretation",
+      "difficulty": 1,
+      "proficiency_level": "Beginner",
+      "core_or_personalized": "core",
+      "applicable_age_groups": [
+        "Under 12",
+        "12 – 17",
+        "18 – 25",
+        "26 – 45",
+        "46 – 60",
+        "60+"
+      ],
+      "applicable_roles": [
+        "Student",
+        "Working professional",
+        "Homemaker",
+        "Senior citizen"
+      ],
+      "applicable_education_levels": [
+        "Primary school",
+        "Secondary school"
+      ],
+      "applicable_learning_goals": [
+        "Basic reading & writing",
+        "Everyday English"
+      ],
+      "question_type": "road_signs",
+      "topic": "public_signs",
+      "learner_visible_instruction": "Look at the sign shown below. What does this sign tell you to do?",
+      "learner_visible_stimulus": "EMERGENCY EXIT - KEEP CLEAR",
+      "hidden_audio_script": null,
+      "image_requirement": "/images/signs/emergency_exit.png",
+      "options": [
+        {
+          "id": "A",
+          "text": "Do not block this door in case of emergency"
+        },
+        {
+          "id": "B",
+          "text": "Park your vehicle here"
+        },
+        {
+          "id": "C",
+          "text": "Buy tickets at this door"
+        },
+        {
+          "id": "D",
+          "text": "Store heavy luggage here"
+        }
+      ],
+      "correct_answer": "A",
+      "explanation": "An emergency exit sign warns against obstructing safety doors.",
+      "what_this_question_measures": "Functional literacy for critical public safety signs.",
+      "why_each_distractor_is_plausible": "Distractors represent common non-emergency door signs.",
+      "estimated_time": 10,
+      "accessibility_notes": "High contrast vector sign graphic with clean alt text.",
+      "translation_requirements": {
+        "te_instruction": "సూచికను చూడండి. ఈ సూచన ఏమి చెబుతోంది?"
+      }
+    },
+    {
+      "question_id": "cat-wri-401",
+      "skill": "writing",
+      "subskill": "sentence_assembly",
+      "difficulty": 2,
+      "proficiency_level": "Elementary",
+      "core_or_personalized": "core",
+      "applicable_age_groups": [
+        "Under 12",
+        "12 – 17",
+        "18 – 25",
+        "26 – 45"
+      ],
+      "applicable_roles": [
+        "Student",
+        "Working professional",
+        "Homemaker"
+      ],
+      "applicable_education_levels": [
+        "Secondary school"
+      ],
+      "applicable_learning_goals": [
+        "Everyday English"
+      ],
+      "question_type": "arrange",
+      "topic": "syntax",
+      "learner_visible_instruction": "Drag or tap the words in order to form a correct English sentence:",
+      "learner_visible_stimulus": "Scrambled: [doctor / appointment / I / an / need]",
+      "hidden_audio_script": null,
+      "image_requirement": null,
+      "options": [
+        {
+          "id": "w-0",
+          "text": "doctor"
+        },
+        {
+          "id": "w-1",
+          "text": "appointment"
+        },
+        {
+          "id": "w-2",
+          "text": "I"
+        },
+        {
+          "id": "w-3",
+          "text": "an"
+        },
+        {
+          "id": "w-4",
+          "text": "need"
+        }
+      ],
+      "correct_answer": [
+        "I",
+        "need",
+        "an",
+        "appointment",
+        "doctor"
+      ],
+      "explanation": "Constructing standard SVO syntax for healthcare requests.",
+      "what_this_question_measures": "Syntactic word ordering capability for everyday service requests.",
+      "why_each_distractor_is_plausible": "Scrambled order tests English Subject-Verb-Object word order rules.",
+      "estimated_time": 12,
+      "accessibility_notes": "Both drag-and-drop and tap-to-select interaction enabled.",
+      "translation_requirements": {
+        "te_instruction": "సరైన ఆంగ్ల వాక్యాన్ని రూపొందించడానికి పదాలను వరుసగా నొక్కండి:"
+      }
+    }
+  ]
+}

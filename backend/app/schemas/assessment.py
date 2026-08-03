@@ -90,6 +90,8 @@ class QuestionResponseResponse(BaseModel):
     response_time_seconds: int
     difficulty_at_response: int
     created_at: datetime
+    is_correct: bool | None = None
+    next_question: dict[str, Any] | None = None
 
     class Config:
         from_attributes = True

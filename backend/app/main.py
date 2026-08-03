@@ -40,14 +40,17 @@ async def lifespan(app: FastAPI):
     print(f"Environment: {settings.APP_ENV}")
     print(f"Debug mode: {settings.APP_DEBUG}")
 
-    # Create database tables if they do not exist yet (idempotent).
+    # Create database tables asynchronously in background to ensure fast server cold start.
     from app.db.session import init_db
 
-    try:
-        await init_db()
-        print("Database initialized successfully.")
-    except Exception as e:
-        print(f"WARNING: Database initialization failed during startup: {e}")
+    async def _bg_init():
+        try:
+            await init_db()
+            print("Database tables initialized successfully in background.")
+        except Exception as e:
+            print(f"WARNING: Database initialization skipped or failed: {e}")
+
+    asyncio.create_task(_bg_init())
 
     yield
 

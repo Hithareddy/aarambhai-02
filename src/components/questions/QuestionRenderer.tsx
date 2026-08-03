@@ -31,24 +31,33 @@ export function QuestionRenderer({
   if (!question) return null;
 
   const qType = question.type || question.question_type || 'mcq';
+  const qContent = question.question_content && typeof question.question_content === 'object' ? question.question_content : {};
+  
   const promptText = question.questionText || question.prompt || (question.question_content ? (typeof question.question_content === 'string' ? JSON.parse(question.question_content).text : question.question_content.text) : '');
+  const stimulusText = question.stimulus || question.passage || question.scenario || qContent.stimulus || qContent.passage || qContent.scenario || question.reference_text || null;
   const imageSrc = question.image || question.image_url;
   const audioText = question.audioText || question.audio_script;
 
-  const qContent = question.question_content && typeof question.question_content === 'object' ? question.question_content : {};
   const matchingPairs = question.matchingPairs || qContent.matchingPairs;
   const categorizationBuckets = question.categorizationBuckets || qContent.categorizationBuckets;
   const scrambledLetters = question.scrambledLetters || qContent.scrambledLetters;
   const scrambledWords = question.scrambledWords || qContent.scrambledWords;
-  const targetWord = question.targetWord || qContent.targetWord;
+
+  const rawOptions = question.options || [];
+  const options = Array.isArray(rawOptions) ? rawOptions.map((o: any, idx: number) => {
+    if (typeof o === 'string') {
+      return { id: String.fromCharCode(65 + idx), text: o };
+    }
+    return { id: String(o.id || String.fromCharCode(65 + idx)), text: String(o.text || o.label || o) };
+  }) : [];
 
   // TYPE 1: Image Identification (1 Large Image + 4 Text Cards)
-  if ((qType === 'picture_id' || qType === 'fruit_id' || qType === 'vegetable_id' || qType === 'bird_id' || qType === 'vehicle_id' || qType === 'object_id' || qType === 'color_id') && imageSrc && question.options?.every((o: any) => !o.image)) {
+  if ((qType === 'picture_id' || qType === 'fruit_id' || qType === 'vegetable_id' || qType === 'bird_id' || qType === 'vehicle_id' || qType === 'object_id' || qType === 'color_id') && imageSrc && options.every((o: any) => !o.image)) {
     return (
       <ImageIdentificationQuestion
         questionText={promptText}
         image={imageSrc}
-        options={question.options || []}
+        options={options}
         selected={selected}
         onSelect={onSelect}
         submitting={submitting}
@@ -57,11 +66,11 @@ export function QuestionRenderer({
   }
 
   // TYPE 2: Select the Correct Picture (4 LARGE IMAGE CARDS)
-  if (qType === 'image_select' || (question.options && question.options.some((o: any) => o.image))) {
+  if (qType === 'image_select' || (options.length > 0 && options.some((o: any) => o.image))) {
     return (
       <ImageSelectionQuestion
         questionText={promptText}
-        options={question.options || []}
+        options={options}
         selected={selected}
         onSelect={onSelect}
         submitting={submitting}
@@ -91,7 +100,7 @@ export function QuestionRenderer({
 
   // TYPE 4: Arrange Words
   if (qType === 'arrange_words' || qType === 'arrange') {
-    const scrambled = scrambledWords || (Array.isArray(question.options) ? question.options.map((o: any) => typeof o === 'string' ? o : o.text) : []);
+    const scrambled = scrambledWords || options.map((o: any) => o.text);
     const optObj = scrambled.map((word: string, idx: number) => ({
       id: `w-${idx}`,
       text: word,
@@ -125,7 +134,8 @@ export function QuestionRenderer({
     return (
       <FillBlankQuestion
         prompt={promptText}
-        options={question.options || []}
+        stimulus={stimulusText}
+        options={options}
         selected={selected}
         onSelect={onSelect}
         submitting={submitting}
@@ -133,13 +143,13 @@ export function QuestionRenderer({
     );
   }
 
-  // TYPE 7: Listening (Audio Player + 4 Image Options)
+  // TYPE 7: Listening (Audio Player + Options)
   if (qType === 'listening_image' || qType === 'listening_mcq' || qType === 'listening') {
     return (
       <ListeningImageQuestion
         questionText={promptText}
         audioText={audioText || promptText}
-        options={question.options || []}
+        options={options}
         selected={selected}
         onSelect={onSelect}
         submitting={submitting}
@@ -147,7 +157,7 @@ export function QuestionRenderer({
     );
   }
 
-  // TYPE 8: Speaking (Large Image + Big Microphone Recorder)
+  // TYPE 8: Speaking
   if (qType === 'speaking') {
     return (
       <SpeakingRecordQuestion
@@ -161,12 +171,13 @@ export function QuestionRenderer({
   }
 
   // TYPE 9: Reading Scenarios & Road Signs
-  if (qType === 'read_select' || qType === 'read_sentence' || qType === 'road_signs') {
+  if (qType === 'read_select' || qType === 'read_sentence' || qType === 'road_signs' || qType === 'comprehension') {
     return (
       <ReadingScenarioQuestion
         questionText={promptText}
         image={imageSrc}
-        options={question.options || []}
+        passage={stimulusText}
+        options={options}
         selected={selected}
         onSelect={onSelect}
         submitting={submitting}
@@ -180,7 +191,8 @@ export function QuestionRenderer({
       <EverydayScenarioQuestion
         questionText={promptText}
         category={question.category || 'Everyday Life'}
-        options={question.options || []}
+        scenario={stimulusText}
+        options={options}
         selected={selected}
         onSelect={onSelect}
         submitting={submitting}

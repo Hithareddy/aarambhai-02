@@ -127,6 +127,7 @@ function OnboardingPage() {
   const [i, setI] = useState(0);
   const [answers, setAnswers] = useState<Partial<Record<StepKey, string>>>(() => {
     const defaultTgt = localStorage.getItem("target_language") || localStorage.getItem("learning_language") || "en";
+    const pendingName = localStorage.getItem("pending_signup_name") || "";
     const uiLabelMap: Record<string, string> = {
       en: "English",
       te: "తెలుగు",
@@ -135,6 +136,7 @@ function OnboardingPage() {
       mr: "मराठी",
     };
     return {
+      name: pendingName,
       target_language: uiLabelMap[defaultTgt] || "English",
     };
   });

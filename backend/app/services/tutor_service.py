@@ -119,6 +119,7 @@ class TutorService:
         message_text: str,
         mode: str = "free_talk",
         mode_params: Optional[dict] = None,
+        screen_context: Optional[dict] = None,
     ) -> Tuple[TutorMessage, TutorMessage]:
         """
         Process learner message with context builder, call LLM service, and return (user_msg, tutor_reply).
@@ -140,9 +141,16 @@ class TutorService:
         if not conversation:
             raise ValueError("Conversation session not found.")
 
+        # Backend assessment safety sanitization
+        sanitized_screen_context = None
+        if screen_context:
+            sanitized_screen_context = dict(screen_context)
+            if sanitized_screen_context.get("assessment_mode") is True:
+                sanitized_screen_context["correct_answer"] = None
+
         # Build compact, structured learner context
         context_builder = TutorContextBuilder(self.db)
-        learner_context = await context_builder.build_context(user_id)
+        learner_context = await context_builder.build_context(user_id, screen_context=sanitized_screen_context)
 
         # Save user message to DB
         user_msg = TutorMessage(
@@ -183,7 +191,8 @@ class TutorService:
         conversation.updated_at = datetime.utcnow()
         await self.db.commit()
 
-        await self.db.refresh(user_msg)
-        await self.db.refresh(tutor_reply_msg)
+        # Award 5 XP for engaging with AI Tutor
+        from app.services.gamification_service import GamificationService
+        await GamificationService(self.db).award_xp(user_id, 5, activity_type="tutor")
 
         return user_msg, tutor_reply_msg

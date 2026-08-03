@@ -9,3 +9,4 @@ export { QuizBlock } from "./QuizBlock";
 export { FlashcardBlock } from "./FlashcardBlock";
 export { SentenceBuilderBlock } from "./SentenceBuilderBlock";
 export { RecapBlock } from "./RecapBlock";
+export { VideoBlock } from "./VideoBlock";

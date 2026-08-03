@@ -21,6 +21,7 @@ from app.api.v1.endpoints import (
     tutor,
     admin,
     announcements,
+    resources,
 )
 
 api_router = APIRouter()
@@ -46,6 +47,9 @@ api_router.include_router(questions.router, prefix="/questions", tags=["question
 # Learning module endpoints
 api_router.include_router(learning.router, prefix="/learning", tags=["learning"])
 
+# Resource Library endpoints
+api_router.include_router(resources.router, prefix="/resources", tags=["resources"])
+
 # Daily Practice & Spaced Repetition engine
 api_router.include_router(practice.router, prefix="/practice", tags=["practice"])
 
@@ -69,3 +73,4 @@ api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
 
 # Announcements Endpoints
 api_router.include_router(announcements.router, prefix="/announcements", tags=["announcements"])
+

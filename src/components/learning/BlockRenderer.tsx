@@ -11,6 +11,7 @@ import {
     FlashcardBlock,
     SentenceBuilderBlock,
     RecapBlock,
+    VideoBlock,
     type BlockProps
 } from "./blocks";
 
@@ -35,6 +36,7 @@ const FallbackBlock: React.FC<BlockProps> = ({ block, onComplete }) => {
 const BLOCK_REGISTRY: Record<string, React.FC<BlockProps>> = {
     text: TextBlock,
     image: ImageBlock,
+    video: VideoBlock,
     audio: AudioBlock,
     vocabulary: VocabularyBlock,
     pronunciation: PronunciationBlock,

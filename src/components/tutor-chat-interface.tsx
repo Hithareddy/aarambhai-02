@@ -89,11 +89,14 @@ const PRACTICE_MODES: PracticeMode[] = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+import { useLearningContext } from "@/context/learning-context";
+
 export function TutorChatInterface() {
   const { t } = useLanguage();
   const { data: profile, isLoading: isProfileLoading } = useTutorProfile();
   const { data: conversations, isLoading: isConvLoading } = useTutorConversations();
   const createConvMutation = useCreateConversation();
+  const learningCtx = useLearningContext();
 
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [inputText, setInputText] = useState("");
@@ -104,17 +107,49 @@ export function TutorChatInterface() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // ── Voice tutor hook ──────────────────────────────────────────────────
-  const voice = useVoiceTutor(activeConvId || "", activeMode, () => {
-    setInputMode("text");
-  });
+  const getScreenContextPayload = () => {
+    const s = learningCtx.state;
+    return {
+      page_type: s.pageType,
+      assessment_mode: s.assessmentMode,
+      module_id: s.moduleId,
+      module_title: s.moduleTitle,
+      lesson_id: s.lessonId,
+      lesson_title: s.lessonTitle,
+      skill: s.skill,
+      activity_id: s.activityId,
+      activity_type: s.activityType,
+      activity_title: s.activityTitle,
+      displayed_content: s.displayedContent,
+      question_id: s.questionId,
+      question_type: s.questionType,
+      difficulty: s.difficulty,
+      learner_answer: s.learnerAnswer,
+      correct_answer: s.correctAnswer,
+      answer_status: s.answerStatus,
+    };
+  };
 
-  // Set initial active conversation
+  // ── Voice tutor hook ──────────────────────────────────────────────────
+  const voice = useVoiceTutor(
+    activeConvId || "",
+    activeMode,
+    () => {
+      setInputMode("text");
+    },
+    getScreenContextPayload
+  );
+
+  // Session-only AI Tutor: Start a fresh session conversation on mount
   useEffect(() => {
-    if (conversations && conversations.length > 0 && !activeConvId) {
-      setActiveConvId(conversations[0].id);
+    if (!activeConvId && !createConvMutation.isPending) {
+      createConvMutation.mutate(undefined, {
+        onSuccess: (newConv: TutorConversation) => {
+          setActiveConvId(newConv.id);
+        },
+      });
     }
-  }, [conversations, activeConvId]);
+  }, []);
 
   const { data: messages, isLoading: isMessagesLoading } = useTutorMessages(
     activeConvId || undefined
@@ -138,8 +173,15 @@ export function TutorChatInterface() {
     setInputText("");
     setErrorMessage(null);
 
+    const screenContext = getScreenContextPayload();
+
     sendMessageMutation.mutate(
-      { conversationId: activeConvId, message: messageToSend, mode: activeMode },
+      {
+        conversationId: activeConvId,
+        message: messageToSend,
+        mode: activeMode,
+        screenContext,
+      },
       {
         onError: (err: any) => {
           setErrorMessage(

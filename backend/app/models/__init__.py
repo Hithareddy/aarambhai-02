@@ -42,6 +42,7 @@ from app.models.activity import LearnerDailyActivity
 from app.models.vocabulary import VocabularyWord, LearnerDailyWord
 from app.models.tutor import TutorConversation, TutorMessage
 from app.models.announcement import Announcement
+from app.models.resource import Resource, ResourceBookmark
 
 __all__ = [
     "User",
@@ -52,6 +53,8 @@ __all__ = [
     "LearnerDailyWord",
     "TutorConversation",
     "TutorMessage",
+    "Resource",
+    "ResourceBookmark",
     "AssessmentBlueprint",
     "AssessmentSession",
     "QuestionResponse",
@@ -85,3 +88,4 @@ __all__ = [
     "DailyChallenge",
     "GameSettings"
 ]
+

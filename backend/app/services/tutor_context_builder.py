@@ -21,17 +21,29 @@ class LearnerTutorContext:
     website_language: str
     proficiency_level: str
     learning_goal: str
+    age_group: Optional[str] = None
+    current_role: Optional[str] = None
+    educational_background: Optional[str] = None
+    cefr_level: Optional[str] = None
+    confidence_score: Optional[float] = None
+    strengths: List[str] = field(default_factory=list)
+    weaknesses: List[str] = field(default_factory=list)
     weakest_skill: Optional[str] = None
     strongest_skill: Optional[str] = None
-    recent_words: List[Dict[str, str]] = field(default_factory=list) # [{"word": "...", "meaning": "...", "example": "..."}]
-    current_focus: Optional[str] = None # Title or concept of current learning module/lesson
+    daily_goal_minutes: int = 15
+    current_streak: int = 1
+    recent_words: List[Dict[str, str]] = field(default_factory=list)
+    current_focus: Optional[str] = None
+    screen_context: Optional[Dict[str, Any]] = None
 
 
 class TutorContextBuilder:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def build_context(self, user_id: str) -> LearnerTutorContext:
+    async def build_context(
+        self, user_id: str, screen_context: Optional[Dict[str, Any]] = None
+    ) -> LearnerTutorContext:
         """
         Safely fetch and assemble compact, structured context for a specific learner.
         All queries are scoped strictly to authenticated user_id.
@@ -49,6 +61,9 @@ class TutorContextBuilder:
         website_language = profile.website_language or "te"
         proficiency_level = profile.current_familiarity or "Beginner"
         learning_goal = profile.learning_goal or "General Practice"
+        age_group = profile.age_group or None
+        current_role = profile.current_role or None
+        educational_background = profile.educational_background or None
 
         # 2. Skill Profiles (LSRW Weaknesses / Strengths)
         res_skills = await self.db.execute(
@@ -108,7 +123,7 @@ class TutorContextBuilder:
                 "example": vocab_rec.example_sentence,
             })
 
-        # 4. Current Focus / Learning Path Module
+        # 4. Fetch Assessment Results for CEFR Level, Strengths, Weaknesses, and Confidence Score
         res_assess = await self.db.execute(
             select(AssessmentResult)
             .where(AssessmentResult.learner_id == user_id)
@@ -116,6 +131,30 @@ class TutorContextBuilder:
             .limit(1)
         )
         assess_result = res_assess.scalar_one_or_none()
+
+        cefr_level = None
+        confidence_score = None
+        strengths_list = []
+        weaknesses_list = []
+
+        if assess_result:
+            cefr_level = assess_result.overall_proficiency
+            confidence_score = assess_result.confidence_score
+            try:
+                if assess_result.strengths:
+                    strengths_list = json.loads(assess_result.strengths) if isinstance(assess_result.strengths, str) else list(assess_result.strengths)
+                if assess_result.weaknesses:
+                    weaknesses_list = json.loads(assess_result.weaknesses) if isinstance(assess_result.weaknesses, str) else list(assess_result.weaknesses)
+            except Exception as e:
+                logger.warning(f"Could not parse strengths/weaknesses JSON: {e}")
+
+        if weaknesses_list and not weakest_skill:
+            weakest_skill = str(weaknesses_list[0])
+        if strengths_list and not strongest_skill:
+            strongest_skill = str(strengths_list[0])
+
+        if not weakest_skill:
+            weakest_skill = "speaking"
 
         current_focus = None
         if assess_result and assess_result.learning_path:
@@ -151,8 +190,18 @@ class TutorContextBuilder:
             website_language=website_language,
             proficiency_level=proficiency_level,
             learning_goal=learning_goal,
+            age_group=age_group,
+            current_role=current_role,
+            educational_background=educational_background,
+            cefr_level=cefr_level,
+            confidence_score=confidence_score,
+            strengths=strengths_list,
+            weaknesses=weaknesses_list,
             weakest_skill=weakest_skill,
             strongest_skill=strongest_skill,
+            daily_goal_minutes=profile.daily_goal_minutes or 15,
+            current_streak=1,
             recent_words=recent_words,
             current_focus=current_focus,
+            screen_context=screen_context,
         )

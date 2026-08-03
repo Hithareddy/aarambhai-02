@@ -191,6 +191,8 @@ export function useTutorMessages(conversationId?: string) {
   });
 }
 
+import type { ScreenContextPayload } from "./types";
+
 export function useSendTutorMessage() {
   const qc = useQueryClient();
   return useMutation({
@@ -199,12 +201,14 @@ export function useSendTutorMessage() {
       message,
       mode,
       modeParams,
+      screenContext,
     }: {
       conversationId: string;
       message: string;
       mode?: string;
       modeParams?: Record<string, string>;
-    }) => getApiClient().sendTutorMessage(conversationId, message, mode, modeParams),
+      screenContext?: ScreenContextPayload;
+    }) => getApiClient().sendTutorMessage(conversationId, message, mode, modeParams, screenContext),
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: tutorQueryKeys.messages(variables.conversationId) });
       qc.invalidateQueries({ queryKey: tutorQueryKeys.conversations });
@@ -220,12 +224,14 @@ export function useSendTutorVoiceMessage() {
       audioBlob,
       mode,
       modeParams,
+      screenContext,
     }: {
       conversationId: string;
       audioBlob: Blob;
       mode?: string;
       modeParams?: Record<string, unknown>;
-    }) => getApiClient().sendTutorVoiceMessage(conversationId, audioBlob, mode, modeParams),
+      screenContext?: ScreenContextPayload;
+    }) => getApiClient().sendTutorVoiceMessage(conversationId, audioBlob, mode, modeParams, screenContext),
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: tutorQueryKeys.messages(variables.conversationId) });
       qc.invalidateQueries({ queryKey: tutorQueryKeys.conversations });

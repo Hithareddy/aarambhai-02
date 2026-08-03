@@ -61,7 +61,7 @@ function toTopics(names: string[], latest: AssessmentResult | undefined): TopicI
 }
 
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
-  const [user, profile, history, recommendedLessonNode, allModules, skillProfiles, gamification, weekActivity, monthActivity, streakData] = await Promise.all([
+  const [user, profile, history, recommendedLessonNode, allModules, skillProfiles, gamification, weekActivity, monthActivity, streakData, earnedAchievements] = await Promise.all([
     apiRequest<BackendUser>("/auth/me"),
     getLearnerProfile().catch(() => null),
     getAssessmentHistory().catch(() => [] as AssessmentResult[]),
@@ -72,6 +72,7 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     apiRequest<any>("/activity/summary?period=week").catch(() => null),
     apiRequest<any>("/activity/summary?period=month").catch(() => null),
     apiRequest<any>("/activity/streak").catch(() => null),
+    apiRequest<any[]>("/users/me/achievements").catch(() => []),
   ]);
 
   const name = profile?.name || user.full_name;
@@ -181,7 +182,13 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
       courseTitle: "Assessment",
     })),
     upcomingAssessments: [],
-    achievements: [],
+    achievements: (earnedAchievements || []).map((b: any) => ({
+      id: b.id,
+      title: b.name,
+      description: b.description,
+      unlockedAt: b.earned_at || new Date().toISOString(),
+      icon: "trophy"
+    })),
     notifications: [],
     activityFeed: [
       ...(recommendedLessonNode && recommendedLessonNode.reason ? [{

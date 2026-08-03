@@ -1,0 +1,62 @@
+{
+  "GATE_1": {
+    "pass": true,
+    "count": 0,
+    "failures": []
+  },
+  "GATE_2": {
+    "pass": true,
+    "count": 0,
+    "failures": []
+  },
+  "GATE_3": {
+    "pass": true,
+    "count": 0,
+    "failures": []
+  },
+  "GATE_4": {
+    "pass": true,
+    "count": 0,
+    "failures": []
+  },
+  "GATE_5": {
+    "pass": true,
+    "count": 0,
+    "failures": []
+  },
+  "GATE_6": {
+    "pass": true,
+    "count": 0,
+    "failures": []
+  },
+  "GATE_7": {
+    "pass": true,
+    "count": 0,
+    "failures": []
+  },
+  "GATE_8": {
+    "pass": true,
+    "count": 0,
+    "failures": []
+  },
+  "GATE_9": {
+    "pass": true,
+    "count": 0,
+    "failures": []
+  },
+  "GATE_10": {
+    "pass": true,
+    "count": 0,
+    "failures": []
+  },
+  "GATE_11": {
+    "pass": true,
+    "count": 0,
+    "failures": []
+  },
+  "GATE_12": {
+    "pass": true,
+    "count": 0,
+    "failures": []
+  }
+}

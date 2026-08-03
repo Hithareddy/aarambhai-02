@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { BookOpen, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 interface ReadingScenarioQuestionProps {
   questionText: string;
   image?: string;
+  passage?: string;
   options: { id: string; text: string }[];
   selected: string | null;
   onSelect: (id: string) => void;
@@ -15,11 +16,16 @@ interface ReadingScenarioQuestionProps {
 export function ReadingScenarioQuestion({
   questionText,
   image,
+  passage,
   options,
   selected,
   onSelect,
   submitting = false,
 }: ReadingScenarioQuestionProps) {
+  const [imgFailed, setImgFailed] = useState(false);
+
+  const documentText = passage || "Read the instruction carefully and select the best answer.";
+
   return (
     <div className="flex flex-col items-center space-y-6 w-full max-w-xl mx-auto animate-in fade-in duration-300">
       <Badge className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20 text-xs font-extrabold px-3 py-1">
@@ -28,16 +34,23 @@ export function ReadingScenarioQuestion({
 
       <h3 className="text-xl font-black text-center text-foreground">{questionText}</h3>
 
-      {/* Visual Document Card (Road Sign, Ticket, Label, Paragraph) */}
+      {/* Visual Document Card */}
       <Card className="w-full p-6 rounded-3xl border-2 border-indigo-500/20 bg-indigo-500/5 shadow-md flex flex-col items-center justify-center space-y-4">
-        {image ? (
+        {image && !imgFailed ? (
           <div className="h-44 w-full flex items-center justify-center p-2">
-            <img src={image} alt="Reading document visual" className="h-full object-contain drop-shadow" />
+            <img
+              src={image}
+              alt="Reading document visual"
+              className="h-full object-contain drop-shadow"
+              onError={() => setImgFailed(true)}
+            />
           </div>
         ) : (
-          <div className="p-4 rounded-2xl bg-card border text-sm text-foreground leading-relaxed w-full">
+          <div className="p-5 rounded-2xl bg-card border text-sm text-foreground leading-relaxed w-full">
             <FileText className="h-6 w-6 text-indigo-600 mb-2" />
-            <p className="font-semibold italic text-muted-foreground">"The girl is drinking water after running."</p>
+            <p className="font-semibold text-foreground text-base tracking-wide leading-relaxed">
+              "{documentText}"
+            </p>
           </div>
         )}
       </Card>

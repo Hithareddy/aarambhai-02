@@ -1,12 +1,14 @@
-"""
-Integration test script for verifying the adaptive assessment flow end-to-end.
-"""
 import asyncio
+import sys
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 import json
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.db.session import async_session_factory, init_db
 from app.models.user import User
 from app.models.learner import LearnerProfile
 from app.models.assessment import AssessmentBlueprint, AssessmentSession, AssessmentResult
@@ -16,21 +18,13 @@ from app.services.assessment_service import AssessmentService
 from app.schemas.learner import LearnerProfileCreate
 from app.schemas.assessment import AssessmentBlueprintCreate, AssessmentSessionCreate, QuestionResponseCreate
 
-DATABASE_URL = settings.DATABASE_URL
-# Create async engine with PgBouncer support
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=False,
-    connect_args={
-        "statement_cache_size": 0,
-    }
-)
-AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+AsyncSessionLocal = async_session_factory
 
 
 async def test_flow():
     print("--- Starting End-to-End Assessment Flow Test ---")
-    async with AsyncSessionLocal() as db:
+    await init_db()
+    async with async_session_factory() as db:
         # 1. Setup a test user if not exists
         user_id = "test-user-id-999"
         result = await db.execute(select(User).where(User.id == user_id))
@@ -170,9 +164,8 @@ async def test_flow():
         print("Assessment completed successfully!")
         print("Final Report:")
         print(f"   Overall level: {result_payload['overall_proficiency']}")
-        print(f"   Confidence: {result_payload['confidence_score'] * 100}%")
-        print(f"   Recommended start: {result_payload['learning_path']['recommended_start']}")
-        print(f"   Full Path: {result_payload['learning_path']['path']}")
+        print(f"   Confidence: {result_payload['confidence_score'] * 100:.1f}%")
+        print(f"   Full Path ({len(result_payload['learning_path'])} modules): {result_payload['learning_path']}")
         
         # Verify that learner profile is flagged as completed
         updated_profile = await learner_service.get_learner_profile_by_user_id(user_id)

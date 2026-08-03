@@ -162,6 +162,7 @@ async def chat_with_tutor(
             message_text=request.message,
             mode=request.mode or "free_talk",
             mode_params=request.mode_params,
+            screen_context=request.screen_context.model_dump() if request.screen_context else None,
         )
         return ChatMessageResponse(
             user_message=MessageResponse(
@@ -211,6 +212,7 @@ async def voice_chat_with_tutor(
     audio_file: UploadFile = File(..., description="Learner voice recording (webm/mp4/wav)"),
     mode: str = Form("free_talk"),
     mode_params_json: str = Form("{}"),
+    screen_context_json: str = Form("{}"),
     voice_gender: str = Form("female"),
     speaking_speed: float = Form(1.0),
     current_user: User = Depends(get_current_active_user),
@@ -242,11 +244,16 @@ async def voice_chat_with_tutor(
     # Read audio into memory (size validated inside voice service)
     audio_bytes = await audio_file.read()
 
-    # Parse optional mode_params
+    # Parse optional mode_params & screen_context
     try:
         mode_params = json.loads(mode_params_json) if mode_params_json.strip() else {}
     except Exception:
         mode_params = {}
+
+    try:
+        screen_context = json.loads(screen_context_json) if screen_context_json.strip() else None
+    except Exception:
+        screen_context = None
 
     # Map voice gender
     voice_name = "coral" if voice_gender.lower() == "female" else "echo"
@@ -264,6 +271,7 @@ async def voice_chat_with_tutor(
             mode_params=mode_params,
             voice_name=voice_name,
             speed=speaking_speed,
+            screen_context=screen_context,
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

@@ -44,3 +44,9 @@ export async function getLearnerProfile(): Promise<LearnerProfile | null> {
     throw err;
   }
 }
+
+/** Update the current user's learner profile. */
+export async function updateLearnerProfile(update: Partial<LearnerProfile>): Promise<LearnerProfile> {
+  return apiRequest<LearnerProfile>("/learners/me", "PUT", update);
+}
+

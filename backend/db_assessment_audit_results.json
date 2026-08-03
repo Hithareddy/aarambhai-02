@@ -1,0 +1,28 @@
+{
+  "total_active": 120,
+  "skill_distribution": {
+    "listening": 24,
+    "speaking": 24,
+    "reading": 24,
+    "writing": 24,
+    "conversations": 24
+  },
+  "difficulty_distribution": {
+    "1": 25,
+    "2": 25,
+    "3": 25,
+    "4": 21,
+    "5": 24
+  },
+  "qtype_distribution": {
+    "listening": 24,
+    "speaking": 24,
+    "road_signs": 7,
+    "read_select": 17,
+    "arrange": 12,
+    "fill_blank": 6,
+    "everyday_communication": 30
+  },
+  "defects_count": 0,
+  "defects": []
+}

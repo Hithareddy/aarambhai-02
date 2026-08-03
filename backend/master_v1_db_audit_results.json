@@ -1,0 +1,39 @@
+{
+  "total_active": 500,
+  "total_archived": 390,
+  "skill_distribution": {
+    "listening": 100,
+    "speaking": 100,
+    "reading": 100,
+    "writing": 100,
+    "everyday_communication": 100
+  },
+  "difficulty_distribution": {
+    "1": 100,
+    "2": 100,
+    "3": 100,
+    "4": 100,
+    "5": 100
+  },
+  "qtype_distribution": {
+    "audio_mcq": 75,
+    "image_audio_mcq": 25,
+    "greeting_introduction": 20,
+    "situational_response": 40,
+    "extended_response": 40,
+    "reading_mcq": 75,
+    "image_reading": 25,
+    "fill_blank": 34,
+    "sentence_order": 33,
+    "short_response": 33,
+    "scenario_mcq": 80,
+    "image_scenario_mcq": 20
+  },
+  "audio_script_count": 100,
+  "image_required_count": 102,
+  "passage_count": 100,
+  "microphone_count": 100,
+  "duplicate_ids_count": 0,
+  "missing_fields_count": 0,
+  "legacy_active_count": 0
+}

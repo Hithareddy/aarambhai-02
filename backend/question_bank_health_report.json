@@ -1,0 +1,38 @@
+{
+  "total_questions": 270,
+  "valid_questions": 270,
+  "invalid_questions": 0,
+  "warning_questions": 0,
+  "failures_by_category": {
+    "MISSING_CONTENT": [],
+    "MEDIA": [],
+    "ANSWER_INTEGRITY": [],
+    "LANGUAGE": [],
+    "QUESTION_TYPE": [],
+    "PROFILE_DIFFICULTY": [],
+    "SEMANTIC_INCONSISTENCY": []
+  },
+  "media_health": {
+    "listening": {
+      "total": 36,
+      "usable": 36,
+      "missing": 0
+    },
+    "image": {
+      "total": 12,
+      "usable": 12,
+      "missing": 0
+    },
+    "speaking": {
+      "total": 33,
+      "usable": 33,
+      "missing": 0
+    },
+    "comprehension": {
+      "total": 13,
+      "usable": 13,
+      "missing": 0
+    }
+  },
+  "invalid_details": []
+}

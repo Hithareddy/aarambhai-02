@@ -1,7 +1,6 @@
 /* Aarambh AI Production Service Worker */
-const CACHE_NAME = 'aarambh-pwa-v1';
+const CACHE_NAME = 'aarambh-pwa-v2';
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/offline.html',
   '/favicon.svg',
@@ -12,7 +11,7 @@ const STATIC_ASSETS = [
   '/apple-touch-icon.png'
 ];
 
-// Install Event — Precache essential app shell assets
+// Install Event — Precache static brand assets & offline page
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -22,7 +21,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate Event — Clean up old caches
+// Activate Event — Immediately purge old caches and claim clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -37,7 +36,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event — Security-Aware Caching Strategy
+// Fetch Event — Security-Aware & Stale-Script-Safe Strategy
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
@@ -56,7 +55,6 @@ self.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/api/v1/tutor');
 
   if (isSensitiveApi) {
-    // Network-Only with zero fallback cache to prevent cross-session leakage
     event.respondWith(
       fetch(request).catch(() => {
         return new Response(
@@ -68,24 +66,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Navigation / HTML pages -> Network-First, with Offline Fallback
+  // 3. Navigation / HTML pages -> Always Network-First (Never cache HTML pages with transient script hashes)
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Cache successful navigation pages for offline availability
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          return response;
-        })
-        .catch(() => {
-          return caches.match(request).then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            return caches.match('/offline.html');
-          });
-        })
+      fetch(request).catch(() => {
+        return caches.match('/offline.html');
+      })
     );
     return;
   }

@@ -45,10 +45,12 @@ import {
 } from "@/lib/api/assessment";
 import { toast } from "sonner";
 import { useAdminGuard } from "@/hooks/use-admin-guard";
+import { useLearningContext } from "@/context/learning-context";
 
 export function AssessmentQuizPage() {
   const { checking } = useAdminGuard();
   const navigate = useNavigate();
+  const { setPageType, setAssessmentMode, updateQuestionContext, clearLearningContext } = useLearningContext();
 
   const [session, setSession] = useState<AssessmentSession | null>(null);
   const [activeQuestion, setActiveQuestion] = useState<Question | null>(null);
@@ -65,49 +67,107 @@ export function AssessmentQuizPage() {
 
   const autoAdvanceTimer = useRef<NodeJS.Timeout | null>(null);
 
+  // Assessment mode lifecycle
+  useEffect(() => {
+    setPageType("assessment");
+    setAssessmentMode(true);
+    return () => {
+      setAssessmentMode(false);
+      clearLearningContext();
+    };
+  }, [setPageType, setAssessmentMode, clearLearningContext]);
+
+  // Update question context when active question changes
+  useEffect(() => {
+    if (activeQuestion) {
+      updateQuestionContext({
+        questionId: activeQuestion.id,
+        questionType: activeQuestion.question_type || "mcq",
+        displayedContent: activeQuestion.prompt || null,
+        difficulty: activeQuestion.difficulty || null,
+        learnerAnswer: null,
+        correctAnswer: null, // Keep internal/unexposed during assessment mode
+        answerStatus: "unanswered",
+      });
+    }
+  }, [activeQuestion, updateQuestionContext]);
+
+  // Log state transitions for diagnostics
+  useEffect(() => {
+    console.log("[AssessmentQuiz Diagnostics] State update:", {
+      checking,
+      loading,
+      error,
+      sessionId: session?.id || null,
+      activeQuestionId: activeQuestion?.id || null,
+    });
+  }, [checking, loading, error, session, activeQuestion]);
+
   // Initialize session and pull first question
   useEffect(() => {
-    if (checking) return;
+    if (checking) {
+      console.log("[AssessmentQuiz Diagnostics] Waiting on useAdminGuard (checking = true)");
+      return;
+    }
+
+    let isCancelled = false;
+    let timeoutId: NodeJS.Timeout | null = null;
 
     const initSession = async () => {
+      console.log("[AssessmentQuiz Diagnostics] INIT STARTED");
       setLoading(true);
       setError(null);
-      const cachedSessionId = localStorage.getItem("assessment_session_id");
-      let activeSession: AssessmentSession | null = null;
 
-      if (cachedSessionId) {
-        try {
-          const sess = await getAssessmentSession(cachedSessionId);
-          if (sess && sess.status === "in_progress") {
-            activeSession = sess;
-          } else {
+      // Safety timeout: Never allow spinner to hang past 12s
+      timeoutId = setTimeout(() => {
+        if (!isCancelled) {
+          console.error("[AssessmentQuiz Diagnostics] INIT TIMED OUT after 12s");
+          setError("Assessment couldn't start. Diagnostic load timed out. Please retry connection.");
+          setLoading(false);
+        }
+      }, 12000);
+
+      try {
+        const cachedSessionId = localStorage.getItem("assessment_session_id");
+        let activeSession: AssessmentSession | null = null;
+
+        if (cachedSessionId) {
+          try {
+            console.log("[AssessmentQuiz Diagnostics] Validating cached session ID:", cachedSessionId);
+            const sess = await getAssessmentSession(cachedSessionId);
+            if (sess && sess.status === "in_progress") {
+              activeSession = sess;
+              console.log("[AssessmentQuiz Diagnostics] Cached session is valid");
+            } else {
+              console.log("[AssessmentQuiz Diagnostics] Cached session expired or complete, removing");
+              localStorage.removeItem("assessment_session_id");
+            }
+          } catch (err) {
+            console.warn("[AssessmentQuiz Diagnostics] Cached session invalid, starting fresh:", err);
             localStorage.removeItem("assessment_session_id");
           }
-        } catch (err) {
-          console.warn("Cached session invalid or not found, starting fresh:", err);
-          localStorage.removeItem("assessment_session_id");
         }
-      }
 
-      if (!activeSession) {
-        try {
+        if (!activeSession) {
+          console.log("[AssessmentQuiz Diagnostics] startAssessmentSession START");
           activeSession = await startAssessmentSession();
+          console.log("[AssessmentQuiz Diagnostics] startAssessmentSession SUCCESS, session ID:", activeSession.id);
           localStorage.setItem("assessment_session_id", activeSession.id);
-        } catch (err: any) {
-          console.error("Failed to start assessment session:", err);
-          setError("Failed to initialize assessment session. Please verify that your learner profile is complete and the database is active.");
-          setLoading(false);
-          return;
         }
-      }
 
-      setSession(activeSession);
-      setCurrentIndex(activeSession.currentIndex);
-      setTotalQuestions(activeSession.totalQuestions);
+        if (isCancelled) return;
 
-      // Fetch first question
-      try {
+        setSession(activeSession);
+        setCurrentIndex(activeSession.currentIndex);
+        setTotalQuestions(activeSession.totalQuestions);
+
+        // Fetch first question
+        console.log("[AssessmentQuiz Diagnostics] getNextQuestion START for session:", activeSession.id);
         const firstQ = await getNextQuestion(activeSession.id);
+        console.log("[AssessmentQuiz Diagnostics] getNextQuestion SUCCESS, question ID:", firstQ?.id || "NONE");
+
+        if (isCancelled) return;
+
         if (firstQ) {
           setActiveQuestion(firstQ);
           setStartTime(Date.now());
@@ -115,22 +175,34 @@ export function AssessmentQuizPage() {
           setError("Database Configuration Error: No active diagnostic questions found in the database. Please ensure the database question bank is seeded.");
         }
       } catch (err: any) {
-        console.error("Failed to load first question:", err);
+        if (isCancelled) return;
+        console.error("[AssessmentQuiz Diagnostics] initSession FAIL:", err);
         const errMsg = err.message || "";
         if (errMsg.toLowerCase().includes("no questions") || errMsg.toLowerCase().includes("no more questions")) {
           setError("Database Configuration Error: No active diagnostic questions found in the database. Please ensure the database question bank is seeded.");
         } else {
-          setError(`Error loading assessment question: ${err.message || err}`);
+          setError(`Assessment couldn't start: ${err.message || err}`);
         }
       } finally {
-        setLoading(false);
+        console.log("[AssessmentQuiz Diagnostics] finally reached");
+        if (timeoutId) clearTimeout(timeoutId);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
     };
 
     initSession();
-  }, []);
 
-  const handleContinueNext = useCallback(async () => {
+    return () => {
+      isCancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [checking]);
+
+  const [preloadedNextQuestion, setPreloadedNextQuestion] = useState<Question | null>(null);
+
+  const handleContinueNext = useCallback(async (overrideNext?: Question | null) => {
     if (autoAdvanceTimer.current) {
       clearTimeout(autoAdvanceTimer.current);
       autoAdvanceTimer.current = null;
@@ -138,20 +210,20 @@ export function AssessmentQuizPage() {
 
     if (!session) return;
 
-    setLoading(true);
     setFeedback(null);
     setSelected(null);
     setSubmitting(false);
 
     try {
-      const nextQ = await getNextQuestion(session.id);
+      const nextQ = overrideNext !== undefined ? overrideNext : preloadedNextQuestion || await getNextQuestion(session.id);
+      setPreloadedNextQuestion(null);
+
       if (nextQ) {
         setActiveQuestion(nextQ);
         setCurrentIndex((idx) => idx + 1);
         setStartTime(Date.now());
-        setLoading(false);
       } else {
-        // Complete the assessment and get results
+        setLoading(true);
         await completeAssessment(session.id);
         navigate({ to: "/assessment-results", search: { s: session.id } });
       }
@@ -160,6 +232,7 @@ export function AssessmentQuizPage() {
       const errMsg = err.message || "";
       if (errMsg.toLowerCase().includes("no more questions") || errMsg.toLowerCase().includes("no questions")) {
         try {
+          setLoading(true);
           await completeAssessment(session.id);
           navigate({ to: "/assessment-results", search: { s: session.id } });
         } catch (compErr: any) {
@@ -172,7 +245,7 @@ export function AssessmentQuizPage() {
         setLoading(false);
       }
     }
-  }, [session, navigate]);
+  }, [session, preloadedNextQuestion, navigate]);
 
   const handleSubmitAnswer = async () => {
     if (!session || !activeQuestion || selected === null || submitting) return;
@@ -183,10 +256,17 @@ export function AssessmentQuizPage() {
     try {
       const res = await submitAnswer(session.id, activeQuestion.id, selected, responseTime);
       setFeedback({ isCorrect: res.is_correct });
+      updateQuestionContext({
+        learnerAnswer: typeof selected === "object" ? JSON.stringify(selected) : String(selected),
+        answerStatus: res.is_correct ? "correct" : "incorrect",
+      });
+
+      const preloaded = res.next_question || null;
+      setPreloadedNextQuestion(preloaded);
       
       autoAdvanceTimer.current = setTimeout(() => {
-        handleContinueNext();
-      }, 900);
+        handleContinueNext(preloaded);
+      }, 400);
     } catch (err: any) {
       console.error("Failed to submit answer:", err);
       toast.error(`Failed to submit answer: ${err.message || err}`);
@@ -199,7 +279,18 @@ export function AssessmentQuizPage() {
     navigate({ to: "/dashboard" });
   };
 
-  if (error) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto" />
+          <p className="text-muted-foreground animate-pulse text-sm font-medium">Validating interactive question deck...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !activeQuestion || !session) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background p-6">
         <Card className="max-w-md w-full p-6 text-center space-y-6 rounded-3xl border-destructive/20 shadow-md">
@@ -208,7 +299,9 @@ export function AssessmentQuizPage() {
           </div>
           <div className="space-y-2">
             <h2 className="font-extrabold text-xl text-foreground">Diagnostic Load Error</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">{error}</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {error || "Unable to initialize active question deck. Please verify database connection or retry."}
+            </p>
           </div>
           <div className="flex gap-3 justify-center">
             <Button variant="outline" className="rounded-xl font-bold" onClick={() => navigate({ to: "/dashboard" })}>
@@ -219,17 +312,6 @@ export function AssessmentQuizPage() {
             </Button>
           </div>
         </Card>
-      </div>
-    );
-  }
-
-  if (loading || !activeQuestion || !session) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto" />
-          <p className="text-muted-foreground animate-pulse text-sm font-medium">Validating interactive question deck...</p>
-        </div>
       </div>
     );
   }
@@ -326,7 +408,7 @@ export function AssessmentQuizPage() {
                 </div>
               </div>
 
-              <Button size="sm" variant="ghost" onClick={handleContinueNext} className="font-bold text-xs">
+              <Button size="sm" variant="ghost" onClick={() => handleContinueNext()} className="font-bold text-xs">
                 Skip →
               </Button>
             </div>

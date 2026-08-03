@@ -7,6 +7,7 @@ import { getLesson, saveLessonProgress } from "@/lib/api/learning";
 import { BlockRenderer } from "@/components/learning/BlockRenderer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useLearningContext } from "@/context/learning-context";
 
 export const Route = createFileRoute("/lesson/$lessonId")({
     component: LessonPlayer,
@@ -16,12 +17,29 @@ function LessonPlayer() {
     const { lessonId } = Route.useParams();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { setPageType, setLessonContext, clearLearningContext } = useLearningContext();
 
     // Load lesson data
     const { data: lesson, isLoading, error } = useQuery({
         queryKey: ["lesson", lessonId],
         queryFn: () => getLesson(lessonId),
     });
+
+    React.useEffect(() => {
+        setPageType("lesson");
+        if (lesson) {
+            setLessonContext({
+                lessonId: lesson.id,
+                lessonTitle: lesson.title,
+                moduleId: lesson.module_id || null,
+                moduleTitle: (lesson as any).module?.title || null,
+                skill: (lesson as any).module?.skill || null,
+            });
+        }
+        return () => {
+            clearLearningContext();
+        };
+    }, [lesson, setPageType, setLessonContext, clearLearningContext]);
 
     const [completedBlocks, setCompletedBlocks] = React.useState<Record<string, boolean>>({});
 

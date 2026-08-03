@@ -3,22 +3,33 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BlockProps } from "./types";
+import { useLearningContext } from "@/context/learning-context";
 
 export const QuizBlock: React.FC<BlockProps> = ({ block, onComplete }) => {
     const [selectedId, setSelectedId] = React.useState<string | null>(null);
     const [isSubmitted, setIsSubmitted] = React.useState(false);
-
-    // Quiz content shape expectation:
-    // question: string
-    // options: { id: string, text: string }[]
-    // correctAnswer: string (id)
-    // explanation?: string
+    const { updateQuestionContext } = useLearningContext();
 
     const { question, options, correctAnswer, explanation } = block.content;
+
+    React.useEffect(() => {
+        updateQuestionContext({
+            questionId: block.id,
+            questionType: "quiz",
+            displayedContent: question || null,
+            correctAnswer: correctAnswer || null,
+            learnerAnswer: null,
+            answerStatus: "unanswered",
+        });
+    }, [block.id, question, correctAnswer, updateQuestionContext]);
 
     const handleSubmit = () => {
         if (!selectedId) return;
         setIsSubmitted(true);
+        updateQuestionContext({
+            learnerAnswer: selectedId,
+            answerStatus: selectedId === correctAnswer ? "correct" : "incorrect",
+        });
         if (onComplete) onComplete();
     };
 

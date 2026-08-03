@@ -268,3 +268,23 @@ export interface VoiceChatResult {
   tutor_reply: TutorMessage;
   tutor_audio_token: string;    // One-time token for /voice-audio/{token}
 }
+
+export interface ScreenContextPayload {
+  page_type?: string;
+  assessment_mode?: boolean;
+  module_id?: string | null;
+  module_title?: string | null;
+  lesson_id?: string | null;
+  lesson_title?: string | null;
+  skill?: string | null;
+  activity_id?: string | null;
+  activity_type?: string | null;
+  activity_title?: string | null;
+  displayed_content?: string | null;
+  question_id?: string | null;
+  question_type?: string | null;
+  difficulty?: number | null;
+  learner_answer?: string | null;
+  correct_answer?: string | null;
+  answer_status?: string | null;
+}

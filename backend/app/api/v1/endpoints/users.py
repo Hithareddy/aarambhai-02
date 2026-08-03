@@ -95,25 +95,26 @@ async def get_my_gamification(
     """
     Fetch the user's gamification profile containing XP, Level, and Streaks.
     """
-    from sqlalchemy import select
-    from app.models.gamification import GamificationProfile
-    
-    res = await db.execute(select(GamificationProfile).where(GamificationProfile.user_id == str(current_user.id)))
-    record = res.scalars().first()
-    
-    if not record:
-        # Return fallback zeroed state if no seed/gamification profile generated yet
-        return {
-            "xp": 0,
-            "level": 1,
-            "streak_days": 0,
-            "longest_streak": 0
-        }
-        
+    from app.services.gamification_service import GamificationService
+    service = GamificationService(db)
+    profile = await service.get_or_create_profile(current_user.id)
     return {
-        "xp": record.xp,
-        "level": record.level,
-        "streak_days": record.daily_streak_count,
-        "longest_streak": record.daily_streak_count
+        "xp": profile.xp,
+        "level": profile.level,
+        "streak_days": profile.daily_streak_count,
+        "longest_streak": profile.daily_streak_count
     }
+
+@router.get("/me/achievements")
+async def get_my_achievements(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Fetch the user's earned achievement badges.
+    """
+    from app.services.gamification_service import GamificationService
+    service = GamificationService(db)
+    badges = await service.get_user_badges(current_user.id)
+    return badges
 

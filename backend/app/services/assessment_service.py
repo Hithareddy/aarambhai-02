@@ -94,6 +94,13 @@ class AssessmentService:
         self, question: Question, is_fallback: bool | None = None
     ) -> dict:
         """Convert a Question ORM object into QuestionForAssessment shape."""
+        qc = self._from_json(question.question_content)
+        stimulus = None
+        if isinstance(qc, dict):
+            stimulus = qc.get("stimulus") or qc.get("passage") or qc.get("scenario")
+        if not stimulus:
+            stimulus = question.reference_text
+
         return {
             "id": str(question.id),
             "learning_goal": question.learning_goal,
@@ -102,7 +109,8 @@ class AssessmentService:
             "difficulty": question.difficulty,
             "question_type": question.question_type,
             "language": question.language,
-            "question_content": self._from_json(question.question_content),
+            "question_content": qc,
+            "stimulus": stimulus,
             "options": self._from_json(question.options),
             "is_fallback": is_fallback,
             "audio_url": question.audio_url,
@@ -114,56 +122,75 @@ class AssessmentService:
         }
 
     async def _get_translated_question(
-        self, question: Question, target_code: str
+        self, question: Question, website_lang: str, learning_lang: str
     ) -> tuple[dict, bool]:
         """
-        Retrieves translation for a logical Question row, falling back to default English version.
-        Returns: (serialized_question_dict, is_fallback)
+        Retrieves translation for a logical Question row:
+        - website_lang controls UI/support/instruction language (question_content).
+        - learning_lang controls target language being learned (options).
+        Falls back to default base English version if translation is missing.
         """
-        target_code = target_code.strip().lower()
+        website_lang = (website_lang or "en").strip().lower()
+        learning_lang = (learning_lang or "en").strip().lower()
         
-        # Serialize the default English version of the Question
+        # Serialize base English version of the Question
         serialized = self.serialize_question_for_assessment(question, is_fallback=False)
-        
-        if target_code == "en":
-            return serialized, False
-            
-        # Search translation table
         from app.models.translation import ContentTranslation
-        result = await self.db.execute(
-            select(ContentTranslation).where(
-                ContentTranslation.entity_type == "question",
-                ContentTranslation.entity_id == str(question.id),
-                ContentTranslation.language_code == target_code
+
+        # 1. Translate UI/Instruction prompt if website_lang != "en"
+        if website_lang != "en":
+            res_ui = await self.db.execute(
+                select(ContentTranslation).where(
+                    ContentTranslation.entity_type == "question",
+                    ContentTranslation.entity_id == str(question.id),
+                    ContentTranslation.language_code == website_lang
+                )
             )
-        )
-        translation = result.scalar_one_or_none()
-        
-        if translation:
-            fields = self._from_json(translation.translated_fields)
-            if "question_text" in fields:
-                serialized["question_content"] = {"text": fields["question_text"]}
-            elif "question_content" in fields:
-                q_content = fields["question_content"]
-                if isinstance(q_content, str):
-                    serialized["question_content"] = {"text": q_content}
+            ui_trans = res_ui.scalar_one_or_none()
+            if ui_trans:
+                fields = self._from_json(ui_trans.translated_fields)
+                existing_qc = serialized.get("question_content")
+                if isinstance(existing_qc, dict):
+                    updated_qc = dict(existing_qc)
                 else:
-                    serialized["question_content"] = q_content
-                    
-            if "options" in fields:
-                serialized["options"] = fields["options"]
-            elif "option_a" in fields:
-                serialized["options"] = [
-                    {"id": "A", "text": fields["option_a"]},
-                    {"id": "B", "text": fields["option_b"]},
-                    {"id": "C", "text": fields["option_c"]},
-                    {"id": "D", "text": fields["option_d"]}
-                ]
-            serialized["language"] = target_code
-            return serialized, False
-        else:
-            serialized["is_fallback"] = True
-            return serialized, True
+                    updated_qc = {"text": str(existing_qc)} if existing_qc else {}
+
+                if "question_text" in fields and fields["question_text"]:
+                    updated_qc["text"] = fields["question_text"]
+                    updated_qc["instruction"] = fields["question_text"]
+                elif "question_content" in fields and fields["question_content"]:
+                    q_content = fields["question_content"]
+                    if isinstance(q_content, dict):
+                        updated_qc.update(q_content)
+                    elif isinstance(q_content, str):
+                        updated_qc["text"] = q_content
+
+                serialized["question_content"] = updated_qc
+
+        # 2. Translate options / choices if learning_lang != "en"
+        if learning_lang != "en":
+            res_target = await self.db.execute(
+                select(ContentTranslation).where(
+                    ContentTranslation.entity_type == "question",
+                    ContentTranslation.entity_id == str(question.id),
+                    ContentTranslation.language_code == learning_lang
+                )
+            )
+            target_trans = res_target.scalar_one_or_none()
+            if target_trans:
+                fields = self._from_json(target_trans.translated_fields)
+                if "options" in fields and fields["options"]:
+                    serialized["options"] = fields["options"]
+                elif "option_a" in fields and fields["option_a"]:
+                    serialized["options"] = [
+                        {"id": "A", "text": fields["option_a"]},
+                        {"id": "B", "text": fields["option_b"]},
+                        {"id": "C", "text": fields["option_c"]},
+                        {"id": "D", "text": fields["option_d"]}
+                    ]
+
+        serialized["language"] = learning_lang
+        return serialized, False
 
     async def _get_active_session(
         self, session_id: str, user_id: str | None = None
@@ -181,11 +208,7 @@ class AssessmentService:
         return session
 
     def _serialize_result(self, result: "AssessmentResult") -> dict[str, Any]:
-        """Convert an AssessmentResult ORM row into the API response shape.
-
-        JSON columns are stored as Text, so they must be parsed back into
-        lists/dicts to satisfy the AssessmentResultResponse schema.
-        """
+        """Convert an AssessmentResult ORM row into the API response shape."""
         return {
             "id": result.id,
             "session_id": result.session_id,
@@ -230,12 +253,7 @@ class AssessmentService:
     async def generate_blueprint(
         self, blueprint_data: AssessmentBlueprintCreate, user_id: str
     ) -> AssessmentBlueprint:
-        """
-        Generate assessment blueprint based on learner profile.
-
-        Analyzes the user's onboarding profile to personalize the domains, skills,
-        duration, and difficulty limits of their placement test.
-        """
+        """Generate assessment blueprint based on learner profile."""
         analysis = await LearnerService(self.db).analyze_profile(user_id)
         
         blueprint = AssessmentBlueprint(
@@ -256,16 +274,7 @@ class AssessmentService:
     async def create_session(
         self, session_data: AssessmentSessionCreate, user_id: str
     ) -> AssessmentSession:
-        """
-        Create assessment session.
-
-        Args:
-            session_data: Session creation data
-            user_id: User ID
-
-        Returns:
-            Created assessment session
-        """
+        """Create assessment session using placement blueprint."""
         if session_data.blueprint_id:
             result = await self.db.execute(
                 select(AssessmentBlueprint).where(
@@ -276,27 +285,9 @@ class AssessmentService:
             if blueprint is None:
                 raise ValueError("Assessment blueprint not found")
         else:
-            # Generate a personalized blueprint automatically for the user!
-            try:
-                from app.schemas.assessment import AssessmentBlueprintCreate
-                blueprint = await self.generate_blueprint(
-                    AssessmentBlueprintCreate(
-                        learning_goal="Initial placement",
-                        question_count=DEFAULT_QUESTION_COUNT,
-                        min_difficulty=1,
-                        max_difficulty=5,
-                        estimated_duration_minutes=5,
-                        domains=["Reading", "Grammar", "Vocabulary", "Listening", "Speaking", "Writing"],
-                        skills=["reading", "grammar", "vocabulary", "listening", "speaking", "writing"],
-                        question_distribution={}
-                    ),
-                    user_id
-                )
-            except Exception:
-                # Fallback to the default placement blueprint if profile is missing / error
-                blueprint = await self._get_or_create_default_blueprint()
+            blueprint = await self._get_or_create_default_blueprint()
 
-        starting_difficulty = await self._starting_difficulty(user_id, blueprint)
+        starting_difficulty = await self.get_initial_difficulty_for_user(user_id, blueprint)
 
         session = AssessmentSession(
             learner_id=user_id,
@@ -322,58 +313,119 @@ class AssessmentService:
             raise ValueError("Assessment session not found")
         return await self.serialize_session(session)
 
-    async def _starting_difficulty(
-        self, user_id: str, blueprint: AssessmentBlueprint
+    async def get_initial_difficulty_for_user(
+        self, user_id: str, blueprint: AssessmentBlueprint | None = None
     ) -> int:
-        """
-        Profile-aware initial difficulty.
-
-        Per the assessment specification, starting difficulty is derived from the
-        learner's stated familiarity so beginners start easy and advanced learners
-        start higher. Falls back to the blueprint minimum when no profile exists.
-        """
+        """Profile-aware initial difficulty mapping from learner's current_familiarity."""
         profile = await LearnerService(self.db).get_learner_profile_by_user_id(user_id)
         if profile is None:
-            return blueprint.min_difficulty
+            return 1
 
         familiarity = (profile.current_familiarity or "").strip().lower()
         if "advanced" in familiarity:
             level = 4
-        elif "comfortable" in familiarity:
+        elif "intermediate" in familiarity or "comfortable" in familiarity:
             level = 3
-        elif "little" in familiarity:
+        elif "elementary" in familiarity or "little" in familiarity:
             level = 2
-        else:  # complete beginner / unknown
+        else:
             level = 1
 
-        return max(blueprint.min_difficulty, min(blueprint.max_difficulty, level))
+        min_diff = blueprint.min_difficulty if blueprint else 1
+        max_diff = blueprint.max_difficulty if blueprint else 5
+        return max(min_diff, min(max_diff, level))
+
+    @staticmethod
+    def is_question_profile_eligible(question: Question, profile: Any) -> bool:
+        """
+        Enforce strict 10-Criteria Learner Personalization Filter.
+        Ensures questions match learner age, role, education, learning_language, and familiarity.
+        """
+        if not profile:
+            return True
+
+        role = (profile.current_role or "").strip().lower()
+        age = (profile.age_group or "").strip().lower()
+        edu = (profile.educational_background or profile.education_level or "").strip().lower()
+        goal = (profile.learning_goal or "").strip().lower()
+        target_lang = (profile.learning_language or "en").strip().lower()
+        familiarity = (profile.current_familiarity or "").strip().lower()
+        
+        domain = (question.domain or question.topic_category or "").strip().lower()
+        q_lang = (question.language or question.language_code or "en").strip().lower()
+        
+        # 1. QUESTION STATUS: Must be active
+        if not question.is_active:
+            return False
+
+        # 2. QUESTION COMPLETENESS: Must have valid question_content and options (or reference text for speaking)
+        if not question.question_content or (question.question_type != "speaking" and not question.options):
+            return False
+
+        # 3. LEARNING LANGUAGE FILTER
+        target_lang_code = "te" if "telugu" in target_lang or target_lang == "te" else "hi" if "hindi" in target_lang or target_lang == "hi" else "en"
+        q_lang_code = "te" if "telugu" in q_lang or q_lang == "te" else "hi" if "hindi" in q_lang or q_lang == "hi" else "en"
+
+        if target_lang_code != "en" and q_lang_code != target_lang_code and q_lang_code != "en":
+            return False
+
+        # Parse tags
+        tags = []
+        if question.tags:
+            try:
+                tags = json.loads(question.tags) if isinstance(question.tags, str) else question.tags
+            except Exception:
+                tags = []
+
+        role_tags = [t.lower() for t in (json.loads(question.learner_type) if question.learner_type and question.learner_type.startswith('[') else tags)]
+        age_tags = [t.lower() for t in (json.loads(question.age_group) if question.age_group and question.age_group.startswith('[') else tags)]
+
+        is_child = "under 12" in age or "<12" in age or "child" in age
+        is_teen = "12" in age or "13" in age or "17" in age
+        is_student = "student" in role or is_child or is_teen or "primary" in edu or "secondary" in edu
+        is_professional = "professional" in role or "working" in role or "corporate" in role
+        is_senior = "senior" in role or "60+" in age or "60" in age
+        is_homemaker = "homemaker" in role
+
+        # 4. AGE GROUP & SCENARIO BOUNDARIES
+        if is_child:
+            # Under 12 children MUST NOT receive adult/corporate/medical/financial scenarios!
+            forbidden_domains = [
+                "healthcare", "doctor_appointment", "clinic", "workplace", "corporate",
+                "office", "atm", "banking", "investment", "government_forms", "medicine_label"
+            ]
+            if domain in forbidden_domains:
+                return False
+            
+            # Check for adult prompt content
+            qc_str = (question.question_content or "").lower()
+            if any(term in qc_str for term in ["appointment", "doctor", "hospital", "clinic", "salary", "colleague", "corporate", "investment", "bank"]):
+                return False
+
+            # Require child-friendly role or age tags if tags exist
+            if age_tags and not any("under 12" in t or "student" in t for t in age_tags):
+                return False
+
+        if is_student and domain in ["workplace", "corporate"]:
+            return False
+        if is_homemaker and domain in ["workplace", "corporate", "school_campus"]:
+            return False
+        if is_senior and domain in ["workplace", "corporate", "school_campus"]:
+            return False
+
+        # 5. EDUCATION LEVEL & FAMILIARITY BOUNDARIES
+        if ("primary" in edu or is_child or "beginner" in familiarity) and question.difficulty > 3:
+            return False
+
+        return True
 
     async def get_next_question(self, session_id: str, user_id: str | None = None) -> dict:
-        """
-        Get next question using adaptive algorithm.
-
-        Args:
-            session_id: Session ID
-            user_id: User ID (optional)
-
-        Returns:
-            Question data for display
-
-        Raises:
-            ValueError: If session not found or completed
-        """
+        """Get next question using profile-aware, context-diversified, 3-3-3-3-3 skill ratio adaptive engine."""
         session = await self._get_active_session(session_id, user_id)
         
-        # Load blueprint to ensure we stop when complete
         blueprint = await self.db.get(AssessmentBlueprint, session.blueprint_id)
         question_count = blueprint.question_count if blueprint else DEFAULT_QUESTION_COUNT
 
-        # Single subquery to grab globally excluded question IDs for this learner
-        global_exclude_subq = select(QuestionResponse.question_id).join(
-            AssessmentSession, QuestionResponse.session_id == AssessmentSession.id
-        ).where(AssessmentSession.learner_id == session.learner_id)
-        
-        # Fetch only the count of the current session's answered questions to check completion
         current_session_count = await self.db.scalar(
             select(func.count(QuestionResponse.id)).where(QuestionResponse.session_id == session_id)
         )
@@ -382,175 +434,214 @@ class AssessmentService:
         if current_session_count >= question_count:
             raise ValueError("No more questions available")
 
-        # Determine target language from learner profile
         profile = await LearnerService(self.db).get_learner_profile_by_user_id(session.learner_id)
-        target_language = (profile.learning_language or "en").strip().lower() if profile else "en"
+        website_language = (profile.website_language or "en").strip().lower() if profile else "en"
+        learning_language = (profile.learning_language or "en").strip().lower() if profile else "en"
 
-        # --- Skill-balance: prefer least-represented LSRW skill ---
-        preferred_skills: list[str] | None = None
-        if current_session_count > 0:
-            # Query skill counts directly
-            answered_counts_result = await self.db.execute(
-                select(Question.skill, func.count(Question.id))
-                .join(QuestionResponse, QuestionResponse.question_id == Question.id)
-                .where(QuestionResponse.session_id == session_id)
-                .group_by(Question.skill)
-            )
-            skill_counts = {s: 0 for s in LSRW_SKILLS}
-            for skill, count in answered_counts_result:
-                if skill in skill_counts:
-                    skill_counts[skill] += count
-            min_count = min(skill_counts.values())
-            preferred_skills = [s for s in LSRW_SKILLS if skill_counts[s] == min_count]
-
-        # Target domains/skills and language specified by blueprint (logical questions are in English)
-        base_query = select(Question).where(
-            Question.is_active.is_(True),
-            Question.language == "en"
+        # Targeted 5 skills with exactly 3 questions each (Total 15)
+        TARGET_SKILLS = ["listening", "speaking", "reading", "writing", "everyday_communication"]
+        
+        # Calculate current answered skill counts in this session
+        answered_res = await self.db.execute(
+            select(Question.skill, Question.domain, Question.question_type, Question.question_content, Question.audio_script, Question.id)
+            .join(QuestionResponse, QuestionResponse.question_id == Question.id)
+            .where(QuestionResponse.session_id == session_id)
         )
+        answered_rows = answered_res.fetchall()
         
-        # Apply strict proficiency and contextual filters from profile
-        if profile:
-            prof_levels = ["Beginner", "Elementary", "Intermediate", "Advanced"]
-            familiarity = (profile.current_familiarity or "").strip().lower()
-            if "advanced" in familiarity:
-                base_prof_idx = 3
-            elif "comfortable" in familiarity:
-                base_prof_idx = 2
-            elif "little" in familiarity:
-                base_prof_idx = 1
-            else:
-                base_prof_idx = 0
-                
-            # Real-time calibration based on current adaptive difficulty (1-5)
-            diff = session.current_difficulty
-            if diff >= 4:
-                dynamic_prof_idx = 3
-            elif diff == 3:
-                dynamic_prof_idx = 2
-            elif diff == 2:
-                dynamic_prof_idx = 1
-            else:
-                dynamic_prof_idx = 0
-                
-            # Mix real-time performance with base onboarding to validate true proficiency
-            target_profs = list(set([prof_levels[base_prof_idx], prof_levels[dynamic_prof_idx]]))
+        skill_counts = {s: 0 for s in TARGET_SKILLS}
+        used_contexts = []
+        used_types = []
+        used_prompts = set()
+        used_ids = set()
+
+        for s_skill, s_domain, s_type, s_content, s_audio, s_id in answered_rows:
+            if s_skill in skill_counts:
+                skill_counts[s_skill] += 1
+            if s_domain:
+                used_contexts.append(s_domain)
+            if s_type:
+                used_types.append(s_type)
+            used_ids.add(s_id)
+            if s_content:
+                try:
+                    qc = json.loads(s_content)
+                    if qc.get("prompt"):
+                        used_prompts.add(qc.get("prompt"))
+                except Exception:
+                    pass
+
+        # Determine eligible target skills for next slot (slots with count < 3)
+        eligible_skills = [s for s in TARGET_SKILLS if skill_counts[s] < 3]
+        if not eligible_skills:
+            eligible_skills = TARGET_SKILLS
+
+        # Prioritize skills with the lowest current count to maintain balanced 3-3-3-3-3 distribution
+        min_skill_count = min(skill_counts[s] for s in eligible_skills)
+        preferred_skills = [s for s in eligible_skills if skill_counts[s] == min_skill_count]
+
+        # Fetch active candidate questions
+        base_stmt = select(Question).where(
+            Question.is_active.is_(True),
+            Question.id.notin_(used_ids)
+        )
+        res_cand = await self.db.execute(base_stmt)
+        all_candidates = res_cand.scalars().all()
+
+        # Filter candidates for strict profile eligibility
+        eligible_candidates = [q for q in all_candidates if self.is_question_profile_eligible(q, profile)]
+        if not eligible_candidates:
+            # Strictly enforce profile boundaries: never serve healthcare/workplace to children under 12
+            is_child_profile = profile and ("under 12" in (profile.age_group or "").lower() or "<12" in (profile.age_group or "").lower())
+            eligible_candidates = [
+                q for q in all_candidates
+                if q.is_active and not (is_child_profile and q.domain in ["healthcare", "workplace", "atm", "investment"])
+            ]
+        if not eligible_candidates:
+            eligible_candidates = all_candidates
+
+        # Filter candidates by skill preference
+        skill_candidates = [q for q in eligible_candidates if q.skill in preferred_skills]
+        if not skill_candidates:
+            skill_candidates = [q for q in eligible_candidates if q.skill in eligible_skills]
+        if not skill_candidates:
+            skill_candidates = eligible_candidates
+
+        # Score candidates for context diversity, format diversity, non-repetition, and difficulty alignment
+        best_question = None
+        best_score = -999999
+
+        import random
+        for q in skill_candidates:
+            qc = {}
+            if q.question_content:
+                try:
+                    qc = json.loads(q.question_content)
+                except Exception:
+                    pass
+
+            # Exclude prompt duplicates
+            prompt_text = qc.get("prompt") or qc.get("instruction") or ""
+            if prompt_text in used_prompts:
+                continue
+
+            score = 0.0
             
-            from sqlalchemy import or_
-            base_query = base_query.where(
-                or_(
-                    Question.proficiency_level.in_(target_profs),
-                    Question.proficiency_level.is_(None)
-                )
-            )
-            
-            # Context filters: try to match, but allow NULLs as general questions
-            from sqlalchemy import or_
-            if profile.age_group:
-                base_query = base_query.where(or_(Question.age_group == profile.age_group, Question.age_group.is_(None)))
-            if profile.educational_background:
-                base_query = base_query.where(or_(Question.education_level == profile.educational_background, Question.education_level.is_(None)))
-            if profile.current_role:
-                base_query = base_query.where(or_(Question.learner_type == profile.current_role, Question.learner_type.is_(None)))
-        if blueprint:
-            blueprint_domains = self._from_json(blueprint.domains) if blueprint.domains else []
-            blueprint_skills = self._from_json(blueprint.skills) if blueprint.skills else []
+            # Difficulty proximity score
+            diff_diff = abs(q.difficulty - session.current_difficulty)
+            score -= (diff_diff * 100)
 
-            from sqlalchemy import or_
-            conditions = []
-            if blueprint_domains:
-                conditions.append(Question.domain.in_(blueprint_domains))
-                conditions.append(Question.domain.in_([d.lower() for d in blueprint_domains]))
-                conditions.append(Question.domain.in_([d.capitalize() for d in blueprint_domains]))
-            if blueprint_skills:
-                conditions.append(Question.skill.in_(blueprint_skills))
-                conditions.append(Question.skill.in_([s.lower() for s in blueprint_skills]))
-                conditions.append(Question.skill.in_([s.capitalize() for s in blueprint_skills]))
+            # Context diversity: penalize if context repeated frequently
+            ctx = q.domain or ""
+            ctx_count = used_contexts.count(ctx)
+            score -= (ctx_count * 50)
 
-            if conditions:
-                base_query = base_query.where(or_(*conditions))
+            # Format diversity: penalize if type repeated frequently
+            q_type = q.question_type or ""
+            type_count = used_types.count(q_type)
+            score -= (type_count * 30)
 
-        # Skill-balanced base query: restrict to preferred (least-answered) skills
-        # Falls back to the full base_query if no balanced question found.
-        if preferred_skills:
-            balanced_query = base_query.where(Question.skill.in_(preferred_skills))
-        else:
-            balanced_query = base_query
+            # Random tie-breaker
+            score += random.random() * 5
 
-        # Ensure the query avoids historically asked questions using NOT IN (subquery)
-        # Find a single question using database-native sorting for efficiency:
-        # ORDER BY ABS(difficulty - current_difficulty) ASC, random()
-        query = base_query.where(Question.id.notin_(global_exclude_subq))
-        
-        # Skill-balanced filter logic:
-        # Instead of multiple loops covering every difficulty level, 
-        # let the database handle finding the closest unasked difficulty for any preferred skill.
-        if preferred_skills:
-            balanced_query = query.where(Question.skill.in_(preferred_skills))
-            final_query = balanced_query.order_by(
-                func.abs(Question.difficulty - session.current_difficulty), 
-                func.random()
-            ).limit(1)
-            result = await self.db.execute(final_query)
-            question = result.scalar_one_or_none()
-            if question:
-                query = None  # mark as found
-        
-        if query is not None:
-             # Fall back to base constraint (ignoring skill balancing if it's exhausted)
-             final_query = query.order_by(
-                 func.abs(Question.difficulty - session.current_difficulty), 
-                 func.random()
-             ).limit(1)
-             result = await self.db.execute(final_query)
-             question = result.scalar_one_or_none()
-             
-             # Final fallback: if NO global question is unasked, just pick ANY random question 
-             # (not excluding globals, but excluding current session)
-             if question is None:
-                 local_exclude_subq = select(QuestionResponse.question_id).where(QuestionResponse.session_id == session_id)
-                 fallback_query = base_query.where(Question.id.notin_(local_exclude_subq)).order_by(func.random()).limit(1)
-                 result = await self.db.execute(fallback_query)
-                 question = result.scalar_one_or_none()
+            if score > best_score:
+                best_score = score
+                best_question = q
 
-        if question is None:
-            # Diagnostic Query Logging if we ran out of questions
-            import logging
-            logger = logging.getLogger(__name__)
-            try:
-                total_q = await self.db.scalar(select(func.count(Question.id)))
-                base_q = await self.db.scalar(select(func.count(Question.id)).where(Question.is_active.is_(True), Question.language == "en"))
-                prof_q = await self.db.scalar(select(func.count(Question.id)).where(
-                    Question.is_active.is_(True), Question.language == "en",
-                    or_(
-                        Question.proficiency_level.in_(target_profs) if profile else True,
-                        Question.proficiency_level.is_(None)
-                    )
-                ))
-                logger.warning(
-                    f"No more questions available for session '{session_id}'. "
-                    f"Stats -> Total: {total_q}, Base (Active EN): {base_q}, After Proficiency filter: {prof_q}. "
-                    f"Check if remaining exclusions or blueprint requirements cleared out the pool."
-                )
-            except Exception as e:
-                logger.warning(f"No more questions available. Failed to retrieve diagnostic stats: {e}")
+        if best_question is None:
+            # Fallback if strict prompt exclusion left no candidates
+            best_question = skill_candidates[0] if skill_candidates else all_candidates[0]
 
-            raise ValueError("No more questions available")
-
-        # Resolve translation or fallback
-        translated_dict, _ = await self._get_translated_question(question, target_language)
+        # Translate instruction for website_language and options for learning_language
+        translated_dict, _ = await self._get_translated_question(best_question, website_language, learning_language)
         return translated_dict
 
-    def _evaluate_correctness(self, question_type: str, selected: Any, correct: Any) -> bool:
+    def _evaluate_speaking_rubric(self, question: Question, selected: Any) -> bool:
         """
-        Evaluate correctness of selected_answer against correct_answer with robust type normalizations.
+        Phase D Multi-tiered Speaking Rubric:
+        - Level 1: reward attempt (non-empty response, valid recording/text).
+        - Level 2: attempt + intelligibility (minimum 2 words / non-trivial length).
+        - Level 3: keywords + pronunciation (presence of expected keywords/reference text words).
+        - Level 4: grammar + fluency + pronunciation (keyword coverage ratio >= 40%).
+        - Level 5: communicative effectiveness (keyword coverage ratio >= 60%).
         """
-        if selected is None or correct is None:
+        if selected is None:
             return False
 
-        # Speaking tasks automatically return True once recorded
-        if question_type == "speaking":
-            return True
+        spoken_text = ""
+        if isinstance(selected, dict):
+            spoken_text = selected.get("transcript") or selected.get("text") or selected.get("selected_option") or ""
+        elif isinstance(selected, str):
+            if '"status":"spoken"' in selected.replace(" ", ""):
+                try:
+                    obj = json.loads(selected)
+                    spoken_text = obj.get("selected_option") or obj.get("transcript") or selected
+                except Exception:
+                    spoken_text = selected
+            else:
+                spoken_text = selected
+
+        spoken_text = str(spoken_text).strip()
+        if not spoken_text or spoken_text.lower() in ["error", "skipped", "silent", "none"]:
+            return False
+
+        diff = question.difficulty or 1
+        ref_text = (question.reference_text or question.audio_script or "").strip().lower()
+        exp_keywords = []
+        if question.expected_keywords:
+            try:
+                exp_keywords = json.loads(question.expected_keywords) if isinstance(question.expected_keywords, str) else question.expected_keywords
+            except Exception:
+                exp_keywords = []
+
+        if not exp_keywords and ref_text:
+            exp_keywords = [w.strip(".,!?:;\"'") for w in ref_text.split() if len(w) > 2]
+
+        words = [w.strip(".,!?:;\"'").lower() for w in spoken_text.split()]
+
+        # Level 1: reward attempt
+        if diff <= 1:
+            return len(spoken_text) > 0
+
+        # Level 2: attempt + intelligibility
+        if diff == 2:
+            return len(words) >= 1 or len(spoken_text) >= 3
+
+        # Level 3: keywords + pronunciation
+        if diff == 3:
+            if not exp_keywords:
+                return len(words) >= 2
+            matched = any(kw.lower() in spoken_text.lower() for kw in exp_keywords)
+            return matched or len(words) >= 3
+
+        # Level 4: grammar + fluency + pronunciation
+        if diff == 4:
+            if not exp_keywords:
+                return len(words) >= 3
+            matches = sum(1 for kw in exp_keywords if kw.lower() in spoken_text.lower())
+            ratio = matches / len(exp_keywords) if exp_keywords else 1.0
+            return ratio >= 0.4 or len(words) >= 4
+
+        # Level 5: communicative effectiveness
+        if not exp_keywords:
+            return len(words) >= 4
+        matches = sum(1 for kw in exp_keywords if kw.lower() in spoken_text.lower())
+        ratio = matches / len(exp_keywords) if exp_keywords else 1.0
+        return ratio >= 0.6 or len(words) >= 5
+
+    def _evaluate_correctness(self, question: Question, selected: Any, correct: Any) -> bool:
+        """
+        Evaluate correctness of selected_answer against correct_answer with robust type normalizations
+        and Phase D multi-tiered speaking rubric.
+        """
+        if selected is None:
+            return False
+
+        if question.question_type == "speaking" or question.skill == "speaking":
+            return self._evaluate_speaking_rubric(question, selected)
+
+        if correct is None:
+            return False
 
         # If it's a JSON-like string (like spoken object), parse it first
         if isinstance(selected, str) and '"status":"spoken"' in selected.replace(" ", ""):
@@ -578,17 +669,7 @@ class AssessmentService:
         self, session_id: str, response_data: QuestionResponseCreate, user_id: str | None = None
     ) -> QuestionResponse:
         """
-        Submit question response and update session state.
-
-        Args:
-            session_id: Session ID
-            response_data: Response data
-
-        Returns:
-            Recorded response with correctness
-
-        Raises:
-            ValueError: If session not found or invalid
+        Submit question response and update session state with smooth Phase E adaptive engine.
         """
         session = await self._get_active_session(session_id, user_id)
         question = await self._get_active_question(response_data.question_id)
@@ -635,8 +716,8 @@ class AssessmentService:
         correct_answer = self._from_json(correct_answer_str)
         selected_answer = response_data.selected_answer
         
-        # Calculate correctness using our robust evaluation helper
-        is_correct = self._evaluate_correctness(question.question_type, selected_answer, correct_answer)
+        # Calculate correctness using our robust evaluation helper & speaking rubric
+        is_correct = self._evaluate_correctness(question, selected_answer, correct_answer)
 
         response = QuestionResponse(
             session_id=session.id,
@@ -647,13 +728,31 @@ class AssessmentService:
             difficulty_at_response=session.current_difficulty,
         )
 
+        # Phase E: Smooth adaptive progression with streak bonus
+        previous_responses = (await self.db.execute(
+            select(QuestionResponse)
+            .where(QuestionResponse.session_id == session.id)
+            .order_by(QuestionResponse.created_at.desc())
+        )).scalars().all()
+
+        consecutive_correct = 0
+        for r in previous_responses:
+            if r.is_correct:
+                consecutive_correct += 1
+            else:
+                break
+
         session.current_question_index += 1
         if is_correct:
-            # Acceleration: +2 if answered correctly in < 5 seconds
-            step = 2 if (response_data.response_time_seconds and response_data.response_time_seconds < 5) else 1
+            # Single correct answer steps +1 level
+            # Rapid response (<5s) WITH consecutive correct streak (>=2) steps +1 bonus (total +2)
+            is_rapid = bool(response_data.response_time_seconds and response_data.response_time_seconds < 5)
+            step = 2 if (is_rapid and consecutive_correct >= 2) else 1
             next_difficulty = session.current_difficulty + step
         else:
+            # Single incorrect answer steps -1 level
             next_difficulty = session.current_difficulty - 1
+
         session.current_difficulty = self._clamp_difficulty(next_difficulty)
 
         self.db.add(response)
@@ -661,7 +760,23 @@ class AssessmentService:
         await self.db.refresh(response)
         await self.db.refresh(session)
 
-        return response
+        # Pre-fetch next question to eliminate additional network round-trips
+        next_q_data = None
+        try:
+            next_q_data = await self.get_next_question(session_id=session.id, user_id=session.learner_id)
+        except Exception:
+            next_q_data = None
+
+        return {
+            "id": str(response.id),
+            "session_id": str(response.session_id),
+            "question_id": str(response.question_id),
+            "response_time_seconds": response.response_time_seconds,
+            "difficulty_at_response": response.difficulty_at_response,
+            "created_at": response.created_at,
+            "is_correct": is_correct,
+            "next_question": next_q_data
+        }
 
     def _calculate_overall_level(self, accuracy: float, responses: list[QuestionResponse]) -> str:
         """
@@ -832,6 +947,10 @@ class AssessmentService:
 
         # Reflect completion on the learner's profile (if one exists).
         await LearnerService(self.db).mark_assessment_completed(session.learner_id)
+
+        # Award assessment XP and first_assessment badge
+        from app.services.gamification_service import GamificationService
+        await GamificationService(self.db).award_xp(session.learner_id, 50, activity_type="assessment")
 
         return self._serialize_result(result)
 

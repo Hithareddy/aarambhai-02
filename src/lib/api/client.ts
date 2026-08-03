@@ -2,7 +2,7 @@
 // `getApiClient()` and calls typed methods. This is backed by the real FastAPI
 // client — there is no mock implementation.
 
-import type { ActivitySummary, ActivitySyncPayload, ChatMessageResult, DailyActivityRecord, DashboardSnapshot, MonthCalendarData, MyWordsData, NotificationItem, SentenceCheckResult, StreakData, TutorConversation, TutorMessage, TutorProfile, VoiceChatResult, WordOfTheDay } from "./types";
+import type { ActivitySummary, ActivitySyncPayload, ChatMessageResult, DailyActivityRecord, DashboardSnapshot, MonthCalendarData, MyWordsData, NotificationItem, ScreenContextPayload, SentenceCheckResult, StreakData, TutorConversation, TutorMessage, TutorProfile, VoiceChatResult, WordOfTheDay } from "./types";
 import { apiRequest, API_BASE } from "./http";
 import { getDashboardSnapshot, markAllNotificationsRead, markNotificationRead } from "./dashboard";
 
@@ -33,8 +33,8 @@ export interface ApiClient {
   getTutorConversations(): Promise<TutorConversation[]>;
   createTutorConversation(): Promise<TutorConversation>;
   getTutorMessages(conversationId: string): Promise<TutorMessage[]>;
-  sendTutorMessage(conversationId: string, message: string, mode?: string, modeParams?: Record<string, string>): Promise<ChatMessageResult>;
-  sendTutorVoiceMessage(conversationId: string, audioBlob: Blob, mode?: string, modeParams?: Record<string, unknown>): Promise<VoiceChatResult>;
+  sendTutorMessage(conversationId: string, message: string, mode?: string, modeParams?: Record<string, string>, screenContext?: ScreenContextPayload): Promise<ChatMessageResult>;
+  sendTutorVoiceMessage(conversationId: string, audioBlob: Blob, mode?: string, modeParams?: Record<string, unknown>, screenContext?: ScreenContextPayload): Promise<VoiceChatResult>;
   getVoiceAudio(token: string): Promise<string>; // returns object URL
 }
 
@@ -70,18 +70,22 @@ const httpApiClient: ApiClient = {
   createTutorConversation: () => apiRequest<TutorConversation>("/tutor/conversations/new", "POST"),
   getTutorMessages: (conversationId: string) =>
     apiRequest<TutorMessage[]>(`/tutor/conversations/${conversationId}/messages`),
-  sendTutorMessage: (conversationId: string, message: string, mode?: string, modeParams?: Record<string, string>) =>
+  sendTutorMessage: (conversationId: string, message: string, mode?: string, modeParams?: Record<string, string>, screenContext?: ScreenContextPayload) =>
     apiRequest<ChatMessageResult>(`/tutor/conversations/${conversationId}/chat`, "POST", {
       message,
       ...(mode ? { mode } : {}),
       ...(modeParams ? { mode_params: modeParams } : {}),
+      ...(screenContext ? { screen_context: screenContext } : {}),
     }),
-  sendTutorVoiceMessage: async (conversationId: string, audioBlob: Blob, mode = "free_talk", modeParams?: Record<string, unknown>): Promise<VoiceChatResult> => {
+  sendTutorVoiceMessage: async (conversationId: string, audioBlob: Blob, mode = "free_talk", modeParams?: Record<string, unknown>, screenContext?: ScreenContextPayload): Promise<VoiceChatResult> => {
     const token = localStorage.getItem("access_token");
     const form = new FormData();
     form.append("audio_file", audioBlob, audioBlob.type.includes("mp4") ? "voice.mp4" : "voice.webm");
     form.append("mode", mode);
     form.append("mode_params_json", JSON.stringify(modeParams ?? {}));
+    if (screenContext) {
+      form.append("screen_context_json", JSON.stringify(screenContext));
+    }
     const res = await fetch(`${API_BASE}/tutor/conversations/${conversationId}/voice-chat`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},

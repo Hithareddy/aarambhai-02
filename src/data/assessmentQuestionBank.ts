@@ -43,6 +43,9 @@ export interface BankQuestion {
   difficulty: 1 | 2 | 3;
   category: string;
   questionText: string;
+  stimulus?: string;
+  passage?: string;
+  scenario?: string;
   audioText?: string;
   image?: string;
   options: AssessmentOption[];

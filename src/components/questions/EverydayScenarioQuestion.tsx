@@ -1,11 +1,12 @@
 import React from 'react';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { Building2, Landmark, Store, Bus, CreditCard, HeartPulse } from 'lucide-react';
+import { Building2, Landmark, Store, Bus, CreditCard, HeartPulse, MessageSquare } from 'lucide-react';
 
 interface EverydayScenarioQuestionProps {
   questionText: string;
   category: string;
+  scenario?: string;
   options: { id: string; text: string }[];
   selected: string | null;
   onSelect: (id: string) => void;
@@ -15,6 +16,7 @@ interface EverydayScenarioQuestionProps {
 export function EverydayScenarioQuestion({
   questionText,
   category,
+  scenario,
   options,
   selected,
   onSelect,
@@ -37,16 +39,27 @@ export function EverydayScenarioQuestion({
         Everyday Life Scenario
       </Badge>
 
-      <Card className="w-full p-6 rounded-3xl border-2 border-teal-500/20 bg-gradient-to-br from-teal-500/10 via-background to-card shadow-md flex items-center gap-4">
-        <div className="p-4 rounded-2xl bg-teal-500 text-white shrink-0 shadow-md">
-          <IconComp className="h-8 w-8" />
+      <Card className="w-full p-6 rounded-3xl border-2 border-teal-500/20 bg-gradient-to-br from-teal-500/10 via-background to-card shadow-md flex flex-col space-y-4">
+        <div className="flex items-center gap-4">
+          <div className="p-4 rounded-2xl bg-teal-500 text-white shrink-0 shadow-md">
+            <IconComp className="h-8 w-8" />
+          </div>
+          <div>
+            <span className="text-xs font-extrabold uppercase tracking-wider text-teal-700 dark:text-teal-400 block mb-1">
+              {category} Context
+            </span>
+            <h3 className="text-lg font-extrabold leading-snug text-foreground">{questionText}</h3>
+          </div>
         </div>
-        <div>
-          <span className="text-xs font-extrabold uppercase tracking-wider text-teal-700 dark:text-teal-400 block mb-1">
-            {category} Context
-          </span>
-          <h3 className="text-lg font-extrabold leading-snug text-foreground">{questionText}</h3>
-        </div>
+
+        {scenario && (
+          <div className="p-4 rounded-2xl bg-card border text-sm text-foreground leading-relaxed w-full">
+            <MessageSquare className="h-5 w-5 text-teal-600 mb-1" />
+            <p className="font-semibold text-foreground text-base tracking-wide leading-relaxed">
+              "{scenario}"
+            </p>
+          </div>
+        )}
       </Card>
 
       {/* 4 Large Choice Buttons */}

@@ -14,8 +14,19 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from "@/hooks/use-language";
 import { PwaManager } from "@/components/pwa-manager";
+import { LearningContextProvider } from "@/context/learning-context";
 
 function NotFoundComponent() {
+  const router = useRouter();
+  const pathname = router.state.location.pathname;
+
+  // Auto-correct spaces in URLs to hyphens (e.g., /assessment quiz -> /assessment-quiz)
+  if (typeof window !== "undefined" && (pathname.includes("%20") || pathname.includes(" "))) {
+    const fixedPath = pathname.replace(/(%20|\s)+/g, "-");
+    window.location.replace(fixedPath);
+    return null;
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
@@ -147,9 +158,11 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
-        <Outlet />
-        <Toaster richColors position="top-right" />
-        <PwaManager />
+        <LearningContextProvider>
+          <Outlet />
+          <Toaster richColors position="top-right" />
+          <PwaManager />
+        </LearningContextProvider>
       </LanguageProvider>
     </QueryClientProvider>
   );

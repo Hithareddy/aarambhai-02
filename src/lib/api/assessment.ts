@@ -96,6 +96,10 @@ export interface Question {
   difficulty: number;
   question_type: QuestionType;
   prompt: string;
+  stimulus?: string | null;
+  passage?: string | null;
+  scenario?: string | null;
+  question_content?: any;
   options: QuestionOption[];
   isFallback?: boolean;
   audio_url?: string | null;
@@ -149,7 +153,7 @@ interface BackendQuestion {
   difficulty: number;
   question_type: string;
   language: string;
-  question_content: { text?: string } | string;
+  question_content: { text?: string; stimulus?: string; passage?: string; scenario?: string } | string;
   options: Array<{ id: string; text: string }> | string;
   is_fallback?: boolean;
   audio_url?: string | null;
@@ -174,7 +178,7 @@ interface BackendResult {
   strengths: string[];
   weaknesses: string[];
   learning_summary?: string;
-  learning_path: { module_id: string; title: string; skill: string; priority: number }[];
+  learning_path?: { module_id: string; title: string; skill: string; priority: number }[];
   assessment_version?: string;
   created_at: string;
 }
@@ -195,14 +199,53 @@ function levelFromScore(score: number): SkillLevel {
 
 function mapQuestion(data: BackendQuestion): Question {
   const content = parseJson(data.question_content);
-  const options = parseJson(data.options);
+  const rawOptions = parseJson(data.options);
+
+  let promptText = "";
+  let stimulusText = "";
+
+  if (typeof content === "string") {
+    promptText = content;
+  } else if (content && typeof content === "object") {
+    promptText = (content as any).text || (content as any).instruction || (content as any).prompt || (content as any).question || "";
+    stimulusText = (content as any).stimulus || (content as any).passage || (content as any).scenario || "";
+  }
+
+  if (!promptText && (data as any).prompt) {
+    promptText = (data as any).prompt;
+  }
+  if (!stimulusText && (data as any).stimulus) {
+    stimulusText = (data as any).stimulus;
+  }
+  if (!stimulusText && data.reference_text) {
+    stimulusText = data.reference_text;
+  }
+
+  let mappedOptions: QuestionOption[] = [];
+  if (Array.isArray(rawOptions)) {
+    mappedOptions = rawOptions.map((o: any, idx: number) => {
+      if (typeof o === "string") {
+        const letter = String.fromCharCode(65 + idx);
+        return { id: letter, text: o };
+      }
+      return {
+        id: String(o.id || o.key || String.fromCharCode(65 + idx)),
+        text: String(o.text || o.label || o.value || o),
+      };
+    });
+  }
+
   return {
     id: data.id,
-    skill: data.skill as Skill,
-    difficulty: data.difficulty,
+    skill: (data.skill as Skill) || "reading",
+    difficulty: data.difficulty || 1,
     question_type: data.question_type ?? "mcq",
-    prompt: content.text ?? "",
-    options: options.map((o) => ({ id: o.id, text: o.text })),
+    prompt: promptText,
+    stimulus: stimulusText || null,
+    passage: stimulusText || null,
+    scenario: stimulusText || null,
+    question_content: content,
+    options: mappedOptions,
     isFallback: data.is_fallback,
     audio_url: data.audio_url,
     audio_script: data.audio_script,
@@ -283,12 +326,22 @@ export async function submitAnswer(
   questionId: string,
   optionId: string | string[],
   responseTimeSeconds: number,
-): Promise<{ is_correct: boolean; correct_answer?: any }> {
-  return await apiRequest(`/assessments/sessions/${sessionId}/responses`, "POST", {
+): Promise<{ is_correct: boolean; next_question?: Question | null }> {
+  const res: any = await apiRequest(`/assessments/sessions/${sessionId}/responses`, "POST", {
     question_id: questionId,
     selected_answer: optionId,
     response_time_seconds: responseTimeSeconds,
   });
+  
+  let nextQ: Question | null = null;
+  if (res && res.next_question) {
+    nextQ = mapQuestion(res.next_question);
+  }
+
+  return {
+    is_correct: res.is_correct ?? true,
+    next_question: nextQ,
+  };
 }
 
 export async function completeAssessment(sessionId: string): Promise<AssessmentResult> {

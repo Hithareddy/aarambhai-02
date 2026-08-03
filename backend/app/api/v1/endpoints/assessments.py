@@ -143,16 +143,16 @@ async def submit_question_response(
     db=Depends(get_db),
 ):
     """
-    Submit question response.
-
-    Records learner's response to a question and updates session state.
-
-    Returns:
-        QuestionResponseResponse: Recorded response with correctness
+    Submit question response and receive next pre-fetched question in single round-trip.
     """
+    import time
+    start_t = time.perf_counter()
     service = AssessmentService(db)
     try:
-        return await service.submit_response(session_id, response, current_user.id)
+        res = await service.submit_response(session_id, response, current_user.id)
+        elapsed_ms = round((time.perf_counter() - start_t) * 1000, 2)
+        print(f"[Telemetry] Question response submitted for session {session_id} in {elapsed_ms}ms")
+        return res
     except ValueError as exc:
         message = str(exc)
         status_code = (
