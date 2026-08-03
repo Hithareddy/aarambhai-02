@@ -6,12 +6,13 @@
  * to FastAPI.
  */
 
-// The hosted preview runs in the browser on lovable.app, so "localhost:8000"
-// is never reachable there (and http from an https page is blocked anyway).
-// Default to the deployed FastAPI backend; local devs can override with
+// The hosted preview runs on a *.lovable.app origin that the deployed FastAPI
+// CORS config rejects, and "localhost:8000" is unreachable there too. So all
+// calls go through the same-origin proxy route at /api/public/backend, which
+// forwards to the real FastAPI backend (no CORS involved).
+// Local devs can still point straight at their own server with
 // VITE_API_URL=http://localhost:8000/api/v1 in a .env.local file.
-export const API_BASE =
-  import.meta.env.VITE_API_URL || "https://aarambhai-02-backend.onrender.com/api/v1";
+export const API_BASE = import.meta.env.VITE_API_URL || "/api/public/backend";
 
 export class ApiError extends Error {
   readonly status: number;
