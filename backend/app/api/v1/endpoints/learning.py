@@ -118,6 +118,21 @@ async def get_skill_profiles(
     profiles = result.scalars().all()
     return profiles
 
+@router.get("/journey")
+async def get_learning_journey(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Full milestone-based Learning Path payload: ordered modules with lesson
+    level progress, lock state, XP, estimated completion, skill mastery and
+    adaptive recommendations.
+    """
+    from app.services.journey_service import JourneyService
+    return await JourneyService(db).build(str(current_user.id))
+
+
+
 @router.get("/activities/{activity_id}")
 async def get_activity(
     activity_id: str,
