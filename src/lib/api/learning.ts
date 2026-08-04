@@ -85,3 +85,76 @@ export async function getSkillProfiles(): Promise<SkillProfile[]> {
 export async function saveLessonProgress(lessonId: string, update: LessonProgressUpdate): Promise<void> {
     await apiRequest(`/learning/progress/${lessonId}`, "POST", update);
 }
+
+/**
+ * Learning Journey (milestone roadmap)
+ */
+
+export type MilestoneState = "completed" | "current" | "available" | "locked";
+
+export interface JourneyLesson {
+    id: string;
+    title: string;
+    lesson_type: string;
+    order: number;
+    status: "not_started" | "in_progress" | "completed";
+    progress_percentage: number;
+    score: number | null;
+    xp_reward: number;
+}
+
+export interface JourneyMilestone {
+    id: string;
+    title: string;
+    description: string;
+    skill: string;
+    difficulty: number;
+    estimated_duration: number;
+    order: number;
+    state: MilestoneState;
+    progress_percentage: number;
+    completed_lessons: number;
+    total_lessons: number;
+    xp_total: number;
+    xp_earned: number;
+    prerequisites: string[];
+    unmet_prerequisites: string[];
+    recommendation_reason: string | null;
+    priority: number | null;
+    lessons: JourneyLesson[];
+    next_lesson_id: string | null;
+}
+
+export interface JourneyRecommendation {
+    type: "next_step" | "reinforce" | "celebrate" | "tutor" | string;
+    title: string;
+    message: string;
+    action: "lesson" | "practice" | "games" | "tutor" | string;
+    target: string;
+}
+
+export interface LearningJourney {
+    has_path: boolean;
+    learner_name: string | null;
+    learning_goal: string | null;
+    learning_language: string | null;
+    overall_percentage: number;
+    total_lessons: number;
+    completed_lessons: number;
+    modules_completed: number;
+    modules_total: number;
+    xp_earned: number;
+    xp_available: number;
+    estimated_minutes_remaining: number;
+    estimated_days_remaining: number;
+    daily_goal_minutes: number;
+    current_module_id: string | null;
+    next_lesson_id: string | null;
+    skill_profiles: SkillProfile[];
+    recommendations: JourneyRecommendation[];
+    milestones: JourneyMilestone[];
+}
+
+export async function getLearningJourney(): Promise<LearningJourney> {
+    return apiRequest<LearningJourney>("/learning/journey");
+}
