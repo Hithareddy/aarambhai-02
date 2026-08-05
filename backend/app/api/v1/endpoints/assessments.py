@@ -278,3 +278,39 @@ async def get_assessment_history(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc)
         ) from exc
+
+
+@router.get("/sessions/{session_id}/report")
+async def get_assessment_report(
+    session_id: str,
+    current_user=Depends(get_current_active_user),
+    db=Depends(get_db),
+):
+    """
+    Get the AI assessment report for a completed session.
+
+    Returns the full skill matrix (LSRW + vocabulary, grammar, pronunciation,
+    everyday communication), CEFR level, AI insights and personalized
+    recommendations, each with the reason it was selected.
+    """
+    from app.services.assessment_report_service import AssessmentReportService
+
+    try:
+        return await AssessmentReportService(db).build_report(session_id, current_user.id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get("/persona-blueprint")
+async def get_persona_blueprint(
+    current_user=Depends(get_current_active_user),
+    db=Depends(get_db),
+):
+    """Return the persona-driven assessment blueprint spec for this learner."""
+    from app.services.learner_service import LearnerService
+    from app.services.persona_blueprint_service import build_persona_spec
+
+    profile = await LearnerService(db).get_learner_profile_by_user_id(current_user.id)
+    if profile is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Learner profile not found")
+    return build_persona_spec(profile)
