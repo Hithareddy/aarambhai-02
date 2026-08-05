@@ -544,24 +544,59 @@ class AssessmentService:
         website_language = (profile.website_language or "en").strip().lower() if profile else "en"
         learning_language = (profile.learning_language or "en").strip().lower() if profile else "en"
 
-        # Targeted 5 skills with exactly 3 questions each (Total 15)
-        TARGET_SKILLS = ["listening", "speaking", "reading", "writing", "everyday_communication"]
-        
+        # Persona spec drives skill mix, formats, contexts and difficulty band.
+        from app.services.persona_blueprint_service import (
+            PersonaBlueprintService,
+            build_persona_spec,
+        )
+
+        spec = PersonaBlueprintService.spec_from_blueprint(blueprint)
+        if spec is None and profile is not None:
+            spec = build_persona_spec(profile)
+
+        skill_mix: dict[str, int] = dict(spec["skill_mix"]) if spec else {
+            "listening": 3,
+            "speaking": 3,
+            "reading": 3,
+            "writing": 3,
+            "everyday_communication": 3,
+        }
+        preferred_types = [t.lower() for t in (spec.get("preferred_types") if spec else []) or []]
+        avoid_types = {t.lower() for t in (spec.get("avoid_types") if spec else []) or []}
+        persona_domains = [d.lower() for d in (spec.get("domains") if spec else []) or []]
+        forbidden_domains = {d.lower() for d in (spec.get("forbidden_domains") if spec else []) or []}
+        persona_min_diff = int(spec["min_difficulty"]) if spec else 1
+        persona_max_diff = int(spec["max_difficulty"]) if spec else 5
+
+        TARGET_SKILLS = list(skill_mix.keys())
+
         # Calculate current answered skill counts in this session
         answered_res = await self.db.execute(
-            select(Question.skill, Question.domain, Question.question_type, Question.question_content, Question.audio_script, Question.id)
+            select(
+                Question.skill,
+                Question.domain,
+                Question.question_type,
+                Question.question_content,
+                Question.audio_script,
+                Question.id,
+                QuestionResponse.is_correct,
+                QuestionResponse.created_at,
+            )
             .join(QuestionResponse, QuestionResponse.question_id == Question.id)
             .where(QuestionResponse.session_id == session_id)
+            .order_by(QuestionResponse.created_at.asc())
         )
         answered_rows = answered_res.fetchall()
-        
+
         skill_counts = {s: 0 for s in TARGET_SKILLS}
         used_contexts = []
         used_types = []
         used_prompts = set()
         used_ids = set()
+        recent_wrong_types: list[str] = []
+        trailing_wrong = 0
 
-        for s_skill, s_domain, s_type, s_content, s_audio, s_id in answered_rows:
+        for s_skill, s_domain, s_type, s_content, s_audio, s_id, s_correct, _created in answered_rows:
             if s_skill in skill_counts:
                 skill_counts[s_skill] += 1
             if s_domain:
@@ -576,15 +611,29 @@ class AssessmentService:
                         used_prompts.add(qc.get("prompt"))
                 except Exception:
                     pass
+            if s_correct:
+                trailing_wrong = 0
+            else:
+                trailing_wrong += 1
+                if s_type:
+                    recent_wrong_types.append(s_type.lower())
 
-        # Determine eligible target skills for next slot (slots with count < 3)
-        eligible_skills = [s for s in TARGET_SKILLS if skill_counts[s] < 3]
+        # Repeated mistakes → switch the interaction format instead of
+        # hammering the learner with the same one.
+        struggling = trailing_wrong >= 2
+        blocked_types = set(recent_wrong_types[-2:]) if struggling else set()
+
+        # Determine eligible target skills for the next slot from the persona mix
+        eligible_skills = [s for s in TARGET_SKILLS if skill_counts.get(s, 0) < skill_mix[s]]
         if not eligible_skills:
             eligible_skills = TARGET_SKILLS
 
-        # Prioritize skills with the lowest current count to maintain balanced 3-3-3-3-3 distribution
-        min_skill_count = min(skill_counts[s] for s in eligible_skills)
-        preferred_skills = [s for s in eligible_skills if skill_counts[s] == min_skill_count]
+        # Keep the persona's skill distribution balanced as the session runs
+        min_ratio = min(skill_counts.get(s, 0) / max(1, skill_mix[s]) for s in eligible_skills)
+        preferred_skills = [
+            s for s in eligible_skills
+            if skill_counts.get(s, 0) / max(1, skill_mix[s]) <= min_ratio + 0.001
+        ]
 
         # Fetch active candidate questions
         base_stmt = select(Question).where(
