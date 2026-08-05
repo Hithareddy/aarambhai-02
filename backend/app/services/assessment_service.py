@@ -383,7 +383,15 @@ class AssessmentService:
             if blueprint is None:
                 raise ValueError("Assessment blueprint not found")
         else:
-            blueprint = await self._get_or_create_default_blueprint()
+            # Persona-driven blueprint: flow, sequence, formats, difficulty band
+            # and scoring are derived from the learner's onboarding profile.
+            from app.services.persona_blueprint_service import PersonaBlueprintService
+
+            profile = await LearnerService(self.db).get_learner_profile_by_user_id(user_id)
+            if profile is not None:
+                blueprint = await PersonaBlueprintService(self.db).get_or_create_blueprint(profile)
+            else:
+                blueprint = await self._get_or_create_default_blueprint()
 
         starting_difficulty = await self.get_initial_difficulty_for_user(user_id, blueprint)
 
