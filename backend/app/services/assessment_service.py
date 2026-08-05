@@ -383,7 +383,15 @@ class AssessmentService:
             if blueprint is None:
                 raise ValueError("Assessment blueprint not found")
         else:
-            blueprint = await self._get_or_create_default_blueprint()
+            # Persona-driven blueprint: flow, sequence, formats, difficulty band
+            # and scoring are derived from the learner's onboarding profile.
+            from app.services.persona_blueprint_service import PersonaBlueprintService
+
+            profile = await LearnerService(self.db).get_learner_profile_by_user_id(user_id)
+            if profile is not None:
+                blueprint = await PersonaBlueprintService(self.db).get_or_create_blueprint(profile)
+            else:
+                blueprint = await self._get_or_create_default_blueprint()
 
         starting_difficulty = await self.get_initial_difficulty_for_user(user_id, blueprint)
 
@@ -536,24 +544,59 @@ class AssessmentService:
         website_language = (profile.website_language or "en").strip().lower() if profile else "en"
         learning_language = (profile.learning_language or "en").strip().lower() if profile else "en"
 
-        # Targeted 5 skills with exactly 3 questions each (Total 15)
-        TARGET_SKILLS = ["listening", "speaking", "reading", "writing", "everyday_communication"]
-        
+        # Persona spec drives skill mix, formats, contexts and difficulty band.
+        from app.services.persona_blueprint_service import (
+            PersonaBlueprintService,
+            build_persona_spec,
+        )
+
+        spec = PersonaBlueprintService.spec_from_blueprint(blueprint)
+        if spec is None and profile is not None:
+            spec = build_persona_spec(profile)
+
+        skill_mix: dict[str, int] = dict(spec["skill_mix"]) if spec else {
+            "listening": 3,
+            "speaking": 3,
+            "reading": 3,
+            "writing": 3,
+            "everyday_communication": 3,
+        }
+        preferred_types = [t.lower() for t in (spec.get("preferred_types") if spec else []) or []]
+        avoid_types = {t.lower() for t in (spec.get("avoid_types") if spec else []) or []}
+        persona_domains = [d.lower() for d in (spec.get("domains") if spec else []) or []]
+        forbidden_domains = {d.lower() for d in (spec.get("forbidden_domains") if spec else []) or []}
+        persona_min_diff = int(spec["min_difficulty"]) if spec else 1
+        persona_max_diff = int(spec["max_difficulty"]) if spec else 5
+
+        TARGET_SKILLS = list(skill_mix.keys())
+
         # Calculate current answered skill counts in this session
         answered_res = await self.db.execute(
-            select(Question.skill, Question.domain, Question.question_type, Question.question_content, Question.audio_script, Question.id)
+            select(
+                Question.skill,
+                Question.domain,
+                Question.question_type,
+                Question.question_content,
+                Question.audio_script,
+                Question.id,
+                QuestionResponse.is_correct,
+                QuestionResponse.created_at,
+            )
             .join(QuestionResponse, QuestionResponse.question_id == Question.id)
             .where(QuestionResponse.session_id == session_id)
+            .order_by(QuestionResponse.created_at.asc())
         )
         answered_rows = answered_res.fetchall()
-        
+
         skill_counts = {s: 0 for s in TARGET_SKILLS}
         used_contexts = []
         used_types = []
         used_prompts = set()
         used_ids = set()
+        recent_wrong_types: list[str] = []
+        trailing_wrong = 0
 
-        for s_skill, s_domain, s_type, s_content, s_audio, s_id in answered_rows:
+        for s_skill, s_domain, s_type, s_content, s_audio, s_id, s_correct, _created in answered_rows:
             if s_skill in skill_counts:
                 skill_counts[s_skill] += 1
             if s_domain:
@@ -568,15 +611,29 @@ class AssessmentService:
                         used_prompts.add(qc.get("prompt"))
                 except Exception:
                     pass
+            if s_correct:
+                trailing_wrong = 0
+            else:
+                trailing_wrong += 1
+                if s_type:
+                    recent_wrong_types.append(s_type.lower())
 
-        # Determine eligible target skills for next slot (slots with count < 3)
-        eligible_skills = [s for s in TARGET_SKILLS if skill_counts[s] < 3]
+        # Repeated mistakes → switch the interaction format instead of
+        # hammering the learner with the same one.
+        struggling = trailing_wrong >= 2
+        blocked_types = set(recent_wrong_types[-2:]) if struggling else set()
+
+        # Determine eligible target skills for the next slot from the persona mix
+        eligible_skills = [s for s in TARGET_SKILLS if skill_counts.get(s, 0) < skill_mix[s]]
         if not eligible_skills:
             eligible_skills = TARGET_SKILLS
 
-        # Prioritize skills with the lowest current count to maintain balanced 3-3-3-3-3 distribution
-        min_skill_count = min(skill_counts[s] for s in eligible_skills)
-        preferred_skills = [s for s in eligible_skills if skill_counts[s] == min_skill_count]
+        # Keep the persona's skill distribution balanced as the session runs
+        min_ratio = min(skill_counts.get(s, 0) / max(1, skill_mix[s]) for s in eligible_skills)
+        preferred_skills = [
+            s for s in eligible_skills
+            if skill_counts.get(s, 0) / max(1, skill_mix[s]) <= min_ratio + 0.001
+        ]
 
         # Fetch active candidate questions
         base_stmt = select(Question).where(
@@ -588,6 +645,21 @@ class AssessmentService:
 
         # Filter candidates for strict profile eligibility
         eligible_candidates = [q for q in all_candidates if self.is_question_profile_eligible(q, profile)]
+
+        # Persona hard boundaries: forbidden contexts and banned formats
+        if forbidden_domains:
+            eligible_candidates = [
+                q for q in eligible_candidates
+                if (q.domain or "").strip().lower() not in forbidden_domains
+            ] or eligible_candidates
+        if avoid_types:
+            filtered = [
+                q for q in eligible_candidates
+                if (q.question_type or "").strip().lower() not in avoid_types
+            ]
+            if filtered:
+                eligible_candidates = filtered
+
         if not eligible_candidates:
             # Strictly enforce profile boundaries: never serve healthcare/workplace to children under 12
             is_child_profile = profile and ("under 12" in (profile.age_group or "").lower() or "<12" in (profile.age_group or "").lower())
@@ -605,9 +677,16 @@ class AssessmentService:
         if not skill_candidates:
             skill_candidates = eligible_candidates
 
-        # Score candidates for context diversity, format diversity, non-repetition, and difficulty alignment
+        # Score candidates for persona fit, context diversity, format diversity,
+        # non-repetition, and adaptive difficulty alignment.
         best_question = None
         best_score = -999999
+
+        # Never overwhelm a struggling beginner: cap the target difficulty.
+        target_difficulty = self._clamp_difficulty(session.current_difficulty)
+        target_difficulty = max(persona_min_diff, min(persona_max_diff, target_difficulty))
+        if struggling:
+            target_difficulty = max(persona_min_diff, target_difficulty - 1)
 
         import random
         for q in skill_candidates:
@@ -623,21 +702,40 @@ class AssessmentService:
             if prompt_text in used_prompts:
                 continue
 
+            q_type = (q.question_type or "").strip().lower()
             score = 0.0
-            
-            # Difficulty proximity score
-            diff_diff = abs(q.difficulty - session.current_difficulty)
+
+            # Difficulty proximity to the adaptive target
+            diff_diff = abs(q.difficulty - target_difficulty)
             score -= (diff_diff * 100)
 
+            # Persona format fit: earlier in preferred_types = better
+            if preferred_types:
+                if q_type in preferred_types:
+                    score += (len(preferred_types) - preferred_types.index(q_type)) * 25
+                else:
+                    score -= 60
+
+            # Persona context fit: real-life situations written for this learner
+            ctx = (q.domain or "").strip().lower()
+            if persona_domains and ctx in persona_domains:
+                score += 70
+
+            # Repeated mistakes → avoid repeating the same failing format
+            if q_type in blocked_types:
+                score -= 200
+
             # Context diversity: penalize if context repeated frequently
-            ctx = q.domain or ""
-            ctx_count = used_contexts.count(ctx)
+            ctx_count = used_contexts.count(q.domain or "")
             score -= (ctx_count * 50)
 
             # Format diversity: penalize if type repeated frequently
-            q_type = q.question_type or ""
-            type_count = used_types.count(q_type)
+            type_count = used_types.count(q.question_type or "")
             score -= (type_count * 30)
+
+            # Media-first personas prefer questions carrying image/audio
+            if spec and spec.get("media_required") and (q.image_url or q.audio_url or q.audio_script):
+                score += 40
 
             # Random tie-breaker
             score += random.random() * 5

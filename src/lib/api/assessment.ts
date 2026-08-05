@@ -401,3 +401,82 @@ export async function evaluateSpeech(
 
   return response.json();
 }
+
+// --- AI Assessment Report ----------------------------------------------------
+
+export interface ReportSkill {
+  skill: string;
+  score: number;
+  level: string;
+  asked: number;
+  measured: boolean;
+}
+
+export interface ReportInsight {
+  type: "strength" | "weakness" | "mistake" | "style" | "confidence" | string;
+  title: string;
+  detail: string;
+}
+
+export interface ReportRecommendations {
+  daily_goal: { minutes: number; reason: string };
+  weekly_goal: { lessons: number; minutes: number; reason: string };
+  lessons: { module_id: string; title: string; skill: string; priority: number; reason: string }[];
+  practice: { skill: string; title: string; reason: string }[];
+  games: { id: string; title: string; skill: string; reason: string }[];
+  resources: { type: string; title: string; query?: string; reason: string }[];
+  missions: { title: string; reason: string }[];
+  revision_schedule: { when: string; focus: string; reason: string }[];
+  tutor_objective: { objective: string; reason: string };
+}
+
+export interface AssessmentReport {
+  session_id: string;
+  persona: string;
+  persona_label: string;
+  completed_at: string;
+  questions_answered: number;
+  overall_score: number;
+  overall_level: string;
+  cefr_level: string;
+  cefr_label: string;
+  confidence: number;
+  readiness_level: string;
+  summary: string;
+  skills: ReportSkill[];
+  strengths: string[];
+  weaknesses: string[];
+  insights: ReportInsight[];
+  recommendations: ReportRecommendations;
+  learning_path: { module_id: string; title: string; skill: string; priority: number }[];
+}
+
+/** Fetch the full AI assessment report for a completed session. */
+export async function getAssessmentReport(sessionId: string): Promise<AssessmentReport> {
+  return apiRequest<AssessmentReport>(`/assessments/sessions/${sessionId}/report`);
+}
+
+export interface PersonaBlueprint {
+  persona: string;
+  label: string;
+  description: string;
+  question_count: number;
+  min_difficulty: number;
+  max_difficulty: number;
+  estimated_duration_minutes: number;
+  interaction_style: string;
+  media_required: boolean;
+  reading_load: string;
+  skill_mix: Record<string, number>;
+  preferred_types: string[];
+  domains: string[];
+}
+
+/** The persona-driven blueprint the learner's assessment will follow. */
+export async function getPersonaBlueprint(): Promise<PersonaBlueprint | null> {
+  try {
+    return await apiRequest<PersonaBlueprint>("/assessments/persona-blueprint");
+  } catch {
+    return null;
+  }
+}
