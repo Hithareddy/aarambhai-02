@@ -10,6 +10,7 @@ This service does NOT replace the existing AssessmentService — it feeds it.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from typing import Any
@@ -343,12 +344,14 @@ def build_persona_spec(profile: Any) -> dict[str, Any]:
 
 
 def blueprint_id_for(spec: dict[str, Any]) -> str:
-    """Deterministic, reusable blueprint id per persona + difficulty + goal skill."""
-    goal = re.sub(r"[^a-z0-9]+", "-", _norm(spec.get("learning_goal")))[:32].strip("-") or "general"
-    return (
-        f"persona-{spec['persona']}-{goal}-"
-        f"{spec['min_difficulty']}{spec['max_difficulty']}-{spec.get('goal_skill') or 'balanced'}"
-    )[:36]
+    """Deterministic, reusable blueprint id per persona + difficulty band + goal skill."""
+    goal = re.sub(r"[^a-z0-9]+", "-", _norm(spec.get("learning_goal")))[:24].strip("-") or "general"
+    key = (
+        f"{spec['persona']}|{goal}|{spec['min_difficulty']}-{spec['max_difficulty']}|"
+        f"{spec.get('goal_skill') or 'balanced'}|{spec['question_count']}"
+    )
+    digest = hashlib.sha1(key.encode("utf-8")).hexdigest()[:10]
+    return f"bp-{spec['persona'][:14]}-{digest}"
 
 
 class PersonaBlueprintService:
