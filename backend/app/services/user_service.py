@@ -87,7 +87,7 @@ class UserService:
         Returns:
             User if found, None otherwise
         """
-        result = await self.db.execute(select(User).where(User.email == email))
+        result = await self.db.execute(select(User).where(User.email.ilike(email)))
         return result.scalar_one_or_none()
 
     async def update_user(self, user_id: str, user_data: UserUpdate) -> User:

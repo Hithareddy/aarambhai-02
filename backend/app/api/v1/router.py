@@ -22,6 +22,7 @@ from app.api.v1.endpoints import (
     admin,
     announcements,
     resources,
+    translation,
 )
 
 api_router = APIRouter()
