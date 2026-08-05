@@ -645,6 +645,21 @@ class AssessmentService:
 
         # Filter candidates for strict profile eligibility
         eligible_candidates = [q for q in all_candidates if self.is_question_profile_eligible(q, profile)]
+
+        # Persona hard boundaries: forbidden contexts and banned formats
+        if forbidden_domains:
+            eligible_candidates = [
+                q for q in eligible_candidates
+                if (q.domain or "").strip().lower() not in forbidden_domains
+            ] or eligible_candidates
+        if avoid_types:
+            filtered = [
+                q for q in eligible_candidates
+                if (q.question_type or "").strip().lower() not in avoid_types
+            ]
+            if filtered:
+                eligible_candidates = filtered
+
         if not eligible_candidates:
             # Strictly enforce profile boundaries: never serve healthcare/workplace to children under 12
             is_child_profile = profile and ("under 12" in (profile.age_group or "").lower() or "<12" in (profile.age_group or "").lower())
@@ -662,9 +677,16 @@ class AssessmentService:
         if not skill_candidates:
             skill_candidates = eligible_candidates
 
-        # Score candidates for context diversity, format diversity, non-repetition, and difficulty alignment
+        # Score candidates for persona fit, context diversity, format diversity,
+        # non-repetition, and adaptive difficulty alignment.
         best_question = None
         best_score = -999999
+
+        # Never overwhelm a struggling beginner: cap the target difficulty.
+        target_difficulty = self._clamp_difficulty(session.current_difficulty)
+        target_difficulty = max(persona_min_diff, min(persona_max_diff, target_difficulty))
+        if struggling:
+            target_difficulty = max(persona_min_diff, target_difficulty - 1)
 
         import random
         for q in skill_candidates:
@@ -680,21 +702,40 @@ class AssessmentService:
             if prompt_text in used_prompts:
                 continue
 
+            q_type = (q.question_type or "").strip().lower()
             score = 0.0
-            
-            # Difficulty proximity score
-            diff_diff = abs(q.difficulty - session.current_difficulty)
+
+            # Difficulty proximity to the adaptive target
+            diff_diff = abs(q.difficulty - target_difficulty)
             score -= (diff_diff * 100)
 
+            # Persona format fit: earlier in preferred_types = better
+            if preferred_types:
+                if q_type in preferred_types:
+                    score += (len(preferred_types) - preferred_types.index(q_type)) * 25
+                else:
+                    score -= 60
+
+            # Persona context fit: real-life situations written for this learner
+            ctx = (q.domain or "").strip().lower()
+            if persona_domains and ctx in persona_domains:
+                score += 70
+
+            # Repeated mistakes → avoid repeating the same failing format
+            if q_type in blocked_types:
+                score -= 200
+
             # Context diversity: penalize if context repeated frequently
-            ctx = q.domain or ""
-            ctx_count = used_contexts.count(ctx)
+            ctx_count = used_contexts.count(q.domain or "")
             score -= (ctx_count * 50)
 
             # Format diversity: penalize if type repeated frequently
-            q_type = q.question_type or ""
-            type_count = used_types.count(q_type)
+            type_count = used_types.count(q.question_type or "")
             score -= (type_count * 30)
+
+            # Media-first personas prefer questions carrying image/audio
+            if spec and spec.get("media_required") and (q.image_url or q.audio_url or q.audio_script):
+                score += 40
 
             # Random tie-breaker
             score += random.random() * 5
