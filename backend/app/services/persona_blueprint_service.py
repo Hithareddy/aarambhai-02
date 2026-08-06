@@ -292,9 +292,31 @@ def build_persona_spec(profile: Any) -> dict[str, Any]:
     spec: dict[str, Any] = json.loads(json.dumps(PERSONA_SPECS[key]))  # deep copy
     spec["persona"] = key
 
+    # The question bank only carries these five skills — fold any legacy
+    # "vocabulary" slots into reading/listening so the mix is actually fillable.
+    BANK_SKILLS = ("listening", "speaking", "reading", "writing", "everyday_communication")
+    raw_mix = spec.get("skill_mix") or {}
+    mix: dict[str, int] = {s: int(raw_mix.get(s, 0)) for s in BANK_SKILLS}
+    leftover = sum(int(v) for k, v in raw_mix.items() if k not in BANK_SKILLS)
+    for i in range(leftover):
+        target = "reading" if i % 2 == 0 else "listening"
+        mix[target] += 1
+    spec["skill_mix"] = {s: v for s, v in mix.items() if v > 0}
+
+    # Contexts and formats come from the single-source persona policy that
+    # speaks the real question-bank vocabulary.
+    policy = policy_for(key)
+    spec["domains"] = sorted(policy["allow"])
+    spec["blocked_domains"] = sorted(policy["block"])
+    spec["preferred_types"] = list(policy["preferred_types"])
+    spec["avoid_types"] = list(policy["avoid_types"])
+    spec["max_difficulty"] = min(int(spec["max_difficulty"]), int(policy["hard_max_difficulty"]))
+    spec["min_difficulty"] = min(int(spec["min_difficulty"]), int(spec["max_difficulty"]))
+
     familiarity = _norm(getattr(profile, "current_familiarity", ""))
     goal = _norm(getattr(profile, "learning_goal", ""))
     digital = _norm(getattr(profile, "digital_comfort", ""))
+
 
     # Familiarity shifts the difficulty band without leaving the persona range.
     if any(k in familiarity for k in ("advanced", "fluent")):
