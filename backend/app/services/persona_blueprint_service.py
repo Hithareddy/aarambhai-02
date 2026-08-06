@@ -326,9 +326,12 @@ def build_persona_spec(profile: Any) -> dict[str, Any]:
     elif any(k in familiarity for k in ("none", "zero", "cannot", "beginner", "never")):
         spec["max_difficulty"] = max(spec["min_difficulty"], min(spec["max_difficulty"], 3))
 
-    # Low digital comfort → simpler interactions, no drag/arrange formats.
+    # Low digital comfort → simpler interactions, no long typed/ordering tasks.
     if any(k in digital for k in ("low", "not comfortable", "beginner", "never")):
-        spec["avoid_types"] = sorted(set(spec["avoid_types"]) | {"arrange", "arrange_letters", "match"})
+        spec["avoid_types"] = sorted(
+            set(spec["avoid_types"]) | {"sentence_order", "extended_response"}
+        )
+
 
     # Learning goal tilts the skill mix toward the goal's dominant skill.
     goal_skill = None
