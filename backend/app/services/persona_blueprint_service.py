@@ -19,6 +19,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.assessment import AssessmentBlueprint
+from app.services.persona_context_policy import policy_for
+
 
 # --------------------------------------------------------------------------- #
 # Persona specifications
