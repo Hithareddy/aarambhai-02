@@ -364,7 +364,7 @@ def build_persona_spec(profile: Any) -> dict[str, Any]:
     spec["learning_goal"] = getattr(profile, "learning_goal", None) or "Initial placement"
     spec["website_language"] = _norm(getattr(profile, "website_language", "en")) or "en"
     spec["learning_language"] = _norm(getattr(profile, "learning_language", "en")) or "en"
-    spec["forbidden_domains"] = sorted(CHILD_FORBIDDEN_DOMAINS) if key == "early_learner" else []
+    spec["forbidden_domains"] = sorted(policy["block"])
     return spec
 
 
