@@ -637,32 +637,37 @@ class AssessmentService:
         res_cand = await self.db.execute(base_stmt)
         all_candidates = res_cand.scalars().all()
 
-        # Filter candidates for strict profile eligibility
-        eligible_candidates = [q for q in all_candidates if self.is_question_profile_eligible(q, profile)]
+        # Hard persona gate — a question that fails this is NEVER served,
+        # even if it leaves the pool empty. We would rather relax difficulty
+        # or repeat a skill than show a child a banking scenario.
+        from app.services.persona_context_policy import (
+            canonical_context,
+            context_fit_score,
+            format_fit_score,
+            is_suitable,
+        )
 
-        # Persona hard boundaries: forbidden contexts and banned formats
-        if forbidden_domains:
-            eligible_candidates = [
-                q for q in eligible_candidates
-                if (q.domain or "").strip().lower() not in forbidden_domains
-            ] or eligible_candidates
-        if avoid_types:
-            filtered = [
-                q for q in eligible_candidates
-                if (q.question_type or "").strip().lower() not in avoid_types
-            ]
-            if filtered:
-                eligible_candidates = filtered
+        persona_key = (spec or {}).get("persona") or "general_adult"
+        eligible_candidates = [
+            q for q in all_candidates
+            if self.is_question_profile_eligible(q, profile, spec)
+        ]
 
         if not eligible_candidates:
-            # Strictly enforce profile boundaries: never serve healthcare/workplace to children under 12
-            is_child_profile = profile and ("under 12" in (profile.age_group or "").lower() or "<12" in (profile.age_group or "").lower())
+            # Relax only the soft profile layer (language/wording); the persona
+            # context + format + difficulty boundaries stay in force.
+            eligible_candidates = [
+                q for q in all_candidates if is_suitable(q, persona_key, spec)
+            ]
+        if not eligible_candidates:
+            # Last resort: keep the blocked-context guarantee, drop format prefs.
             eligible_candidates = [
                 q for q in all_candidates
-                if q.is_active and not (is_child_profile and q.domain in ["healthcare", "workplace", "atm", "investment"])
+                if is_suitable(q, persona_key, None)
             ]
+
         if not eligible_candidates:
-            eligible_candidates = all_candidates
+            raise ValueError("No persona-appropriate questions available")
 
         # Filter candidates by skill preference
         skill_candidates = [q for q in eligible_candidates if q.skill in preferred_skills]
@@ -681,6 +686,8 @@ class AssessmentService:
         target_difficulty = max(persona_min_diff, min(persona_max_diff, target_difficulty))
         if struggling:
             target_difficulty = max(persona_min_diff, target_difficulty - 1)
+
+        used_canonical = [canonical_context(c) for c in used_contexts]
 
         import random
         for q in skill_candidates:
@@ -703,24 +710,21 @@ class AssessmentService:
             diff_diff = abs(q.difficulty - target_difficulty)
             score -= (diff_diff * 100)
 
-            # Persona format fit: earlier in preferred_types = better
-            if preferred_types:
-                if q_type in preferred_types:
-                    score += (len(preferred_types) - preferred_types.index(q_type)) * 25
-                else:
-                    score -= 60
+            # Persona fit: real-life context first, then interaction format.
+            score += context_fit_score(q, persona_key)
+            score += format_fit_score(q, persona_key, spec)
 
-            # Persona context fit: real-life situations written for this learner
-            ctx = (q.domain or "").strip().lower()
-            if persona_domains and ctx in persona_domains:
-                score += 70
+            # Content curated explicitly for this persona wins ties decisively.
+            from app.services.persona_context_policy import question_personas
+            if persona_key in question_personas(q):
+                score += 120
 
             # Repeated mistakes → avoid repeating the same failing format
             if q_type in blocked_types:
                 score -= 200
 
             # Context diversity: penalize if context repeated frequently
-            ctx_count = used_contexts.count(q.domain or "")
+            ctx_count = used_canonical.count(canonical_context(q.domain))
             score -= (ctx_count * 50)
 
             # Format diversity: penalize if type repeated frequently
@@ -739,8 +743,10 @@ class AssessmentService:
                 best_question = q
 
         if best_question is None:
-            # Fallback if strict prompt exclusion left no candidates
-            best_question = skill_candidates[0] if skill_candidates else all_candidates[0]
+            # Prompt de-duplication emptied the pool — fall back inside the
+            # persona-safe set only.
+            best_question = skill_candidates[0]
+
 
         # Translate instruction for website_language and options for learning_language
         translated_dict, _ = await self._get_translated_question(best_question, website_language, learning_language)
