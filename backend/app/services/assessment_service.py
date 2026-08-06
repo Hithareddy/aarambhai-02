@@ -442,88 +442,82 @@ class AssessmentService:
         return max(min_diff, min(max_diff, level))
 
     @staticmethod
-    def is_question_profile_eligible(question: Question, profile: Any) -> bool:
+    def is_question_profile_eligible(
+        question: Question,
+        profile: Any,
+        spec: dict[str, Any] | None = None,
+    ) -> bool:
         """
-        Enforce strict 10-Criteria Learner Personalization Filter.
-        Ensures questions match learner age, role, education, learning_language, and familiarity.
+        Hard persona gate applied before a question can ever be served.
+
+        Delegates context/format/difficulty boundaries to the single-source
+        persona policy, and layers the learner-profile checks (learning
+        language, familiarity ceiling, adult wording for children) on top.
         """
         if not profile:
             return True
 
-        role = (profile.current_role or "").strip().lower()
-        age = (profile.age_group or "").strip().lower()
-        edu = (profile.educational_background or profile.education_level or "").strip().lower()
-        goal = (profile.learning_goal or "").strip().lower()
+        from app.services.persona_blueprint_service import build_persona_spec, resolve_persona_key
+        from app.services.persona_context_policy import is_suitable
+
+        persona = (spec or {}).get("persona") or resolve_persona_key(profile)
+        if spec is None:
+            try:
+                spec = build_persona_spec(profile)
+            except Exception:
+                spec = None
+
+        if not is_suitable(question, persona, spec):
+            return False
+
         target_lang = (profile.learning_language or "en").strip().lower()
         familiarity = (profile.current_familiarity or "").strip().lower()
-        
-        domain = (question.domain or question.topic_category or "").strip().lower()
-        q_lang = (question.language or question.language_code or "en").strip().lower()
-        
-        # 1. QUESTION STATUS: Must be active
-        if not question.is_active:
+        edu = (profile.educational_background or "").strip().lower()
+        age = (profile.age_group or "").strip().lower()
+        q_lang = (question.language or "en").strip().lower()
+
+        # Learning-language filter (English content is always acceptable).
+        def lang_code(value: str) -> str:
+            if "telugu" in value or value == "te":
+                return "te"
+            if "hindi" in value or value == "hi":
+                return "hi"
+            if "tamil" in value or value == "ta":
+                return "ta"
+            if "marathi" in value or value == "mr":
+                return "mr"
+            return "en"
+
+        target_code, q_code = lang_code(target_lang), lang_code(q_lang)
+        if target_code != "en" and q_code not in (target_code, "en"):
             return False
 
-        # 2. QUESTION COMPLETENESS: Must have valid question_content and options (or reference text for speaking)
-        if not question.question_content or (question.question_type != "speaking" and not question.options):
+        is_child = persona == "early_learner" or "under" in age or "<12" in age or "child" in age
+
+        # Beginners and children never see high-difficulty items.
+        if (is_child or "primary" in edu
+                or any(k in familiarity for k in ("beginner", "none", "zero", "cannot", "never"))) \
+                and question.difficulty > 3:
             return False
 
-        # 3. LEARNING LANGUAGE FILTER
-        target_lang_code = "te" if "telugu" in target_lang or target_lang == "te" else "hi" if "hindi" in target_lang or target_lang == "hi" else "en"
-        q_lang_code = "te" if "telugu" in q_lang or q_lang == "te" else "hi" if "hindi" in q_lang or q_lang == "hi" else "en"
-
-        if target_lang_code != "en" and q_lang_code != target_lang_code and q_lang_code != "en":
-            return False
-
-        # Parse tags
-        tags = []
-        if question.tags:
-            try:
-                tags = json.loads(question.tags) if isinstance(question.tags, str) else question.tags
-            except Exception:
-                tags = []
-
-        role_tags = [t.lower() for t in (json.loads(question.learner_type) if question.learner_type and question.learner_type.startswith('[') else tags)]
-        age_tags = [t.lower() for t in (json.loads(question.age_group) if question.age_group and question.age_group.startswith('[') else tags)]
-
-        is_child = "under 12" in age or "<12" in age or "child" in age
-        is_teen = "12" in age or "13" in age or "17" in age
-        is_student = "student" in role or is_child or is_teen or "primary" in edu or "secondary" in edu
-        is_professional = "professional" in role or "working" in role or "corporate" in role
-        is_senior = "senior" in role or "60+" in age or "60" in age
-        is_homemaker = "homemaker" in role
-
-        # 4. AGE GROUP & SCENARIO BOUNDARIES
+        # Wording safety net for children: reject adult scenario language even
+        # when the question's metadata looks harmless.
         if is_child:
-            # Under 12 children MUST NOT receive adult/corporate/medical/financial scenarios!
-            forbidden_domains = [
-                "healthcare", "doctor_appointment", "clinic", "workplace", "corporate",
-                "office", "atm", "banking", "investment", "government_forms", "medicine_label"
-            ]
-            if domain in forbidden_domains:
+            blob = " ".join(
+                str(x or "").lower()
+                for x in (question.question_content, question.audio_script, question.reference_text)
+            )
+            adult_terms = (
+                "appointment", "doctor", "hospital", "clinic", "medicine", "salary",
+                "colleague", "corporate", "investment", "bank", "office", "manager",
+                "client", "meeting", "invoice", "interview", "resume", "email",
+                "insurance", "loan", "tax",
+            )
+            if any(term in blob for term in adult_terms):
                 return False
-            
-            # Check for adult prompt content
-            qc_str = (question.question_content or "").lower()
-            if any(term in qc_str for term in ["appointment", "doctor", "hospital", "clinic", "salary", "colleague", "corporate", "investment", "bank"]):
-                return False
-
-            # Require child-friendly role or age tags if tags exist
-            if age_tags and not any("under 12" in t or "student" in t for t in age_tags):
-                return False
-
-        if is_student and domain in ["workplace", "corporate"]:
-            return False
-        if is_homemaker and domain in ["workplace", "corporate", "school_campus"]:
-            return False
-        if is_senior and domain in ["workplace", "corporate", "school_campus"]:
-            return False
-
-        # 5. EDUCATION LEVEL & FAMILIARITY BOUNDARIES
-        if ("primary" in edu or is_child or "beginner" in familiarity) and question.difficulty > 3:
-            return False
 
         return True
+
 
     async def get_next_question(self, session_id: str, user_id: str | None = None) -> dict:
         """Get next question using profile-aware, context-diversified, 3-3-3-3-3 skill ratio adaptive engine."""
