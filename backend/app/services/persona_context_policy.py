@@ -170,7 +170,7 @@ PERSONA_POLICY: dict[str, dict[str, Any]] = {
             "situational_response", "short_response", "image_scenario_mcq",
             "reading_mcq", "greeting_introduction",
         ],
-        "avoid_types": ["extended_response", "sentence_order", "fill_blank"],
+        "avoid_types": ["extended_response", "sentence_order"],
         "hard_max_difficulty": 4,
     },
     "general_adult": {
