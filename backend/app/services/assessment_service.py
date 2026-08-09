@@ -369,10 +369,54 @@ class AssessmentService:
         await self.db.refresh(blueprint)
         return blueprint
 
+    REQUIRED_PROFILE_FIELDS: dict[str, str] = {
+        "age_group": "age group",
+        "learning_language": "language you want to learn",
+        "website_language": "website language",
+        "current_familiarity": "current comfort level",
+    }
+
+    async def _require_complete_profile(self, user_id: str):
+        """
+        Hard profile gate.
+
+        An initial assessment is only meaningful when we know who the learner
+        is. Without a persisted profile we refuse to create a session (no
+        silent ``initial-adaptive`` fallback) so the learner is sent back to
+        onboarding instead of receiving generic content.
+        """
+        profile = await LearnerService(self.db).get_learner_profile_by_user_id(user_id)
+        if profile is None:
+            raise ProfileIncompleteError(
+                missing=list(self.REQUIRED_PROFILE_FIELDS.values()),
+                message="Your learner profile is not saved yet. Please complete onboarding "
+                        "so we can build an assessment that matches you.",
+            )
+
+        missing = [
+            label
+            for field, label in self.REQUIRED_PROFILE_FIELDS.items()
+            if not str(getattr(profile, field, "") or "").strip()
+        ]
+        # Education / role are recorded when available; at least one is needed
+        # to resolve a persona for adult learners.
+        if not str(getattr(profile, "educational_background", "") or "").strip() and not str(
+            getattr(profile, "current_role", "") or ""
+        ).strip():
+            missing.append("education level or current role")
+
+        if missing:
+            raise ProfileIncompleteError(
+                missing=missing,
+                message="Some onboarding details are missing, so we cannot personalise your "
+                        "assessment yet. Please complete your profile.",
+            )
+        return profile
+
     async def create_session(
         self, session_data: AssessmentSessionCreate, user_id: str
     ) -> AssessmentSession:
-        """Create assessment session using placement blueprint."""
+        """Create assessment session using a persona blueprint (profile required)."""
         if session_data.blueprint_id:
             result = await self.db.execute(
                 select(AssessmentBlueprint).where(
@@ -387,11 +431,9 @@ class AssessmentService:
             # and scoring are derived from the learner's onboarding profile.
             from app.services.persona_blueprint_service import PersonaBlueprintService
 
-            profile = await LearnerService(self.db).get_learner_profile_by_user_id(user_id)
-            if profile is not None:
-                blueprint = await PersonaBlueprintService(self.db).get_or_create_blueprint(profile)
-            else:
-                blueprint = await self._get_or_create_default_blueprint()
+            profile = await self._require_complete_profile(user_id)
+            blueprint = await PersonaBlueprintService(self.db).get_or_create_blueprint(profile)
+
 
         starting_difficulty = await self.get_initial_difficulty_for_user(user_id, blueprint)
 
