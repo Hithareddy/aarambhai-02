@@ -39,6 +39,17 @@ DEFAULT_QUESTION_COUNT = QUESTION_COUNTS.get("initial-adaptive", 15)
 LSRW_SKILLS = ["listening", "speaking", "reading", "writing"]
 
 
+class ProfileIncompleteError(Exception):
+    """Raised when an assessment is requested before the profile is persisted."""
+
+    def __init__(self, missing: list[str], message: str):
+        super().__init__(message)
+        self.missing = missing
+        self.message = message
+
+
+
+
 class AssessmentService:
     """Service for assessment business logic."""
 
