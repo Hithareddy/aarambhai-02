@@ -731,8 +731,7 @@ class AssessmentService:
 
         # Score candidates for persona fit, context diversity, format diversity,
         # non-repetition, and adaptive difficulty alignment.
-        best_question = None
-        best_score = -999999
+        scored: list[tuple[float, Question]] = []
 
         # Never overwhelm a struggling beginner: cap the target difficulty.
         target_difficulty = self._clamp_difficulty(session.current_difficulty)
@@ -742,7 +741,15 @@ class AssessmentService:
 
         used_canonical = [canonical_context(c) for c in used_contexts]
 
-        import random
+        # Per-session controlled randomization. The seed is derived from the
+        # session id and the slot index, so two learners with the same persona
+        # get different orders, a single session stays reproducible on refresh,
+        # and adaptive difficulty / LSRW coverage are untouched (randomization
+        # only breaks ties inside the already-filtered, equally-good pool).
+        rng = random.Random(f"{session.id}:{len(answered_rows)}")
+
+        from app.services.persona_context_policy import question_personas
+
         for q in skill_candidates:
             qc = {}
             if q.question_content:
@@ -768,7 +775,6 @@ class AssessmentService:
             score += format_fit_score(q, persona_key, spec)
 
             # Content curated explicitly for this persona wins ties decisively.
-            from app.services.persona_context_policy import question_personas
             if persona_key in question_personas(q):
                 score += 120
 
@@ -788,17 +794,21 @@ class AssessmentService:
             if spec and spec.get("media_required") and (q.image_url or q.audio_url or q.audio_script):
                 score += 40
 
-            # Random tie-breaker
-            score += random.random() * 5
+            scored.append((score, q))
 
-            if score > best_score:
-                best_score = score
-                best_question = q
+        best_question = None
+        if scored:
+            top_score = max(s for s, _ in scored)
+            # Everything within one "soft preference" step of the best score is
+            # considered equally appropriate; pick among them at random.
+            band = [q for s, q in scored if s >= top_score - 45]
+            best_question = rng.choice(band)
 
         if best_question is None:
             # Prompt de-duplication emptied the pool — fall back inside the
             # persona-safe set only.
-            best_question = skill_candidates[0]
+            best_question = rng.choice(skill_candidates)
+
 
 
         # Translate instruction for website_language and options for learning_language
