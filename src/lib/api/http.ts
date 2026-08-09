@@ -115,8 +115,19 @@ export async function apiRequest<T>(
       }
     }
     const error = await response.json().catch(() => ({ detail: `API error: ${response.status}` }));
-    throw new ApiError(error.detail || `API error: ${response.status}`, response.status);
-  }
+    const detail = (error as any)?.detail;
+    // FastAPI can return a structured detail object (e.g. the profile gate).
+    const message =
+      typeof detail === "string"
+        ? detail
+        : detail?.message || detail?.code || `API error: ${response.status}`;
+    const apiError = new ApiError(message, response.status);
+    if (detail && typeof detail === "object") {
+      (apiError as any).code = detail.code;
+      (apiError as any).details = detail;
+    }
+    throw apiError;
+
 
   if (response.status === 204) {
     return undefined as T;
