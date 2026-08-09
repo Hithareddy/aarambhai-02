@@ -39,6 +39,17 @@ DEFAULT_QUESTION_COUNT = QUESTION_COUNTS.get("initial-adaptive", 15)
 LSRW_SKILLS = ["listening", "speaking", "reading", "writing"]
 
 
+class ProfileIncompleteError(Exception):
+    """Raised when an assessment is requested before the profile is persisted."""
+
+    def __init__(self, missing: list[str], message: str):
+        super().__init__(message)
+        self.missing = missing
+        self.message = message
+
+
+
+
 class AssessmentService:
     """Service for assessment business logic."""
 
@@ -369,10 +380,54 @@ class AssessmentService:
         await self.db.refresh(blueprint)
         return blueprint
 
+    REQUIRED_PROFILE_FIELDS: dict[str, str] = {
+        "age_group": "age group",
+        "learning_language": "language you want to learn",
+        "website_language": "website language",
+        "current_familiarity": "current comfort level",
+    }
+
+    async def _require_complete_profile(self, user_id: str):
+        """
+        Hard profile gate.
+
+        An initial assessment is only meaningful when we know who the learner
+        is. Without a persisted profile we refuse to create a session (no
+        silent ``initial-adaptive`` fallback) so the learner is sent back to
+        onboarding instead of receiving generic content.
+        """
+        profile = await LearnerService(self.db).get_learner_profile_by_user_id(user_id)
+        if profile is None:
+            raise ProfileIncompleteError(
+                missing=list(self.REQUIRED_PROFILE_FIELDS.values()),
+                message="Your learner profile is not saved yet. Please complete onboarding "
+                        "so we can build an assessment that matches you.",
+            )
+
+        missing = [
+            label
+            for field, label in self.REQUIRED_PROFILE_FIELDS.items()
+            if not str(getattr(profile, field, "") or "").strip()
+        ]
+        # Education / role are recorded when available; at least one is needed
+        # to resolve a persona for adult learners.
+        if not str(getattr(profile, "educational_background", "") or "").strip() and not str(
+            getattr(profile, "current_role", "") or ""
+        ).strip():
+            missing.append("education level or current role")
+
+        if missing:
+            raise ProfileIncompleteError(
+                missing=missing,
+                message="Some onboarding details are missing, so we cannot personalise your "
+                        "assessment yet. Please complete your profile.",
+            )
+        return profile
+
     async def create_session(
         self, session_data: AssessmentSessionCreate, user_id: str
     ) -> AssessmentSession:
-        """Create assessment session using placement blueprint."""
+        """Create assessment session using a persona blueprint (profile required)."""
         if session_data.blueprint_id:
             result = await self.db.execute(
                 select(AssessmentBlueprint).where(
@@ -387,11 +442,9 @@ class AssessmentService:
             # and scoring are derived from the learner's onboarding profile.
             from app.services.persona_blueprint_service import PersonaBlueprintService
 
-            profile = await LearnerService(self.db).get_learner_profile_by_user_id(user_id)
-            if profile is not None:
-                blueprint = await PersonaBlueprintService(self.db).get_or_create_blueprint(profile)
-            else:
-                blueprint = await self._get_or_create_default_blueprint()
+            profile = await self._require_complete_profile(user_id)
+            blueprint = await PersonaBlueprintService(self.db).get_or_create_blueprint(profile)
+
 
         starting_difficulty = await self.get_initial_difficulty_for_user(user_id, blueprint)
 
@@ -678,8 +731,7 @@ class AssessmentService:
 
         # Score candidates for persona fit, context diversity, format diversity,
         # non-repetition, and adaptive difficulty alignment.
-        best_question = None
-        best_score = -999999
+        scored: list[tuple[float, Question]] = []
 
         # Never overwhelm a struggling beginner: cap the target difficulty.
         target_difficulty = self._clamp_difficulty(session.current_difficulty)
@@ -689,7 +741,15 @@ class AssessmentService:
 
         used_canonical = [canonical_context(c) for c in used_contexts]
 
-        import random
+        # Per-session controlled randomization. The seed is derived from the
+        # session id and the slot index, so two learners with the same persona
+        # get different orders, a single session stays reproducible on refresh,
+        # and adaptive difficulty / LSRW coverage are untouched (randomization
+        # only breaks ties inside the already-filtered, equally-good pool).
+        rng = random.Random(f"{session.id}:{len(answered_rows)}")
+
+        from app.services.persona_context_policy import question_personas
+
         for q in skill_candidates:
             qc = {}
             if q.question_content:
@@ -715,7 +775,6 @@ class AssessmentService:
             score += format_fit_score(q, persona_key, spec)
 
             # Content curated explicitly for this persona wins ties decisively.
-            from app.services.persona_context_policy import question_personas
             if persona_key in question_personas(q):
                 score += 120
 
@@ -735,17 +794,21 @@ class AssessmentService:
             if spec and spec.get("media_required") and (q.image_url or q.audio_url or q.audio_script):
                 score += 40
 
-            # Random tie-breaker
-            score += random.random() * 5
+            scored.append((score, q))
 
-            if score > best_score:
-                best_score = score
-                best_question = q
+        best_question = None
+        if scored:
+            top_score = max(s for s, _ in scored)
+            # Everything within one "soft preference" step of the best score is
+            # considered equally appropriate; pick among them at random.
+            band = [q for s, q in scored if s >= top_score - 45]
+            best_question = rng.choice(band)
 
         if best_question is None:
             # Prompt de-duplication emptied the pool — fall back inside the
             # persona-safe set only.
-            best_question = skill_candidates[0]
+            best_question = rng.choice(skill_candidates)
+
 
 
         # Translate instruction for website_language and options for learning_language
