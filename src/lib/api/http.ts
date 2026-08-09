@@ -127,6 +127,9 @@ export async function apiRequest<T>(
       (apiError as any).details = detail;
     }
     throw apiError;
+  }
+
+
 
 
   if (response.status === 204) {
