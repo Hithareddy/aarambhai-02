@@ -178,11 +178,25 @@ export function AssessmentQuizPage() {
         if (isCancelled) return;
         console.error("[AssessmentQuiz Diagnostics] initSession FAIL:", err);
         const errMsg = err.message || "";
+        // Hard profile gate: the backend refuses to start a generic session
+        // when onboarding data is missing. Send the learner back to onboarding.
+        if (err?.status === 428 || err?.code === "profile_incomplete") {
+          const missing: string[] = err?.details?.missing || [];
+          localStorage.removeItem("assessment_session_id");
+          toast.error(
+            missing.length
+              ? `Please complete your profile first (missing: ${missing.join(", ")}).`
+              : errMsg || "Please complete your profile before starting the assessment."
+          );
+          navigate({ to: "/onboarding", search: { reason: "profile_required" } as any });
+          return;
+        }
         if (errMsg.toLowerCase().includes("no questions") || errMsg.toLowerCase().includes("no more questions")) {
           setError("Database Configuration Error: No active diagnostic questions found in the database. Please ensure the database question bank is seeded.");
         } else {
           setError(`Assessment couldn't start: ${err.message || err}`);
         }
+
       } finally {
         console.log("[AssessmentQuiz Diagnostics] finally reached");
         if (timeoutId) clearTimeout(timeoutId);
