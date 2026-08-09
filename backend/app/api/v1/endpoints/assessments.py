@@ -17,7 +17,7 @@ from app.schemas.assessment import (
     QuestionResponseResponse,
 )
 from app.schemas.question import QuestionForAssessment
-from app.services.assessment_service import AssessmentService
+from app.services.assessment_service import AssessmentService, ProfileIncompleteError
 from app.services.speaking_evaluation_service import SpeakingEvaluationService
 from fastapi import File, UploadFile, Form
 
@@ -80,6 +80,17 @@ async def start_assessment_session(
     try:
         created_session = await service.create_session(session, current_user.id)
         return await service.serialize_session(created_session)
+    except ProfileIncompleteError as exc:
+        # 428 Precondition Required — the client must send the learner back to
+        # onboarding instead of starting a generic assessment.
+        raise HTTPException(
+            status_code=status.HTTP_428_PRECONDITION_REQUIRED,
+            detail={
+                "code": "profile_incomplete",
+                "message": exc.message,
+                "missing": exc.missing,
+            },
+        ) from exc
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
